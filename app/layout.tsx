@@ -27,11 +27,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#EFEFEF",
+  themeColor: "#EBEBEB",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -43,9 +45,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      style={{ colorScheme: "light" }}
     >
-      <body className="flex h-full flex-col bg-[#EBEBEB] text-slate-900 overflow-x-hidden relative pb-24">
-        {children}
+      <body className="flex h-full flex-col bg-[#EBEBEB] text-slate-900 overflow-hidden relative">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24">
+          {children}
+        </main>
         <BottomNav />
       </body>
     </html>

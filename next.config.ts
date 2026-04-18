@@ -8,8 +8,15 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  allowedDevOrigins: ["*"],
   turbopack: {},
 };
 
-export default withPWA(nextConfig);
+// Apply PWA wrapper first, then add allowedDevOrigins on top
+// (withPWA may strip unknown keys, so we add it after)
+const finalConfig = {
+  ...withPWA(nextConfig),
+  allowedDevOrigins: ["*"],
+};
+
+export default finalConfig;

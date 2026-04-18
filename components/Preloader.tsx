@@ -4,14 +4,17 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Preloader() {
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Ensure it shows only on client and finishes after 2.5 seconds
+    setMounted(true);
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 2500);
+    }, 2000); // Slightly shorter for better feel
     return () => clearTimeout(timer);
   }, []);
+
+  if (!mounted) return null;
 
   return (
     <AnimatePresence>
@@ -21,7 +24,7 @@ export default function Preloader() {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8, ease: "easeInOut" }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-white"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#EBEBEB]"
         >
           <div className="flex flex-col items-center gap-6">
             <div className="flex flex-col items-center gap-4">

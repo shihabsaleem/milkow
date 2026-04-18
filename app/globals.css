@@ -1,30 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #EBEBEB;
+  --foreground: #1A1A1A;
+  color-scheme: light only;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent pull-to-refresh on mobile */
+  overscroll-behavior-y: contain;
+  /* Prevent text size adjustment on orientation change */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
+/* Hide scrollbars for horizontal carousels */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -33,4 +28,27 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+/* Safe area support for notched phones */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Prevent iOS tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent iOS overscroll bounce showing white */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(93, 85, 243, 0.2);
 }

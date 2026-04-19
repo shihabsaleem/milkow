@@ -8,9 +8,7 @@ export default function Preloader() {
 
   useEffect(() => {
     setMounted(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000); // Slightly shorter for better feel
+    const timer = setTimeout(() => setLoading(false), 1600);
     return () => clearTimeout(timer);
   }, []);
 
@@ -23,41 +21,28 @@ export default function Preloader() {
           key="preloader"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#EBEBEB]"
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          style={{ background: "var(--c-bg)", pointerEvents: loading ? "auto" : "none" }}
         >
-          <div className="flex flex-col items-center gap-6">
-            <div className="flex flex-col items-center gap-4">
-              {/* Logo */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className="relative flex items-center justify-center"
-              >
-                <img
-                  src="/assets/logo.svg"
-                  alt="Milkow Logo"
-                  className="w-auto h-16 object-contain opacity-90"
-                />
-              </motion.div>
-            </div>
-
-            {/* Minimal Progress Line */}
+          <div className="flex flex-col items-center gap-5">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 1 }}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              <div className="h-[1px] w-32 md:w-48 bg-black/10 overflow-hidden relative rounded-full">
-                <motion.div
-                  initial={{ x: "-100%" }}
-                  animate={{ x: "100%" }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute inset-y-0 w-1/3 bg-black"
-                />
-              </div>
+              <img src="/assets/logo.svg" alt="Milkow" className="w-auto h-9 object-contain" />
             </motion.div>
+
+            <div className="h-[2px] w-20 rounded-full overflow-hidden" style={{ background: "var(--c-primary-soft)" }}>
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: "100%" }}
+                transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                className="h-full w-1/2 rounded-full"
+                style={{ background: "var(--c-primary)" }}
+              />
+            </div>
           </div>
         </motion.div>
       )}

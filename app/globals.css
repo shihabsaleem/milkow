@@ -1,54 +1,52 @@
 @import "tailwindcss";
 
+/* ─── Design Tokens ─── */
 :root {
-  --background: #EBEBEB;
-  --foreground: #1A1A1A;
+  --primary:        #5B52F0;
+  --primary-dim:    rgba(91,82,240,0.12);
+  --primary-card:   #5B52F0;
+
+  --bg:             #F4F4F8;
+  --surface:        #FFFFFF;
+  --card:           #5B52F0;
+
+  --text-1:         #18181B;   /* headings */
+  --text-2:         #52525B;   /* body */
+  --text-3:         #A1A1AA;   /* captions */
+
+  --green:          #22C55E;
+  --green-soft:     #F0FDF4;
+  --green-border:   #BBF7D0;
+
+  --red:            #EF4444;
+  --red-soft:       #FFF1F2;
+  --red-border:     #FECDD3;
+
+  --radius:         16px;
+  --radius-sm:      10px;
+  --radius-lg:      24px;
+
   color-scheme: light only;
 }
 
+/* ─── Reset ─── */
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; overflow-x: hidden; }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent pull-to-refresh on mobile */
-  overscroll-behavior-y: contain;
-  /* Prevent text size adjustment on orientation change */
+  overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
-/* Hide scrollbars for horizontal carousels */
+/* ─── Utilities ─── */
 @layer utilities {
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-/* Safe area support for notched phones */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
-/* Prevent iOS tap highlight */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Prevent iOS overscroll bounce showing white */
-html, body {
-  height: 100%;
-  overflow: hidden;
-}
-
-/* Selection color */
-::selection {
-  background: rgba(93, 85, 243, 0.2);
-}
+::selection { background: var(--primary-dim); color: var(--primary); }

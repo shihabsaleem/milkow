@@ -1,0 +1,39 @@
+{
+  "inventory": [
+    { "name": "Milk", "vol": "500ml", "count": 100, "unit": "Bottles", "loaded": 125 },
+    { "name": "Curd (Skim)", "vol": "500ml", "count": 0, "unit": "Bottles", "loaded": 0 },
+    { "name": "Ghee", "vol": "250ml", "count": 45, "unit": "Bottles", "loaded": 30 },
+    { "name": "Paneer", "vol": "200g", "count": 60, "unit": "Packs", "loaded": 50 }
+  ],
+  "delivered": [
+    { "name": "Milk", "vol": "500ml", "count": 100, "unit": "Bottles" },
+    { "name": "Milk", "vol": "1000ml", "count": 50, "unit": "Bottles" },
+    { "name": "Curd (Skim)", "vol": "500ml", "count": 20, "unit": "Boxes" },
+    { "name": "Ghee", "vol": "250ml", "count": 10, "unit": "Bottles" }
+  ],
+  "route": [
+    { "id": 1, "name": "John Doe", "qty": "2 Bottles", "delivered": false, "misc": null },
+    { "id": 2, "name": "Sarah Smith", "qty": "1 Bottle", "delivered": true, "misc": "Fresh Curd (500g)" },
+    { "id": 3, "name": "Mike Johnson", "qty": "3 Bottles", "delivered": false, "misc": "Paneer (200g)" }
+  ],
+  "pipeline": [
+    { "label": "Raw Received", "value": "450", "unit": "L", "bg": "var(--primary-dim)", "accent": "var(--primary)", "type": "box" },
+    { "label": "In Freezing", "value": "300", "unit": "L", "bg": "var(--primary-dim)", "accent": "var(--primary)", "type": "thermometer" },
+    { "label": "Bottled", "value": "150", "unit": "Btl", "bg": "var(--green-soft)", "accent": "var(--green)", "emoji": "🥛" },
+    { "label": "On Route", "value": "120", "unit": "Btl", "bg": "var(--green-soft)", "accent": "var(--green)", "emoji": "🚚" }
+  ],
+  "products": [
+    { "name": "Fresh Curd", "size": "500g", "stock": 85, "price": "₹120" },
+    { "name": "Pure Ghee", "size": "250g", "stock": 20, "price": "₹350" },
+    { "name": "Paneer", "size": "200g", "stock": 40, "price": "₹180" }
+  ],
+  "users": [
+    { "name": "John Doe", "phone": "+1 234 567 890", "area": "Downtown", "frequency": "Morning & Evening", "status": "Active" },
+    { "name": "Sarah Smith", "phone": "+1 987 654 321", "area": "Westside", "frequency": "Morning Only", "status": "Active" },
+    { "name": "Mike Johnson", "phone": "+1 555 123 456", "area": "North Hills", "frequency": "Evening Only", "status": "Inactive" }
+  ],
+  "bills": [
+    { "id": "INV-102", "name": "John Doe", "type": "Weekly", "amount": 45.50, "status": "Pending" },
+    { "id": "INV-103", "name": "Sarah Smith", "type": "Monthly", "amount": 120.00, "status": "Pending" }
+  ]
+}

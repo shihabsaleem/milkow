@@ -4,14 +4,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { QrCode, MessageCircle, Wallet2, CheckCircle2, X } from "lucide-react";
+import data from "../../data/data.json";
 
 export default function BillingPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
 
-  const bills = [
-    { id: "INV-102", name: "John Doe", type: "Weekly", amount: 45.50, status: "Pending" },
-    { id: "INV-103", name: "Sarah Smith", type: "Monthly", amount: 120.00, status: "Pending" },
-  ];
+
 
   return (
     <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
@@ -21,7 +19,7 @@ export default function BillingPage() {
       </header>
 
       <main className="px-5 py-6 flex flex-col gap-4">
-        {bills.map((bill) => (
+        {data.bills.map((bill: any) => (
            <div key={bill.id} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
               <div className="flex justify-between items-start">
                  <div>

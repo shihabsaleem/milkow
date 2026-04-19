@@ -1,240 +1,243 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import {
-  MoreVertical,
-  Calendar,
-  Sunrise,
-  Sunset,
-} from "lucide-react";
-import Preloader from "@/components/Preloader";
+import { MoreVertical, Calendar, Sunrise, Sunset } from "lucide-react";
+import { motion } from "framer-motion";
+import data from "../data/data.json";
+
+type InventoryItem = { name: string; vol: string; count: number; unit: string; loaded: number };
+type DeliveredItem = { name: string; vol: string; count: number; unit: string };
+
+const fmtDate = (s: string) => {
+  const d = new Date(s);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+};
+
+const SIDE_PAD = "1.75rem"; // 28px — matches px-7
 
 export default function Dashboard() {
-  const [selectedDate, setSelectedDate] = useState("2026-04-18");
-  const [currentDay, setCurrentDay] = useState("");
-  const [activeShift, setActiveShift] = useState<"morning" | "evening">("morning");
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [date, setDate] = useState("2026-04-18");
+  const [dayName, setDayName] = useState("");
+  const [shift, setShift] = useState<"morning" | "evening">("morning");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setCurrentDay(new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" }));
-  }, [selectedDate]);
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const inventoryItems = [
-    { name: "Milk", vol: "500ml", count: 100, unit: "Bottles", loaded: 125 },
-    { name: "Curd (Skim)", vol: "500ml", count: 0, unit: "Bottles", loaded: 0 },
-    { name: "Ghee", vol: "250ml", count: 45, unit: "Bottles", loaded: 30 },
-    { name: "Paneer", vol: "200g", count: 60, unit: "Packs", loaded: 50 },
-  ];
-
-  const deliveredItems = [
-    { name: "Milk", vol: "500ml", count: 100, unit: "Bottles" },
-    { name: "Milk", vol: "1000ml", count: 50, unit: "Bottles" },
-    { name: "Curd (Skim)", vol: "500ml", count: 20, unit: "Boxes" },
-    { name: "Ghee", vol: "250ml", count: 10, unit: "Bottles" },
-  ];
+    setDayName(new Date(date).toLocaleDateString("en-US", { weekday: "long" }));
+  }, [date]);
 
   return (
-    <div className="flex min-h-full w-full flex-col bg-[#EBEBEB] text-[#1A1A1A] font-sans pt-6 sm:pt-8 md:pt-10 pb-8">
-      <Preloader />
+    <div className="min-h-full w-full" style={{ background: "var(--bg)" }}>
 
-      {/* Responsive container for larger screens */}
-      <div className="w-full max-w-3xl mx-auto">
-
-        {/* Header */}
-        <header className="flex items-center justify-between mb-6 sm:mb-8 px-5 sm:px-6 md:px-8">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl overflow-hidden bg-zinc-300 flex-shrink-0">
+      {/* STICKY HEADER */}
+      <div
+        className="sticky top-0 z-40 border-b"
+        style={{ background: "rgba(244,244,248,0.92)", borderColor: "rgba(0,0,0,0.06)", backdropFilter: "blur(12px)" }}
+      >
+        <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-white shadow-sm flex-shrink-0">
               <img
                 src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&auto=format&fit=crop"
-                alt="Profile"
-                className="h-full w-full object-cover"
-                loading="eager"
+                alt="Profile" className="h-full w-full object-cover"
               />
             </div>
-            <div className="flex flex-col">
-              <span className="text-zinc-400 text-xs sm:text-sm font-medium">Good Morning,</span>
-              <span className="text-[#5D55F3] text-base sm:text-lg font-bold">Sayas R.</span>
+            <div className="flex flex-col leading-tight">
+              <p className="text-[12px] font-medium" style={{ color: "var(--text-3)" }}>
+                {shift === "morning" ? "Good Morning," : "Good Evening,"}
+              </p>
+              <p className="text-[17px] font-extrabold" style={{ color: "var(--primary)" }}>Sayas R.</p>
             </div>
           </div>
-          <button className="text-zinc-400 p-2 hover:bg-zinc-200 rounded-xl transition-colors" aria-label="More options">
-            <MoreVertical size={24} />
-          </button>
-        </header>
-
-        {/* Date and Shifts */}
-        <section className="flex gap-3 mb-6 sm:mb-8 px-5 sm:px-6 md:px-8">
-          {/* Date Picker Card */}
-          <div
-            className="flex-1 bg-[#5D55F3] rounded-[1.5rem] sm:rounded-[2rem] h-20 sm:h-24 p-4 sm:p-6 text-white flex items-center gap-3 sm:gap-4 shadow-sm relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer"
+          <button
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+            style={{ color: "var(--text-3)" }}
           >
-            <div className="bg-white/20 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl flex-shrink-0">
-              <Calendar size={20} className="sm:hidden" />
-              <Calendar size={24} className="hidden sm:block" />
+            <MoreVertical size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* CONTENT */}
+      <div className="w-full max-w-2xl mx-auto pt-5 pb-32 flex flex-col gap-10">
+
+        {/* DATE */}
+        <section className="flex flex-col gap-4" style={{ paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD }}>
+          <div
+            className="w-full rounded-2xl h-[68px] px-5 text-white flex items-center gap-4 relative"
+            style={{ background: "var(--primary)" }}
+          >
+            <div className="p-2.5 rounded-xl flex-shrink-0 pointer-events-none" style={{ background: "rgba(255,255,255,0.18)" }}>
+              <Calendar size={20} strokeWidth={2} />
             </div>
-            <div className="flex flex-col items-start min-w-0">
-              <span className="text-base sm:text-lg font-bold tracking-tight leading-none">{formatDate(selectedDate)}</span>
-              <span className="text-white/80 text-[10px] sm:text-xs font-medium mt-0.5 sm:mt-1">{currentDay}</span>
+            <div className="pointer-events-none">
+              <p className="text-[17px] font-bold tracking-tight leading-snug">{fmtDate(date)}</p>
+              <p className="text-[12px] font-medium leading-none mt-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>{dayName}</p>
             </div>
-            {/* Native date input covers the entire card for reliable mobile touch */}
+            <div className="ml-auto pointer-events-none flex items-center gap-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+              <Calendar size={14} strokeWidth={2} />
+              <span className="text-[11px] font-medium">Tap to change</span>
+            </div>
             <input
-              ref={dateInputRef}
-              type="date"
+              ref={inputRef} type="date"
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              style={{ WebkitAppearance: "none", fontSize: "16px" }}
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{ WebkitAppearance: "none", fontSize: "16px", zIndex: 10 }}
+              value={date} onChange={e => setDate(e.target.value)}
             />
           </div>
 
-          {/* Shift Toggle Pill */}
-          <div className="bg-[#5D55F3] rounded-[1.5rem] sm:rounded-[2.2rem] h-20 sm:h-24 p-1.5 sm:p-2 flex items-center gap-1 shadow-sm flex-shrink-0">
+          <div className="grid grid-cols-2 p-1 rounded-2xl bg-[#EBEBEF] relative h-14">
+            <motion.div
+              layout
+              className="absolute inset-y-1 rounded-xl shadow-sm z-0"
+              style={{
+                background: "white",
+                left: shift === "morning" ? "4px" : "50%",
+                width: "calc(50% - 4px)"
+              }}
+              transition={{ type: "spring", stiffness: 450, damping: 35 }}
+            />
             <button
-              onClick={() => setActiveShift("morning")}
-              className={`h-full w-14 sm:w-16 rounded-[1.2rem] sm:rounded-[1.6rem] flex flex-col items-center justify-center transition-all duration-300 ${
-                activeShift === "morning" ? "bg-white text-[#5D55F3]" : "text-white/80"
-              }`}
-              aria-label="Morning shift"
+              onClick={() => setShift("morning")}
+              className={`relative z-10 flex items-center justify-center gap-2.5 rounded-xl transition-all ${shift === "morning" ? "text-[#5B52F0]" : "text-[#A1A1AA] hover:text-[#71717A]"}`}
             >
-              <Sunrise size={20} strokeWidth={2.5} className="sm:hidden" />
-              <Sunrise size={22} strokeWidth={2.5} className="hidden sm:block" />
+              <Sunrise size={20} strokeWidth={2.5} />
+              <span className="text-[15px] font-bold">Morning</span>
             </button>
-
             <button
-              onClick={() => setActiveShift("evening")}
-              className={`h-full w-14 sm:w-16 rounded-[1.2rem] sm:rounded-[1.6rem] flex flex-col items-center justify-center transition-all duration-300 ${
-                activeShift === "evening" ? "bg-white text-[#5D55F3]" : "text-white/80"
-              }`}
-              aria-label="Evening shift"
+              onClick={() => setShift("evening")}
+              className={`relative z-10 flex items-center justify-center gap-2.5 rounded-xl transition-all ${shift === "evening" ? "text-[#5B52F0]" : "text-[#A1A1AA] hover:text-[#71717A]"}`}
             >
-              <Sunset size={20} strokeWidth={2.5} className="sm:hidden" />
-              <Sunset size={22} strokeWidth={2.5} className="hidden sm:block" />
+              <Sunset size={20} strokeWidth={2.5} />
+              <span className="text-[15px] font-bold">Evening</span>
             </button>
           </div>
         </section>
 
-        {/* Inventory Section */}
-        <section className="mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-2xl font-black mb-3 sm:mb-4 px-5 sm:px-6 md:px-8">
-            Inventory<span className="text-[#5D55F3]">.</span>
-          </h2>
-
-          {/* Mobile: horizontal scroll / Tablet+: grid */}
-          <div className="sm:hidden flex flex-nowrap gap-3 overflow-x-auto pb-4 no-scrollbar -mx-5 px-5 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: "touch" }}>
-            {inventoryItems.map((item, i) => (
-              <div key={i} className="min-w-[220px] flex-shrink-0 bg-[#5C54F1] rounded-[2rem] overflow-hidden shadow-sm flex flex-col snap-start">
-                <div className="p-6 flex flex-col gap-4">
-                  <div className="flex flex-col">
-                    <span className="text-white text-2xl font-black leading-tight">{item.name}</span>
-                    <span className="text-white/80 text-sm font-medium">{item.vol}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-white text-3xl font-black">{item.count || "--"}</span>
-                    <span className="text-white/80 text-xs font-bold uppercase tracking-[0.2em]">{item.unit}</span>
-                  </div>
-                </div>
-                <div className="bg-[#E7E6FF] px-6 py-3 flex justify-between items-center text-[#5C54F1]">
-                  <span className="text-[10px] font-extrabold uppercase tracking-tight">loaded to van</span>
-                  <span className="text-xs font-black">{item.loaded || "--"} <span className="font-bold text-[10px]">{item.unit}</span></span>
-                </div>
-              </div>
-            ))}
-            <div className="min-w-[1px] flex-shrink-0" aria-hidden="true" />
+        {/* INVENTORY */}
+        <section>
+          <p
+            className="text-[11px] font-bold uppercase tracking-[0.12em] mb-4 mt-2"
+            style={{ color: "var(--text-3)", paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD }}
+          >
+            Inventory
+          </p>
+          {/* mobile scroll */}
+          <div
+            className="sm:hidden flex gap-4 overflow-x-auto no-scrollbar pb-1 snap-x snap-mandatory"
+            style={{ WebkitOverflowScrolling: "touch", paddingLeft: SIDE_PAD }}
+          >
+            {data.inventory.map((item: any, i: number) => <InventoryCard key={i} item={item} />)}
+            <div style={{ minWidth: SIDE_PAD, flexShrink: 0 }} />
           </div>
-
-          {/* Tablet+: responsive grid */}
-          <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-4 px-6 md:px-8">
-            {inventoryItems.map((item, i) => (
-              <div key={i} className="bg-[#5C54F1] rounded-[2rem] overflow-hidden shadow-sm flex flex-col hover:scale-[1.02] transition-transform">
-                <div className="p-6 flex flex-col gap-4">
-                  <div className="flex flex-col">
-                    <span className="text-white text-2xl font-black leading-tight">{item.name}</span>
-                    <span className="text-white/80 text-sm font-medium">{item.vol}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-white text-3xl font-black">{item.count || "--"}</span>
-                    <span className="text-white/80 text-xs font-bold uppercase tracking-[0.2em]">{item.unit}</span>
-                  </div>
-                </div>
-                <div className="bg-[#E7E6FF] px-6 py-3 flex justify-between items-center text-[#5C54F1]">
-                  <span className="text-[10px] font-extrabold uppercase tracking-tight">loaded to van</span>
-                  <span className="text-xs font-black">{item.loaded || "--"} <span className="font-bold text-[10px]">{item.unit}</span></span>
-                </div>
-              </div>
-            ))}
+          {/* tablet+ grid */}
+          <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-3" style={{ paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD }}>
+            {data.inventory.map((item: any, i: number) => <InventoryCard key={i} item={item} />)}
           </div>
         </section>
 
-        {/* Delivered Section */}
-        <section className="mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-2xl font-black mb-3 sm:mb-4 px-5 sm:px-6 md:px-8">
-            Delivered<span className="text-[#5D55F3]">.</span>
-          </h2>
-
-          {/* Mobile: horizontal scroll */}
-          <div className="sm:hidden flex flex-nowrap gap-3 overflow-x-auto pb-4 no-scrollbar -mx-5 px-5 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: "touch" }}>
-            {deliveredItems.map((item, i) => (
-              <div key={i} className="min-w-[150px] flex-shrink-0 bg-[#5C54F1] rounded-[2rem] p-6 flex flex-col gap-4 shadow-sm snap-start">
-                <div className="flex flex-col">
-                  <span className="text-white text-xl font-black leading-tight">{item.name}</span>
-                  <span className="text-white/80 text-[10px] font-bold">{item.vol}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-white text-3xl font-black">{item.count}</span>
-                  <span className="text-white/80 text-[10px] font-bold uppercase tracking-[0.15em]">{item.unit}</span>
-                </div>
-              </div>
-            ))}
-            <div className="min-w-[1px] flex-shrink-0" aria-hidden="true" />
+        {/* DELIVERED */}
+        <section>
+          <p
+            className="text-[11px] font-bold uppercase tracking-[0.12em] mb-4 mt-2"
+            style={{ color: "var(--text-3)", paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD }}
+          >
+            Delivered
+          </p>
+          {/* mobile scroll */}
+          <div
+            className="sm:hidden flex gap-4 overflow-x-auto no-scrollbar pb-1 snap-x snap-mandatory"
+            style={{ WebkitOverflowScrolling: "touch", paddingLeft: SIDE_PAD }}
+          >
+            {data.delivered.map((item: any, i: number) => <DeliveredCard key={i} item={item} />)}
+            <div style={{ minWidth: SIDE_PAD, flexShrink: 0 }} />
           </div>
-
-          {/* Tablet+: responsive grid */}
-          <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-4 gap-4 px-6 md:px-8">
-            {deliveredItems.map((item, i) => (
-              <div key={i} className="bg-[#5C54F1] rounded-[2rem] p-6 flex flex-col gap-4 shadow-sm hover:scale-[1.02] transition-transform">
-                <div className="flex flex-col">
-                  <span className="text-white text-xl font-black leading-tight">{item.name}</span>
-                  <span className="text-white/80 text-[11px] font-bold">{item.vol}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-white text-3xl font-black">{item.count}</span>
-                  <span className="text-white/80 text-[10px] font-bold uppercase tracking-[0.15em]">{item.unit}</span>
-                </div>
-              </div>
-            ))}
+          {/* tablet+ grid */}
+          <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-4 gap-3" style={{ paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD }}>
+            {data.delivered.map((item: any, i: number) => <DeliveredCard key={i} item={item} />)}
           </div>
         </section>
 
-        {/* Summary Section */}
-        <section className="grid grid-cols-2 gap-3 sm:gap-4 px-5 sm:px-6 md:px-8">
-          <div className="bg-[#DBEDE5] rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 flex flex-col items-center border border-[#B8D7C9]">
-            <span className="text-xl sm:text-2xl font-black flex items-center gap-1">
-              <span className="text-xs sm:text-sm font-bold">₹</span> 25000
-            </span>
-            <span className="text-[10px] sm:text-xs font-bold text-zinc-600 mb-3 sm:mb-4">To Collect</span>
-            <div className="bg-[#A0C9B1] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-white text-[8px] sm:text-[9px] font-black uppercase whitespace-nowrap">
-              from 100 Customers
-            </div>
-          </div>
-          <div className="bg-[#EFDEE0] rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 flex flex-col items-center border border-[#E2CBCF]">
-            <span className="text-xl sm:text-2xl font-black flex items-center gap-1">
-              <span className="text-xs sm:text-sm font-bold">₹</span> 15000
-            </span>
-            <span className="text-[10px] sm:text-xs font-bold text-zinc-600 mb-3 sm:mb-4">To Pay</span>
-            <div className="bg-[#CB979D] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-white text-[8px] sm:text-[9px] font-black uppercase whitespace-nowrap">
-              to 2 Vendors
-            </div>
+        {/* FINANCIALS */}
+        <section style={{ paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD }}>
+          <p className="text-[12px] font-bold uppercase tracking-widest mb-3" style={{ color: "var(--text-3)" }}>
+            Financials
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <FinanceCard amount="₹25,000" label="To Collect" badge="100 Customers" type="green" />
+            <FinanceCard amount="₹15,000" label="To Pay" badge="2 Vendors" type="red" />
           </div>
         </section>
 
       </div>
+    </div>
+  );
+}
+
+/* INVENTORY CARD */
+function InventoryCard({ item }: { item: InventoryItem }) {
+  const isEmpty = item.count === 0;
+  return (
+    <div
+      className="min-w-[210px] sm:min-w-0 flex-shrink-0 rounded-2xl overflow-hidden snap-start hover:brightness-105 transition-all"
+      style={{ background: "var(--primary-card)" }}
+    >
+      <div className="p-5 pb-4">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <p className="text-white text-[18px] font-bold leading-tight">{item.name}</p>
+        </div>
+        <p className="text-[13px] font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>{item.vol}</p>
+        <div className="mt-4">
+          <p className="text-white text-[38px] font-black leading-none">{isEmpty ? "—" : item.count}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>{item.unit}</p>
+        </div>
+      </div>
+      <div className="px-5 py-3 flex items-center justify-between" style={{ background: "rgba(0,0,0,0.18)" }}>
+        <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.65)" }}>Loaded to Van</p>
+        <p className="text-[14px] font-bold text-white">
+          {isEmpty ? "—" : item.loaded}
+          <span className="text-[10px] font-medium ml-1" style={{ color: "rgba(255,255,255,0.65)" }}>{item.unit}</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* DELIVERED CARD */
+function DeliveredCard({ item }: { item: DeliveredItem }) {
+  return (
+    <div
+      className="min-w-[155px] sm:min-w-0 flex-shrink-0 rounded-2xl p-5 snap-start hover:brightness-105 transition-all"
+      style={{ background: "var(--primary-card)" }}
+    >
+      <p className="text-white text-[17px] font-bold leading-tight">{item.name}</p>
+      <p className="text-[13px] font-medium mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>{item.vol}</p>
+      <div className="mt-4">
+        <p className="text-white text-[38px] font-black leading-none">{item.count}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>{item.unit}</p>
+      </div>
+    </div>
+  );
+}
+
+/* FINANCE CARD */
+function FinanceCard({ amount, label, badge, type }: { amount: string; label: string; badge: string; type: "green" | "red" }) {
+  const isGreen = type === "green";
+  return (
+    <div
+      className="rounded-2xl p-5 flex flex-col items-center gap-1 border"
+      style={{
+        background: isGreen ? "var(--green-soft)" : "var(--red-soft)",
+        borderColor: isGreen ? "var(--green-border)" : "var(--red-border)",
+      }}
+    >
+      <p className="text-[22px] font-extrabold" style={{ color: "var(--text-1)" }}>{amount}</p>
+      <p className="text-[13px] font-semibold mb-2" style={{ color: "var(--text-2)" }}>{label}</p>
+      <span
+        className="px-3 py-1 rounded-full text-white text-[11px] font-bold"
+        style={{ background: isGreen ? "var(--green)" : "var(--red)" }}
+      >
+        {badge}
+      </span>
     </div>
   );
 }

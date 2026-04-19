@@ -14,33 +14,33 @@ export default function BottomNav() {
   ];
 
   return (
-    <div
-      className="fixed bottom-0 left-0 right-0 z-50 bg-[#5D55F3] rounded-t-2xl sm:rounded-t-3xl shadow-lg"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50"
+      style={{ background: "var(--primary)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="flex items-center justify-between max-w-3xl mx-auto px-6 sm:px-8 py-3 sm:py-4">
-        {navItems.map((nav, i) => {
-          const isActive = pathname === nav.href;
+      <div className="flex items-center justify-around max-w-2xl mx-auto h-[60px]">
+        {navItems.map((item, i) => {
+          const active = pathname === item.href;
           return (
-            <Link href={nav.href} key={i} prefetch>
-              <div className="flex flex-col items-center gap-1 sm:gap-1.5 cursor-pointer min-w-[48px] py-1">
-                <nav.icon
+            <Link href={item.href} key={i} prefetch className="flex-1">
+              <div className="flex flex-col items-center justify-center gap-1 py-2">
+                <item.icon
                   size={22}
-                  strokeWidth={isActive ? 2.5 : 2}
-                  className={`transition-colors ${isActive ? "text-white" : "text-white/70"}`}
+                  strokeWidth={active ? 2.5 : 1.8}
+                  className="transition-all duration-200"
+                  style={{ color: active ? "#FFFFFF" : "rgba(255,255,255,0.35)" }}
                 />
                 <span
-                  className={`text-[10px] sm:text-[11px] transition-colors ${
-                    isActive ? "text-white font-semibold" : "text-white/70 font-medium"
-                  }`}
+                  className="text-[10px] font-semibold tracking-wide transition-all duration-200"
+                  style={{ color: active ? "#FFFFFF" : "rgba(255,255,255,0.35)" }}
                 >
-                  {nav.label}
+                  {item.label}
                 </span>
               </div>
             </Link>
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }

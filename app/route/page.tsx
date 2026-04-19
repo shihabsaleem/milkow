@@ -2,34 +2,51 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, PackagePlus, Map, AlertCircle } from "lucide-react";
+import { Check, PackagePlus, Map, AlertCircle, Search } from "lucide-react";
+import data from "../../data/data.json";
 
 export default function RoutePage() {
-  const [deliveries, setDeliveries] = useState([
-    { id: 1, name: "John Doe", qty: "2 Bottles", delivered: false, misc: null },
-    { id: 2, name: "Sarah Smith", qty: "1 Bottle", delivered: true, misc: "Fresh Curd (500g)" },
-    { id: 3, name: "Mike Johnson", qty: "3 Bottles", delivered: false, misc: "Paneer (200g)" },
-  ]);
+  const [deliveries, setDeliveries] = useState(data.route);
+
+  const [searchQuery, setSearchQuery] = useState("");
 
   const toggleDelivery = (id: number) => {
     setDeliveries(deliveries.map(d => d.id === id ? { ...d, delivered: !d.delivered } : d));
   };
 
+  const filteredDeliveries = deliveries.filter(d => 
+    d.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const remainingStops = filteredDeliveries.filter(d => !d.delivered).length;
+
   return (
     <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl px-5 py-4 border-b border-zinc-200/50">
         <h1 className="text-xl font-bold text-zinc-900">Morning Route</h1>
-        <p className="text-sm text-zinc-500">Downtown Area • 3 Stops Remaining</p>
+        <p className="text-sm text-zinc-500">Downtown Area • {remainingStops} Stops Remaining</p>
       </header>
 
       <main className="px-5 py-6 flex flex-col gap-4">
+         {/* Search Bar */}
+         <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+            <input 
+               type="text"
+               placeholder="Search customers..."
+               className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+            />
+         </div>
+
          {/* Live Progress map skeleton */}
-         <div className="w-full h-32 bg-indigo-50 border border-indigo-100 rounded-2xl flex flex-col items-center justify-center text-indigo-400 gap-2 mb-4">
+         <div className="w-full h-32 bg-indigo-50 border border-indigo-100 rounded-2xl flex flex-col items-center justify-center text-indigo-400 gap-2">
             <Map size={32} />
             <span className="text-sm font-semibold">Live Route Optimization (Tap to view)</span>
          </div>
 
-         {deliveries.map((delivery) => (
+         {filteredDeliveries.map((delivery) => (
             <motion.div 
                key={delivery.id}
                className={`border p-4 rounded-2xl shadow-sm transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-blue-100'}`}

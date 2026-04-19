@@ -2,13 +2,10 @@
 
 import { motion } from "framer-motion";
 import { UserPlus, Search, Phone, MapPin } from "lucide-react";
+import data from "../../data/data.json";
 
 export default function CustomersPage() {
-  const users = [
-    { name: "John Doe", phone: "+1 234 567 890", area: "Downtown", frequency: "Morning & Evening", status: "Active" },
-    { name: "Sarah Smith", phone: "+1 987 654 321", area: "Westside", frequency: "Morning Only", status: "Active" },
-    { name: "Mike Johnson", phone: "+1 555 123 456", area: "North Hills", frequency: "Evening Only", status: "Inactive" },
-  ];
+
 
   return (
     <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
@@ -30,7 +27,7 @@ export default function CustomersPage() {
         </div>
 
         <div className="flex flex-col gap-3">
-          {users.map((user, i) => (
+          {data.users.map((user: any, i: number) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 10 }}

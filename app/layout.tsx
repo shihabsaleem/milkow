@@ -1,33 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Milkow | Mobile First PWA",
-  description: "A gorgeous progressive web app built with Next.js",
+  title: "Milkow | Smart Milk Distribution",
+  description: "Smart milk distribution management",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Milkow",
   },
-  formatDetection: {
-    telephone: false,
-  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#EBEBEB",
+  themeColor: "#F0F0F3",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -38,17 +32,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      style={{ colorScheme: "light" }}
-    >
-      <body className="flex h-full flex-col bg-[#EBEBEB] text-slate-900 overflow-hidden relative">
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24">
+    <html lang="en" className={`${inter.variable} h-full`} style={{ colorScheme: "light" }}>
+      <body className="flex h-full flex-col relative font-[family-name:var(--font-inter)]">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
         <BottomNav />

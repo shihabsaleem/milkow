@@ -1,14 +1,19 @@
 @import "tailwindcss";
 
 /* ─── Design Tokens ─── */
+@theme {
+  --color-primary: #5B52F0;
+  --color-primary-dim: rgba(91, 82, 240, 0.12);
+}
+
 :root {
-  --primary:        #5B52F0;
-  --primary-dim:    rgba(91,82,240,0.12);
-  --primary-card:   #5B52F0;
+  --primary:        var(--color-primary);
+  --primary-dim:    var(--color-primary-dim);
+  --primary-card:   var(--color-primary);
 
   --bg:             #F4F4F8;
   --surface:        #FFFFFF;
-  --card:           #5B52F0;
+  --card:           var(--color-primary);
 
   --text-1:         #18181B;   /* headings */
   --text-2:         #52525B;   /* body */

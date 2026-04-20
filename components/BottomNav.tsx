@@ -1,5 +1,5 @@
 "use client";
-import { Home, Users, Truck, Milk } from "lucide-react";
+import { Home, Truck, Milk, Wallet2, Users, Package } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,9 +8,10 @@ export default function BottomNav() {
 
   const navItems = [
     { icon: Home, label: "Home", href: "/" },
-    { icon: Milk, label: "Inventory", href: "/inventory" },
+    { icon: Package, label: "Inventory", href: "/inventory" },
     { icon: Users, label: "Customers", href: "/customers" },
     { icon: Truck, label: "Delivery", href: "/route" },
+    { icon: Wallet2, label: "Billing", href: "/billing" },
   ];
 
   return (

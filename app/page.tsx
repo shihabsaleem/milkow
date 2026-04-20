@@ -98,14 +98,14 @@ export default function Dashboard() {
             />
             <button
               onClick={() => setShift("morning")}
-              className={`relative z-10 flex items-center justify-center gap-2.5 rounded-xl transition-all ${shift === "morning" ? "text-[#5B52F0]" : "text-[#A1A1AA] hover:text-[#71717A]"}`}
+              className={`relative z-10 flex items-center justify-center gap-2.5 rounded-xl transition-all ${shift === "morning" ? "text-[color:var(--primary)]" : "text-[#A1A1AA] hover:text-[#71717A]"}`}
             >
               <Sunrise size={20} strokeWidth={2.5} />
               <span className="text-[15px] font-bold">Morning</span>
             </button>
             <button
               onClick={() => setShift("evening")}
-              className={`relative z-10 flex items-center justify-center gap-2.5 rounded-xl transition-all ${shift === "evening" ? "text-[#5B52F0]" : "text-[#A1A1AA] hover:text-[#71717A]"}`}
+              className={`relative z-10 flex items-center justify-center gap-2.5 rounded-xl transition-all ${shift === "evening" ? "text-[color:var(--primary)]" : "text-[#A1A1AA] hover:text-[#71717A]"}`}
             >
               <Sunset size={20} strokeWidth={2.5} />
               <span className="text-[15px] font-bold">Evening</span>
@@ -226,8 +226,8 @@ function FinanceCard({ amount, label, badge, type }: { amount: string; label: st
     <div
       className="rounded-2xl p-5 flex flex-col items-center gap-1 border"
       style={{
-        background: isGreen ? "var(--green-soft)" : "var(--red-soft)",
-        borderColor: isGreen ? "var(--green-border)" : "var(--red-border)",
+        background: isGreen ? "var(--primary-dim)" : "var(--red-soft)",
+        borderColor: isGreen ? "var(--primary-soft)" : "var(--red-border)",
       }}
     >
       <p className="text-[22px] font-extrabold" style={{ color: "var(--text-1)" }}>{amount}</p>

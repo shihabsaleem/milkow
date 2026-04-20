@@ -14,15 +14,16 @@
   "route": [
     { "id": 1, "name": "John Doe", "qty": "2 Bottles", "delivered": false, "misc": null },
     { "id": 2, "name": "Sarah Smith", "qty": "1 Bottle", "delivered": true, "misc": "Fresh Curd (500g)" },
-    { "id": 3, "name": "Mike Johnson", "qty": "3 Bottles", "delivered": false, "misc": "Paneer (200g)" }
+    { "id": 3, "name": "Mike Johnson", "qty": "3 Bottles", "delivered": false }
   ],
   "pipeline": [
-    { "label": "Raw Received", "value": "450", "unit": "L", "bg": "var(--primary-dim)", "accent": "var(--primary)", "type": "box" },
-    { "label": "In Freezing", "value": "300", "unit": "L", "bg": "var(--primary-dim)", "accent": "var(--primary)", "type": "thermometer" },
-    { "label": "Bottled", "value": "150", "unit": "Btl", "bg": "var(--green-soft)", "accent": "var(--green)", "emoji": "🥛" },
-    { "label": "On Route", "value": "120", "unit": "Btl", "bg": "var(--green-soft)", "accent": "var(--green)", "emoji": "🚚" }
+    { "label": "Raw Received", "value": "450", "unit": "L" },
+    { "label": "In Freezing", "value": "300", "unit": "L" },
+    { "label": "Bottled", "value": "150", "unit": "Btl" },
+    { "label": "Empty Bottles", "value": "150", "unit": "Btl" }
   ],
   "products": [
+    { "name": "Milk", "size": "500ml", "stock": 150, "price": "₹50" },
     { "name": "Fresh Curd", "size": "500g", "stock": 85, "price": "₹120" },
     { "name": "Pure Ghee", "size": "250g", "stock": 20, "price": "₹350" },
     { "name": "Paneer", "size": "200g", "stock": 40, "price": "₹180" }

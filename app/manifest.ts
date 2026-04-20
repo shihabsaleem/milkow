@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Milkow App',
     short_name: 'Milkow',
-    description: 'A mobile-first progressive web app for Milkow',
+    description: 'Milkow Fresh | Distribution Management',
     start_url: '/',
     display: 'standalone',
     background_color: '#09090b',

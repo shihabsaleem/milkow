@@ -8,7 +8,9 @@ import data from "../../data/data.json";
 export default function InventoryPage() {
   const [date, setDate] = useState("2026-04-20");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pipeline, setPipeline] = useState(data.pipeline);
   const [products, setProducts] = useState(data.products);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: "" });
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -17,28 +19,48 @@ export default function InventoryPage() {
     return d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
   };
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProduct.name || !newProduct.price) return;
 
-    setProducts([{ ...newProduct, stock: parseInt(newProduct.stock || "0") }, ...products]);
+    if (editingIndex !== null) {
+      const updated = [...products];
+      updated[editingIndex] = { ...newProduct, stock: parseInt(newProduct.stock.toString() || "0") };
+      setProducts(updated);
+    } else {
+      setProducts([{ ...newProduct, stock: parseInt(newProduct.stock.toString() || "0") }, ...products]);
+    }
+
     setNewProduct({ name: "", size: "", stock: "", price: "" });
+    setEditingIndex(null);
     setIsModalOpen(false);
   };
 
+  const openEditModal = (index: number) => {
+    setEditingIndex(index);
+    setNewProduct({ ...products[index], stock: products[index].stock.toString() });
+    setIsModalOpen(true);
+  };
+
+  const updatePipelineValue = (index: number, newValue: string) => {
+    const updated = [...pipeline];
+    updated[index].value = newValue;
+    setPipeline(updated);
+  };
+
   return (
-    <div className="min-h-full w-full pb-32" style={{ background: "var(--bg)" }}>
+    <div className="min-h-full w-full pb-32 bg-slate-50">
 
       {/* ── HEADER ── */}
-      <div className="sticky top-0 z-40 border-b" style={{ background: "rgba(244,244,248,0.92)", borderColor: "rgba(0,0,0,0.06)", backdropFilter: "blur(12px)" }}>
+      <div className="sticky top-0 z-40 border-b bg-slate-50/90 border-black/5 backdrop-blur-md">
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[20px] font-extrabold" style={{ color: "var(--text-1)" }}>Inventory</p>
-              <p className="text-[13px] font-medium" style={{ color: "var(--text-3)" }}>Stock & Pipeline</p>
+              <p className="text-[20px] font-extrabold text-zinc-900">Inventory</p>
+              <p className="text-[13px] font-medium text-zinc-400">Stock & Pipeline</p>
             </div>
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: "" }); setIsModalOpen(true); }}
               className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20 active:scale-95 transition-all"
             >
               <Plus size={20} />
@@ -75,35 +97,38 @@ export default function InventoryPage() {
 
         {/* ── PIPELINE ── */}
         <div>
-          <p className="text-[12px] font-bold uppercase tracking-widest mb-3" style={{ color: "var(--text-3)" }}>
+          <p className="text-[12px] font-bold uppercase tracking-widest mb-3 text-zinc-400">
             Supply Pipeline
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {data.pipeline.map((stage: any, i: number) => {
-              const styles = [
-                { bg: "var(--primary-dim)", accent: "var(--primary)", icon: <Droplet size={20} /> },
-                { bg: "var(--primary-dim)", accent: "var(--primary)", icon: <ThermometerSnowflake size={20} /> },
-                { bg: "var(--primary-dim)", accent: "var(--primary)", icon: <Milk size={20} /> },
-                { bg: "var(--primary-dim)", accent: "var(--primary)", icon: <Milk size={20} /> },
-
+          <div className="grid grid-cols-2 gap-3">
+            {pipeline.map((stage: any, i: number) => {
+              const icons = [
+                <Droplet key="droplet" size={20} />,
+                <ThermometerSnowflake key="thermo" size={20} />,
+                <Milk key="milk1" size={20} />,
+                <Milk key="milk2" size={20} />
               ];
-              const s = styles[i % styles.length];
+              const icon = icons[i % icons.length];
 
               return (
                 <div
                   key={i}
-                  className="rounded-2xl p-4 flex flex-col gap-3 active:scale-[0.98] transition-transform"
-                  style={{ background: s.bg, border: "1.5px solid rgba(0,0,0,0.04)" }}
+                  className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5"
                 >
-                  <div style={{ color: s.accent }}>
-                    {s.icon}
+                  <div className="text-primary">
+                    {icon}
                   </div>
                   <div>
-                    <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>{stage.label}</p>
-                    <p className="text-[26px] font-extrabold leading-tight" style={{ color: s.accent }}>
-                      {stage.value}
-                      <span className="text-[13px] font-medium ml-1" style={{ color: "var(--text-3)" }}>{stage.unit}</span>
-                    </p>
+                    <p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p>
+                    <div className="flex items-center mt-1">
+                      <input
+                        type="number"
+                        value={stage.value}
+                        onChange={(e) => updatePipelineValue(i, e.target.value)}
+                        className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold leading-none focus:outline-none focus:bg-primary/10 focus:ring-2 focus:ring-primary/20 rounded-xl transition-all py-1.5 px-2 -ml-2= cursor-text text-primary"
+                      />
+                      <span className="text-[13px] font-medium ml-2 flex-shrink-0 text-zinc-400">{stage.unit}</span>
+                    </div>
                   </div>
                 </div>
               );
@@ -114,13 +139,12 @@ export default function InventoryPage() {
         {/* ── PRODUCTS ── */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-zinc-400">
               Products
             </p>
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="text-[12px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all active:scale-95 shadow-sm"
-              style={{ color: "var(--primary)", background: "var(--primary-dim)" }}
+              onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: "" }); setIsModalOpen(true); }}
+              className="text-[12px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all active:scale-95 shadow-sm text-primary bg-primary/10"
             >
               <Plus size={13} /> Add
             </button>
@@ -130,16 +154,16 @@ export default function InventoryPage() {
             {products.map((p: any, i: number) => (
               <div
                 key={i}
-                className="flex items-center justify-between p-4 rounded-2xl border transition-colors cursor-pointer"
-                style={{ background: "var(--surface)", borderColor: "rgba(0,0,0,0.05)" }}
+                onClick={() => openEditModal(i)}
+                className="flex items-center justify-between p-4 rounded-2xl border transition-colors cursor-pointer active:scale-[0.98] bg-white border-black/5"
               >
                 <div>
-                  <p className="text-[15px] font-bold" style={{ color: "var(--text-1)" }}>{p.name}</p>
-                  <p className="text-[12px] font-medium mt-0.5" style={{ color: "var(--text-3)" }}>{p.size} · {p.stock} in stock</p>
+                  <p className="text-[15px] font-bold text-zinc-900">{p.name}</p>
+                  <p className="text-[12px] font-medium mt-0.5 text-zinc-400">{p.size} · {p.stock} in stock</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <p className="text-[16px] font-extrabold" style={{ color: "var(--text-1)" }}>{p.price}</p>
-                  <ChevronRight size={18} style={{ color: "var(--text-3)" }} />
+                  <p className="text-[16px] font-extrabold text-zinc-900">{p.price}</p>
+                  <ChevronRight size={18} className="text-zinc-400" />
                 </div>
               </div>
             ))}
@@ -166,13 +190,13 @@ export default function InventoryPage() {
               className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6"
             >
               <div className="flex justify-between items-center">
-                <p className="text-[18px] font-black text-slate-900">New Product</p>
+                <p className="text-[18px] font-black text-slate-900">{editingIndex !== null ? "Edit Product" : "New Product"}</p>
                 <button onClick={() => setIsModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500">
                   <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleAddProduct} className="flex flex-col gap-4">
+              <form onSubmit={handleSaveProduct} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Name</label>
                   <input
@@ -217,7 +241,7 @@ export default function InventoryPage() {
                   type="submit"
                   className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl shadow-slate-900/20"
                 >
-                  Create Product
+                  {editingIndex !== null ? "Save Changes" : "Create Product"}
                 </button>
               </form>
             </motion.div>

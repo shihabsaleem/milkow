@@ -1,4 +1,9 @@
 {
+  "payment_setup": {
+    "upi_id": "9999999999@okbizaxis",
+    "payee_name": "Milkow Fresh",
+    "currency_code": "INR"
+  },
   "inventory": [
     { "name": "Milk", "vol": "500ml", "count": 100, "unit": "Bottles", "loaded": 125 },
     { "name": "Curd (Skim)", "vol": "500ml", "count": 0, "unit": "Bottles", "loaded": 0 },

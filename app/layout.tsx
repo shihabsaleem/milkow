@@ -1,17 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 
-const inter = Inter({
+const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-geist",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Milkow | Smart Milk Distribution",
-  description: "Smart milk distribution management",
+  title: "Milkow Fresh | Milk Distribution",
+  description: "Milk distribution management",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -34,8 +34,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full`} style={{ colorScheme: "light" }}>
-      <body className="flex h-full flex-col relative font-[family-name:var(--font-inter)]">
+    <html lang="en" className={`${geist.variable} h-full`} style={{ colorScheme: "light" }}>
+      <body className="flex h-full flex-col relative font-[family-name:var(--font-geist)]">
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>

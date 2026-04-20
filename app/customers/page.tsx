@@ -9,26 +9,42 @@ import data from "../../data/data.json";
 export default function CustomersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customers, setCustomers] = useState(data.users);
-  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area: "", frequency: "Morning & Evening", status: "Active" });
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area: "", frequency: "Morning & Evening", status: "Active", order: "", serialNumber: "", outstanding: "" });
+
+  const handleOpenModal = () => {
+    setNewCustomer({
+      name: "",
+      phone: "",
+      area: "",
+      frequency: "Morning & Evening",
+      status: "Active",
+      order: "1L Cow Milk",
+      serialNumber: String(customers.length + 1),
+      outstanding: ""
+    });
+    setIsModalOpen(true);
+  };
 
   const handleAddCustomer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustomer.name || !newCustomer.phone) return;
     
     setCustomers([newCustomer, ...customers]);
-    setNewCustomer({ name: "", phone: "", area: "", frequency: "Morning & Evening", status: "Active" });
+    setNewCustomer({ name: "", phone: "", area: "", frequency: "Morning & Evening", status: "Active", order: "", serialNumber: "", outstanding: "" });
     setIsModalOpen(false);
   };
 
 
   return (
     <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl px-5 py-4 border-b border-zinc-200/50">
-        <h1 className="text-xl font-bold text-zinc-900">Customers</h1>
-        <p className="text-sm text-zinc-500">Manage onboarding and directories</p>
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
+        <div className="max-w-2xl mx-auto w-full px-5 py-4">
+          <h1 className="text-xl font-bold text-zinc-900">Customers</h1>
+          <p className="text-sm text-zinc-500">Manage onboarding and directories</p>
+        </div>
       </header>
 
-       <main className="px-5 py-6 flex flex-col gap-6">
+       <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-6">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search size={18} className="text-zinc-400" />
@@ -84,7 +100,7 @@ export default function CustomersPage() {
 
       {/* FAB */}
       <button 
-        onClick={() => setIsModalOpen(true)}
+        onClick={handleOpenModal}
         className="fixed bottom-24 right-5 h-14 w-14 bg-primary rounded-full flex items-center justify-center text-white shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all z-[60]"
       >
         <UserPlus size={24} />
@@ -146,6 +162,27 @@ export default function CustomersPage() {
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Order / Qty</label>
+                    <input 
+                      placeholder="e.g. 1L Cow Milk"
+                      value={newCustomer.order}
+                      onChange={e => setNewCustomer({...newCustomer, order: e.target.value})}
+                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Route SL No</label>
+                    <input 
+                      type="number"
+                      placeholder="e.g. 14"
+                      value={newCustomer.serialNumber}
+                      onChange={e => setNewCustomer({...newCustomer, serialNumber: e.target.value})}
+                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Delivery Frequency</label>
                   <select 
@@ -157,6 +194,16 @@ export default function CustomersPage() {
                     <option>Evening Only</option>
                     <option>Morning & Evening</option>
                   </select>
+                </div>
+                <div className="flex flex-col gap-1.5 mt-2 pt-4 border-t border-slate-100">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Outstanding Balance (₹)</label>
+                  <input 
+                    type="number"
+                    placeholder="0"
+                    value={newCustomer.outstanding}
+                    onChange={e => setNewCustomer({...newCustomer, outstanding: e.target.value})}
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
                 </div>
                 <button 
                   type="submit"

@@ -76,7 +76,7 @@ export default function BillingPage() {
       // 4. Draw Customer Info
       ctx.fillStyle = "#111827";
       ctx.font = "black 70px Inter, sans-serif";
-      ctx.fillText(`$${selectedInvoice.amount.toFixed(2)}`, width / 2, 330);
+      ctx.fillText(`₹${selectedInvoice.amount.toFixed(2)}`, width / 2, 330);
 
       ctx.fillStyle = "#374151";
       ctx.font = "bold 35px Inter, sans-serif";
@@ -123,19 +123,21 @@ export default function BillingPage() {
    };
 
    const handleWhatsAppShare = (invoice: any) => {
-      const message = `Hi ${invoice.name}, your bill for ${invoice.type} is $${invoice.amount.toFixed(2)}. upi://pay?pa=yourvpa@upi&pn=Milkow&am=${selectedInvoice.amount}&cu=INR`;
+      const message = `Hi ${invoice.name}, your bill for ${invoice.type} is ₹${invoice.amount.toFixed(2)}. upi://pay?pa=${data.payment_setup.upi_id}&pn=${encodeURIComponent(data.payment_setup.payee_name)}&am=${selectedInvoice.amount}&cu=${data.payment_setup.currency_code}`;
       const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(url, "_blank");
    };
 
    return (
       <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
-         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl px-5 py-4 border-b border-zinc-200/50">
-            <h1 className="text-xl font-bold text-zinc-900">Billing & Collections</h1>
-            <p className="text-sm text-zinc-500">Generate QR and WhatsApp links</p>
+         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
+            <div className="max-w-2xl mx-auto w-full px-5 py-4">
+               <h1 className="text-xl font-bold text-zinc-900">Billing & Collections</h1>
+               <p className="text-sm text-zinc-500">Generate QR and WhatsApp links</p>
+            </div>
          </header>
 
-         <main className="px-5 py-6 flex flex-col gap-4">
+         <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-4">
             {/* Search Bar */}
             <div className="relative mb-2">
                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -169,8 +171,8 @@ export default function BillingPage() {
                               <p className="text-xs text-zinc-500 mt-1">{bill.id} • {bill.type} Billing</p>
                            </div>
                            <div className="flex flex-col items-end">
-                              <span className={`font-black text-lg ${isPaid ? 'text-emerald-500 line-through opacity-50' : 'text-rose-600'}`}>
-                                 ${bill.amount.toFixed(2)}
+                              <span className={`font-black text-lg ${isPaid ? 'text-emerald-500 line-through opacity-50' : 'text-primary'}`}>
+                                 ₹{bill.amount.toFixed(2)}
                               </span>
                               {isPaid && (
                                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">
@@ -228,7 +230,7 @@ export default function BillingPage() {
 
                      <div className="mb-4 mt-4">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Payment Request</p>
-                        <h2 className="text-3xl font-black text-zinc-900">${selectedInvoice.amount.toFixed(2)}</h2>
+                        <h2 className="text-3xl font-black text-zinc-900">₹{selectedInvoice.amount.toFixed(2)}</h2>
                      </div>
 
                      <div 
@@ -237,7 +239,7 @@ export default function BillingPage() {
                      >
                         <div className="bg-white p-4 rounded-[2rem] shadow-inner relative z-10">
                            <QRCodeCanvas
-                              value={`upi://pay?pa=yourvpa@upi&pn=Milkow&am=${selectedInvoice.amount}&cu=INR`}
+                              value={`upi://pay?pa=${data.payment_setup.upi_id}&pn=${encodeURIComponent(data.payment_setup.payee_name)}&am=${selectedInvoice.amount}&cu=${data.payment_setup.currency_code}`}
                               size={200}
                               includeMargin={false}
                               level="H"
@@ -252,8 +254,8 @@ export default function BillingPage() {
                            />
                         </div>
                         <div className="mt-4 text-white">
-                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-tighter">Milkow Fresh</p>
-                           <p className="text-sm font-black">{selectedInvoice.name}</p>
+                           <p className="text-[10px] font-bold opacity-60 uppercase text-black">{data.payment_setup.payee_name}</p>
+                           <p className="text-sm text-black font-black">{selectedInvoice.name}</p>
                         </div>
                         {/* Decorative Circles */}
                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />

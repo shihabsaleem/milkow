@@ -6,9 +6,15 @@ import { Check, PackagePlus, Map, AlertCircle, Search, Plus, Minus, ChevronDown,
 import data from "../../data/data.json";
 
 export default function RoutePage() {
-   const [deliveries, setDeliveries] = useState(data.route);
+   // Fetch from shared memory and dynamically strip any 'Inactive' customers out of the route
+   const [deliveries, setDeliveries] = useState(() => {
+      const activeUsers = data.users.filter(u => u.status !== 'Inactive').map(u => u.name);
+      return data.route.filter(r => activeUsers.includes(r.name));
+   });
    const [searchQuery, setSearchQuery] = useState("");
    const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
+   const [editingSeqId, setEditingSeqId] = useState<number | null>(null);
+   const [editSeqVal, setEditSeqVal] = useState("");
    const [stopProducts, setStopProducts] = useState<Record<number, Record<string, number>>>({});
 
    const toggleDelivery = (id: number) => {
@@ -29,11 +35,23 @@ export default function RoutePage() {
       });
    };
 
+   const updateSequence = (oldIndex: number, newSeqRaw: string) => {
+      const newSeq = parseInt(newSeqRaw);
+      if (isNaN(newSeq) || newSeq < 1 || newSeq > deliveries.length) return;
+      const newIndex = newSeq - 1;
+      if (oldIndex === newIndex) return;
+
+      const updated = [...deliveries];
+      const [movedItem] = updated.splice(oldIndex, 1);
+      updated.splice(newIndex, 0, movedItem);
+      setDeliveries(updated);
+   };
+
    const getProductPrice = (name: string) => {
       const p = data.products.find(p => p.name === name);
       return p ? parseInt(p.price.replace(/\D/g, '')) : 0;
    };
-   const milkPriceContext = 50; // Assume ₹50 per standardized bottle for the breakdown
+
 
 
 
@@ -45,15 +63,16 @@ export default function RoutePage() {
 
    return (
       <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
-         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl px-5 py-4 border-b border-zinc-200/50 flex items-center justify-between">
-            <div>
-               <h1 className="text-xl font-bold text-zinc-900">Morning Route</h1>
-               <p className="text-sm text-zinc-500">Downtown Area • {remainingStops} Stops Remaining</p>
+         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
+            <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between">
+               <div>
+                  <h1 className="text-xl font-bold text-zinc-900">Morning Route</h1>
+                  <p className="text-sm text-zinc-500">Downtown Area • {remainingStops} Stops Remaining</p>
+               </div>
             </div>
-
          </header>
 
-         <main className="px-5 py-6 flex flex-col gap-4">
+         <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-4">
             {/* Search Bar */}
             <div className="relative">
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
@@ -67,15 +86,12 @@ export default function RoutePage() {
             </div>
 
 
-            {filteredDeliveries.map((delivery) => {
+            {filteredDeliveries.map((delivery, index) => {
                const isExpanded = expandedStopId === delivery.id;
                const stopItems = stopProducts[delivery.id] || {};
                const activeItems = Object.entries(stopItems).filter(([_, qty]) => qty > 0);
                
                const milkQty = parseInt(delivery.qty) || 0;
-               const milkCost = milkQty * milkPriceContext;
-               const extraCost = activeItems.reduce((sum, [name, qty]) => sum + (getProductPrice(name) * qty), 0);
-               const totalCost = milkCost + extraCost;
 
                return (
                   <motion.div
@@ -88,9 +104,36 @@ export default function RoutePage() {
                            className="flex items-center justify-between cursor-pointer"
                            onClick={() => setExpandedStopId(isExpanded ? null : delivery.id)}
                         >
-                           <div>
-                              <h3 className={`font-bold text-lg ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.name}</h3>
-                              <p className="font-semibold text-primary text-sm mt-0.5">{delivery.qty} Milk</p>
+                           <div className="flex items-start gap-3">
+                              {/* Serial Number Badge */}
+                              <input 
+                                 type="text"
+                                 inputMode="numeric"
+                                 value={editingSeqId === delivery.id ? editSeqVal : (index + 1)}
+                                 onChange={(e) => {
+                                    setEditingSeqId(delivery.id);
+                                    setEditSeqVal(e.target.value);
+                                 }}
+                                 onBlur={() => {
+                                    if (editingSeqId === delivery.id) {
+                                       updateSequence(index, editSeqVal);
+                                       setEditingSeqId(null);
+                                    }
+                                 }}
+                                 onKeyDown={(e) => {
+                                    if (e.key === 'Enter') e.currentTarget.blur();
+                                 }}
+                                 onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingSeqId(delivery.id);
+                                    setEditSeqVal((index + 1).toString());
+                                 }}
+                                 className={`mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs text-center focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:text-zinc-900 transition-all ${delivery.delivered ? 'bg-zinc-200 text-zinc-500' : 'bg-primary text-white shadow-md shadow-primary/30'} cursor-text`}
+                              />
+                              <div>
+                                 <h3 className={`font-bold text-lg ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.name}</h3>
+                                 <p className="font-semibold text-primary text-sm mt-0.5">{delivery.qty} Milk</p>
+                              </div>
                            </div>
                            <button
                               onClick={(e) => {
@@ -114,34 +157,9 @@ export default function RoutePage() {
                            </div>
                         )}
 
-                        {/* Price Breakdown */}
-                        <div className="mt-3 bg-slate-50 border border-zinc-100 rounded-xl p-3 text-[11px] flex flex-col gap-1.5 shadow-sm">
-                           <div className="flex justify-between text-zinc-500 font-medium">
-                              <span>{milkQty}x Standard Milk @ ₹50</span>
-                              <span>₹{milkCost}</span>
-                           </div>
-                           {activeItems.map(([name, qty]) => {
-                              const cost = getProductPrice(name) * qty;
-                              return (
-                                 <div key={name} className="flex justify-between text-zinc-500 font-medium">
-                                    <span>{qty}x {name} @ ₹{getProductPrice(name)}</span>
-                                    <span>₹{cost}</span>
-                                 </div>
-                              );
-                           })}
-                           <div className="flex justify-between items-center border-t border-zinc-200 mt-1 pt-2">
-                              <span className="font-bold text-zinc-400 uppercase tracking-wider text-[10px]">Daily Total</span>
-                              <span className="font-black text-sm text-zinc-900">₹{totalCost}</span>
-                           </div>
-                        </div>
-
                         {/* Misc Product Section */}
                         <div className="mt-4 pt-3 border-t border-zinc-100">
-                           {delivery.misc && !isExpanded && activeItems.length === 0 && (
-                              <div className="flex items-center gap-2 text-xs font-medium text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100 mb-3 w-fit">
-                                 <AlertCircle size={12} /> {delivery.misc}
-                              </div>
-                           )}
+                          
 
                            <button
                               onClick={() => setExpandedStopId(delivery.id)}

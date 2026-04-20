@@ -12,6 +12,8 @@ export default function RoutePage() {
       return data.route.filter(r => activeUsers.includes(r.name));
    });
    const [searchQuery, setSearchQuery] = useState("");
+   const [selectedRoute, setSelectedRoute] = useState(data.routes[0]);
+   const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
    const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
    const [editingSeqId, setEditingSeqId] = useState<number | null>(null);
    const [editSeqVal, setEditSeqVal] = useState("");
@@ -55,9 +57,13 @@ export default function RoutePage() {
 
 
 
-   const filteredDeliveries = deliveries.filter(d =>
-      d.name.toLowerCase().includes(searchQuery.toLowerCase())
-   );
+   const filteredDeliveries = deliveries.filter(d => {
+      const user = data.users.find(u => u.name === d.name);
+      // Normalized area check (handling slight string mismatches if any)
+      const matchesArea = user && selectedRoute.toLowerCase().includes(user.area.toLowerCase());
+      const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesArea && matchesSearch;
+   });
 
    const remainingStops = filteredDeliveries.filter(d => !d.delivered).length;
 
@@ -65,9 +71,42 @@ export default function RoutePage() {
       <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between">
-               <div>
-                  <h1 className="text-xl font-bold text-zinc-900">Morning Route</h1>
-                  <p className="text-sm text-zinc-500">Downtown Area • {remainingStops} Stops Remaining</p>
+               <div className="relative">
+                  <button 
+                     onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)}
+                     className="flex items-center gap-2 group"
+                  >
+                     <h1 className="text-xl font-black text-zinc-900 group-active:scale-95 transition-transform">{selectedRoute}</h1>
+                     <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  <p className="text-xs font-bold text-primary tracking-wider uppercase mt-0.5">{remainingStops} Stops Remaining</p>
+
+                  <AnimatePresence>
+                     {isRouteMenuOpen && (
+                        <>
+                           <div className="fixed inset-0 z-40" onClick={() => setIsRouteMenuOpen(false)} />
+                           <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              className="absolute left-0 mt-2 w-56 bg-white border border-zinc-200 shadow-2xl rounded-2xl overflow-hidden py-2 z-50 origin-top-left"
+                           >
+                              {data.routes.map((route) => (
+                                 <button
+                                    key={route}
+                                    onClick={() => {
+                                       setSelectedRoute(route);
+                                       setIsRouteMenuOpen(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors ${selectedRoute === route ? 'bg-primary/10 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}
+                                 >
+                                    {route}
+                                 </button>
+                              ))}
+                           </motion.div>
+                        </>
+                     )}
+                  </AnimatePresence>
                </div>
             </div>
          </header>

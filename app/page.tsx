@@ -191,7 +191,7 @@ function InventoryCard({ item }: { item: InventoryItem }) {
         </div>
       </div>
       <div className="px-5 py-3 flex items-center justify-between bg-black/20">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70">Loaded to Van</p>
+        <p className="text-[11px] font-semibold tracking-wide text-white/70">Loaded to Van</p>
         <p className="text-[14px] font-bold text-white">
           {isEmpty ? "—" : item.loaded}
           <span className="text-[10px] font-medium ml-1 text-white/70">{item.unit}</span>

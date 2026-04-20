@@ -29,6 +29,21 @@ export default function CustomerProfilePage() {
    const grandTotalAmount = pendingAmount + currentDeliveriesAmount;
 
    const [status, setStatus] = useState(customer?.status || 'Active');
+   const [viewDate, setViewDate] = useState(new Date(2026, 3, 1)); // April 2026 default
+
+   const changeMonth = (delta: number) => {
+      const newDate = new Date(viewDate);
+      newDate.setMonth(newDate.getMonth() + delta);
+      setViewDate(newDate);
+   };
+
+   const getDaysInMonth = (date: Date) => {
+      return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+   };
+
+   const monthName = viewDate.toLocaleString('default', { month: 'long' });
+   const yearName = viewDate.getFullYear();
+   const daysCount = getDaysInMonth(viewDate);
 
    const toggleStatus = () => {
       if (!customer) return;
@@ -104,111 +119,75 @@ export default function CustomerProfilePage() {
                </div>
             </div>
 
-            {/* Purchase History */}
-            <div className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-4">
-               <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2 mb-2">
-                  <Package size={16} /> Recent Purchases
-               </h2>
-
-               {/* Current/Latest delivery */}
-               {deliveries.length > 0 ? deliveries.map((d, i) => {
-                  const milkQty = parseInt(d.qty) || 0;
-                  const milkCost = milkQty * 50; // Assume ₹50 per standardized bottle
-                  let extraCost = 0;
-                  let extraItems: { name: string, cost: number }[] = [];
-
-                  if (d.misc) {
-                     const product = data.products.find(p => d.misc && d.misc.includes(p.name));
-                     if (product) {
-                        const cost = parseInt(product.price.replace(/\D/g, ''));
-                        extraCost += cost;
-                        extraItems.push({ name: product.name, cost });
-                     }
-                  }
-
-                  const totalCost = milkCost + extraCost;
-
-                  return (
-                     <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-start gap-4 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 h-full w-1 bg-emerald-500"></div>
-                        <div className="bg-primary/10 text-primary p-3 rounded-xl z-10 bg-white">
-                           <Package size={20} />
+            {/* Monthly Delivery Ledger */}
+            <div className="max-w-2xl mx-auto w-full px-5 py-2">
+               <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-100">
+                  <div className="flex items-center justify-between mb-8">
+                     <div>
+                        <h3 className="text-xl font-black text-zinc-900">Monthly Ledger</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                           <button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"><ArrowLeft size={14} /></button>
+                           <p className="text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p>
+                           <button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"><ArrowLeft size={14} className="rotate-180" /></button>
                         </div>
-                        <div className="flex-1 w-full">
-                           <div className="flex justify-between items-start">
-                              <p className="font-bold text-zinc-900">Morning Delivery</p>
-                              <p className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">Today</p>
-                           </div>
+                     </div>
+                     <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100">
+                        <span className="text-[10px] font-black uppercase">24 Days Delivered</span>
+                     </div>
+                  </div>
 
+                  <div className="flex flex-col gap-3">
+                     {Array.from({ length: daysCount }).map((_, i) => {
+                        const day = i + 1;
+                        const isDelivered = [0, 1, 2, 3, 4, 10, 11, 15, 18, 20, 24, 25, 27, 28, 29].includes(day % 10) || day % 4 !== 0; // Better mock spread
+                        // Simplified check for upcoming: only if year/month matches current real time
+                        const isUpcoming = yearName >= 2026 && viewDate.getMonth() >= 3 && day > 20; 
 
-
-                           {/* Price Breakdown */}
-                           <div className="mt-3 bg-slate-50 border border-zinc-100 rounded-xl p-3 text-[11px] flex flex-col gap-1.5 shadow-sm">
-                              <div className="flex justify-between text-zinc-500 font-medium">
-                                 <span>{milkQty}x Standard Milk @ ₹50</span>
-                                 <span>₹{milkCost}</span>
-                              </div>
-                              {extraItems.map((item, idx) => (
-                                 <div key={idx} className="flex justify-between text-zinc-500 font-medium">
-                                    <span>1x {item.name}</span>
-                                    <span>₹{item.cost}</span>
+                        return (
+                           <div 
+                              key={i} 
+                              className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${isDelivered ? 'bg-white border-zinc-100 hover:border-primary/20 hover:shadow-md' : 'bg-rose-50/30 border-rose-100 opacity-80'}`}
+                           >
+                              <div className="flex items-center gap-4">
+                                 <div className={`h-12 w-12 rounded-xl flex flex-col items-center justify-center font-black ${isDelivered ? 'bg-primary/10 text-primary' : 'bg-rose-100 text-rose-500'}`}>
+                                    <span className="text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
+                                    <span className="text-lg leading-none">{day}</span>
                                  </div>
-                              ))}
-                              <div className="flex justify-between items-center border-t border-zinc-200 mt-1 pt-2">
-                                 <span className="font-bold text-zinc-400 uppercase tracking-wider text-[10px]">Daily Total</span>
-                                 <span className="font-black text-sm text-zinc-900">₹{totalCost}</span>
+                                 <div>
+                                    <p className={`font-black text-[15px] ${isDelivered ? 'text-zinc-900' : 'text-rose-600'}`}>
+                                       {isDelivered ? 'Success Delivery' : 'Skipped / Missed'}
+                                    </p>
+                                    {isDelivered && (
+                                       <div className="flex flex-wrap gap-2 mt-1">
+                                          <span className="text-[10px] font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                             <div className="h-1 w-1 rounded-full bg-primary" /> {customer.frequency === 'Morning & Evening' ? '2 Bottles Milk' : '1 Bottle Milk'}
+                                          </span>
+                                          {day % 7 === 0 && (
+                                             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1 border border-emerald-100">
+                                                <div className="h-1 w-1 rounded-full bg-emerald-500" /> Fresh Curd (+1)
+                                             </span>
+                                          )}
+                                       </div>
+                                    )}
+                                 </div>
+                              </div>
+                              <div className="text-right">
+                                 <p className={`font-black text-sm ${isDelivered ? 'text-zinc-900' : 'text-rose-400'}`}>
+                                    {isDelivered ? `₹${(customer.frequency === 'Morning & Evening' ? 100 : 50) + (day % 7 === 0 ? 120 : 0)}` : '₹0'}
+                                 </p>
+                                 <p className="text-[10px] font-bold text-zinc-400">DAILY TOTAL</p>
                               </div>
                            </div>
-                        </div>
-                     </div>
-                  );
-               }) : (
-                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-start gap-4">
-                     <div className="bg-primary/10 text-primary p-3 rounded-xl">
-                        <Package size={20} />
-                     </div>
-                     <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                           <p className="font-bold text-zinc-900">Standard Delivery</p>
-                           <p className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">Today</p>
-                        </div>
-                        <p className="text-sm text-primary font-bold mt-1">2 Bottles Milk</p>
-                     </div>
-                  </div>
-               )}
-
-               {/* Mock Historical Deliveries to make it look active */}
-               <div className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-200 flex items-start gap-4 opacity-70">
-                  <div className="bg-zinc-100 text-zinc-500 p-3 rounded-xl">
-                     <Package size={20} />
-                  </div>
-                  <div className="flex-1">
-                     <div className="flex justify-between items-start">
-                        <p className="font-bold text-zinc-900">Standard Delivery</p>
-                        <p className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">Yesterday</p>
-                     </div>
-                     <p className="text-sm text-zinc-700 font-bold mt-1">1 Bottle Milk</p>
-                     <p className="text-[11px] font-medium text-zinc-600 bg-zinc-50 border border-zinc-100 inline-block px-2 py-1 rounded-lg mt-2">
-                        <span className="font-bold text-primary">+ Extra: </span> Fresh Curd (500g)
-                     </p>
+                        );
+                     })}
                   </div>
                </div>
+            </div>
 
-               <div className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-200 flex items-start gap-4 opacity-70">
-                  <div className="bg-zinc-100 text-zinc-500 p-3 rounded-xl">
-                     <Package size={20} />
-                  </div>
-                  <div className="flex-1">
-                     <div className="flex justify-between items-start">
-                        <p className="font-bold text-zinc-900">Standard Delivery</p>
-                        <p className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">2 Days Ago</p>
-                     </div>
-                     <p className="text-sm text-zinc-700 font-bold mt-1">2 Bottles Milk</p>
-                  </div>
-               </div>
-
+            {/* Financial Summary */}
+            <div className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-4">
                {/* Grand Total Ledger */}
-               <div className="bg-zinc-900 rounded-3xl p-6 mt-2 shadow-xl text-white relative overflow-hidden">
+               <div className="bg-zinc-900 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden">
                   <div className="absolute -right-4 -top-4 opacity-5 text-white pointer-events-none">
                      <Receipt size={140} />
                   </div>

@@ -46,6 +46,17 @@ body {
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  cursor: default;
+  user-select: none;
+}
+
+button, a, input[type="button"], input[type="submit"], [role="button"] {
+  cursor: pointer;
+}
+
+input[type="text"], input[type="number"], input[type="tel"], input[type="password"], textarea {
+  cursor: text;
+  user-select: text;
 }
 
 /* ─── Utilities ─── */

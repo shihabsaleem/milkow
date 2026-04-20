@@ -161,9 +161,9 @@ export default function InventoryPage() {
                   <p className="text-[15px] font-bold text-zinc-900">{p.name}</p>
                   <p className="text-[12px] font-medium mt-0.5 text-zinc-400">{p.size} · {p.stock} in stock</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <p className="text-[16px] font-extrabold text-zinc-900">{p.price}</p>
-                  <ChevronRight size={18} className="text-zinc-400" />
+                <div className="flex flex-col items-end">
+                  <p className="text-[16px] font-black text-primary">₹{p.price.replace('₹', '')}</p>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Selling Price</p>
                 </div>
               </div>
             ))}
@@ -219,12 +219,15 @@ export default function InventoryPage() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Price</label>
-                    <input
-                      placeholder="e.g. ₹90"
-                      value={newProduct.price}
-                      onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                    />
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-zinc-400">₹</span>
+                      <input
+                        placeholder="90"
+                        value={newProduct.price.replace('₹', '')}
+                        onChange={e => setNewProduct({ ...newProduct, price: '₹' + e.target.value.replace('₹', '') })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">

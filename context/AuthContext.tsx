@@ -1,47 +1,70 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User, signOut, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
+import { checkAndRunAutomations } from "@/lib/automation";
+import { Session, User } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   loading: boolean;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  session: null,
   loading: true,
   logout: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Ensure persistence is set
-    setPersistence(auth, browserLocalPersistence);
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    // 1. Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
+
+      if (session?.user) {
+        // 🤖 Run automations on login
+        checkAndRunAutomations().catch((err) =>
+          console.error("[Automation] Unhandled error:", err)
+        );
+      }
     });
 
-    return () => unsubscribe();
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+
+      if (_event === 'SIGNED_IN' && session?.user) {
+        checkAndRunAutomations().catch((err) =>
+           console.error("[Automation] Unhandled error:", err)
+        );
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, session, loading, logout }}>
       {!loading && children}
     </AuthContext.Provider>
   );

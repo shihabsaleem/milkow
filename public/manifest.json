@@ -1,0 +1,19 @@
+{
+  "name": "Milkow — Smart Milk Operations",
+  "short_name": "Milkow",
+  "description": "Manage your milk delivery routes, billing, and customers all in one place.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"]
+}

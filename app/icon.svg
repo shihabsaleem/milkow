@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="120" ry="120" fill="#4F46E5"/>
+  
+  <!-- Subtle inner glow/depth -->
+  <rect width="512" height="512" rx="120" ry="120" fill="url(#bg_grad)"/>
+  
+  <!-- Milk bottle icon centered -->
+  <!-- Bottle cap -->
+  <rect x="210" y="108" width="92" height="28" rx="8" fill="white" opacity="0.95"/>
+  
+  <!-- Bottle neck -->
+  <rect x="222" y="130" width="68" height="44" rx="4" fill="white" opacity="0.95"/>
+  
+  <!-- Bottle shoulder curve -->
+  <path d="M192 174 Q192 198 170 220 L140 280 Q128 308 128 340 L128 380 Q128 404 152 404 L360 404 Q384 404 384 380 L384 340 Q384 308 372 280 L342 220 Q320 198 320 174 Z" fill="white" opacity="0.95"/>
+  
+  <!-- Milk fill (light blue-white) -->
+  <path d="M140 310 Q136 340 136 370 L136 380 Q136 396 152 396 L360 396 Q376 396 376 380 L376 360 Q370 338 356 320 Z" fill="#E0E7FF" opacity="0.6"/>
+  
+  <!-- Milk drop accent -->
+  <ellipse cx="220" cy="280" rx="18" ry="22" fill="#4F46E5" opacity="0.25"/>
+  <ellipse cx="220" cy="280" rx="10" ry="12" fill="#4F46E5" opacity="0.2"/>
+  
+  <!-- Sparkle dots -->
+  <circle cx="310" cy="240" r="7" fill="white" opacity="0.35"/>
+  <circle cx="290" cy="260" r="4" fill="white" opacity="0.25"/>
+
+  <defs>
+    <radialGradient id="bg_grad" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#3730A3" stop-opacity="0.5"/>
+    </radialGradient>
+  </defs>
+</svg>

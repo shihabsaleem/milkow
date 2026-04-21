@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Milk, ArrowRight } from "lucide-react";
+import { Milk, ArrowRight, Mail, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
    const router = useRouter();
-   const [phone, setPhone] = useState("");
-   const [pin, setPin] = useState("");
+   const [email, setEmail] = useState("");
+   const [password, setPassword] = useState("");
    const [isLoading, setIsLoading] = useState(false);
    const [error, setError] = useState("");
 
@@ -20,19 +20,26 @@ export default function LoginPage() {
       setError("");
       
       try {
-         // Note: For now, we use the phone as a 'fake' email for the login 
-         // Real production should use proper Firebase Phone Auth or Email
-         const email = `${phone}@milkow.com`;
-         await signInWithEmailAndPassword(auth, email, pin);
+         await signInWithEmailAndPassword(auth, email.trim(), password);
          
-         // Set a cookie so our Middleware knows we are logged in
-         document.cookie = "milkow_session=true; path=/; max-age=3600; SameSite=Lax";
+         // Set a session cookie so Middleware knows we are logged in (24h)
+         document.cookie = "milkow_session=true; path=/; max-age=86400; SameSite=Lax";
          
          router.push("/");
-         router.refresh(); // Reload to let middleware check the new cookie
+         router.refresh();
       } catch (err: any) {
-         console.error("Login Error:", err);
-         setError("Invalid phone number or PIN. Please try again.");
+         console.error("Login Error:", err.code);
+         if (
+            err.code === "auth/user-not-found" ||
+            err.code === "auth/wrong-password" ||
+            err.code === "auth/invalid-credential"
+         ) {
+            setError("Invalid email or password. Please try again.");
+         } else if (err.code === "auth/too-many-requests") {
+            setError("Too many failed attempts. Please try again later.");
+         } else {
+            setError("Login failed. Check your internet connection.");
+         }
          setIsLoading(false);
       }
    };
@@ -86,34 +93,49 @@ export default function LoginPage() {
                         {error}
                      </motion.div>
                   )}
+
+                  {/* Email Field */}
                   <div className="flex flex-col gap-1.5">
-                     <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Phone Number</label>
-                     <input 
-                        type="tel" 
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="10-digit mobile number"
-                        className="w-full bg-slate-50 border border-zinc-200 rounded-2xl px-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:font-medium placeholder:text-zinc-400"
-                     />
+                     <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest pl-1">
+                        Email Address
+                     </label>
+                     <div className="relative">
+                        <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                        <input 
+                           type="email"
+                           required
+                           autoComplete="email"
+                           value={email}
+                           onChange={(e) => setEmail(e.target.value)}
+                           placeholder="you@example.com"
+                           className="w-full bg-slate-50 border border-zinc-200 rounded-2xl pl-11 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:font-medium placeholder:text-zinc-400"
+                        />
+                     </div>
                   </div>
 
+                  {/* Password Field */}
                   <div className="flex flex-col gap-1.5">
-                     <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Security PIN</label>
-                     <input 
-                        type="password" 
-                        required
-                        value={pin}
-                        onChange={(e) => setPin(e.target.value)}
-                        placeholder="••••••"
-                        className="w-full bg-slate-50 border border-zinc-200 rounded-2xl px-4 py-4 text-lg font-bold text-zinc-900 tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:font-medium placeholder:text-zinc-400 placeholder:tracking-normal"
-                     />
+                     <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest pl-1">
+                        Password
+                     </label>
+                     <div className="relative">
+                        <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                        <input 
+                           type="password" 
+                           required
+                           autoComplete="current-password"
+                           value={password}
+                           onChange={(e) => setPassword(e.target.value)}
+                           placeholder="••••••••"
+                           className="w-full bg-slate-50 border border-zinc-200 rounded-2xl pl-11 pr-4 py-4 text-lg font-bold text-zinc-900 tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:font-medium placeholder:text-zinc-400 placeholder:tracking-normal"
+                        />
+                     </div>
                   </div>
 
                   <button 
                      type="submit"
                      disabled={isLoading}
-                     className="w-full bg-primary text-white font-bold py-4 rounded-2xl mt-4 active:scale-95 transition-all shadow-xl shadow-primary/30 flex items-center justify-center gap-2"
+                     className="w-full bg-primary text-white font-bold py-4 rounded-2xl mt-4 active:scale-95 transition-all shadow-xl shadow-primary/30 flex items-center justify-center gap-2 disabled:opacity-70"
                   >
                      {isLoading ? "Authenticating..." : "Login to Dashboard"}
                      {!isLoading && <ArrowRight size={18} />}

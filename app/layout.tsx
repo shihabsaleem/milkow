@@ -10,8 +10,15 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Milkow Fresh | Milk Distribution",
-  description: "Milk distribution management",
+  title: "Milkow | Smart Milk Operations",
+  description: "Manage your milk delivery routes, billing, and customers — all in one place.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/assets/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/assets/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

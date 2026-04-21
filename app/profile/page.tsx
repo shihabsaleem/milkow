@@ -2,70 +2,114 @@
 
 import { ArrowLeft, Save, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import data from "../../data/data.json";
+import { useState, useEffect } from "react";
 
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, writeBatch } from "firebase/firestore";
+import { doc, setDoc, writeBatch, onSnapshot } from "firebase/firestore";
+import Modal from "@/components/Modal";
+
+// Seed data for initial migration (used only by the migration tool)
+const SEED_DATA = {
+   system_user: { name: "Sayas R.", pin: "123456" },
+   payment_setup: { payee_name: "Sayas R.", upi_id: "sayas@upi", currency_code: "INR" },
+   inventory: [
+      { name: "Cow Milk", vol: "1L", count: 80, unit: "Bottles", loaded: 60 },
+      { name: "Buffalo Milk", vol: "500ml", count: 40, unit: "Bottles", loaded: 30 }
+   ],
+   users: [
+      { name: "John Doe", phone: "+1 234 567 890", area: "Downtown", frequency: "Morning & Evening", status: "Active", order: "1L Cow Milk" },
+      { name: "Jane Smith", phone: "+1 234 567 891", area: "Uptown", frequency: "Morning Only", status: "Active", order: "500ml Buffalo Milk" }
+   ],
+   bills: [
+      { id: "INV-001", name: "John Doe", type: "Monthly", amount: 1200, status: "Pending" },
+      { id: "INV-002", name: "Jane Smith", type: "Weekly", amount: 300, status: "Pending" }
+   ],
+   products: [
+      { name: "Cow Milk", size: "1L", stock: 80, price: "₹50" },
+      { name: "Buffalo Milk", size: "500ml", stock: 40, price: "₹35" }
+   ],
+   pipeline: [
+      { label: "Raw Milk Collected", value: "120", unit: "L" },
+      { label: "Processed", value: "100", unit: "L" },
+      { label: "Packaged", value: "90", unit: "Bottles" }
+   ],
+   delivered: [
+      { name: "Cow Milk", vol: "1L", count: 55, unit: "Bottles" },
+      { name: "Buffalo Milk", vol: "500ml", count: 28, unit: "Bottles" }
+   ],
+   route: [
+      { id: 1, name: "John Doe", qty: "2", delivered: false },
+      { id: 2, name: "Jane Smith", qty: "1", delivered: false }
+   ],
+   routes: ["Downtown", "Uptown", "Highlands", "Riverdale"]
+};
 
 export default function UserProfilePage() {
    const router = useRouter();
    const { logout } = useAuth();
 
-   const [adminName, setAdminName] = useState(data.system_user?.name || "Sayas R.");
-   const [payeeName, setPayeeName] = useState(data.payment_setup.payee_name || "");
-   const [upiId, setUpiId] = useState(data.payment_setup.upi_id || "");
-   const [pin, setPin] = useState(data.system_user?.pin || "");
+   const [adminName, setAdminName] = useState("Sayas R.");
+   const [payeeName, setPayeeName] = useState("");
+   const [upiId, setUpiId] = useState("");
+   const [pin, setPin] = useState("");
    const [isSaved, setIsSaved] = useState(false);
    const [isMigrating, setIsMigrating] = useState(false);
    const [migrationStatus, setMigrationStatus] = useState("");
+   const [isMigrateModalOpen, setIsMigrateModalOpen] = useState(false);
+
+   // Load current settings from Firestore
+   useEffect(() => {
+      const unsub = onSnapshot(doc(db, "settings", "general"), (snap) => {
+         if (snap.exists()) {
+            const d = snap.data();
+            setAdminName(d.system_user?.name || "Sayas R.");
+            setPin(d.system_user?.pin || "");
+            setPayeeName(d.payment?.payee_name || "");
+            setUpiId(d.payment?.upi_id || "");
+         }
+      });
+      return () => unsub();
+   }, []);
 
    const migrateData = async () => {
-      if (!confirm("Are you sure you want to push local data to the Cloud? This should only be done once.")) return;
-
+      setIsMigrateModalOpen(false);
       setIsMigrating(true);
       setMigrationStatus("Preparing migration...");
 
       try {
          const batch = writeBatch(db);
 
-         // 1. Settings
          setMigrationStatus("Uploading settings...");
          batch.set(doc(db, "settings", "general"), {
-            payment: data.payment_setup,
+            payment: SEED_DATA.payment_setup,
             system_user: { name: adminName, pin: pin }
          });
 
-         // 2. Inventory
          setMigrationStatus("Uploading inventory...");
-         data.inventory.forEach((item, i) => batch.set(doc(db, "inventory", `item_${i}`), item));
+         SEED_DATA.inventory.forEach((item, i) => batch.set(doc(db, "inventory", `item_${i}`), item));
 
-         // 3. Customers
          setMigrationStatus("Uploading customers...");
-         data.users.forEach((u, i) => batch.set(doc(db, "customers", u.phone.replace(/\D/g, '')), { ...u, id: i }));
+         SEED_DATA.users.forEach((u, i) => batch.set(doc(db, "customers", u.phone.replace(/\D/g, '')), { ...u, id: i }));
 
-         // 4. Bills
          setMigrationStatus("Uploading bills...");
-         data.bills.forEach((b) => batch.set(doc(db, "bills", b.id), b));
+         SEED_DATA.bills.forEach((b) => batch.set(doc(db, "bills", b.id), b));
 
-         // 5. Products
          setMigrationStatus("Uploading products...");
-         data.products.forEach((p, i) => batch.set(doc(db, "products", `prod_${i}`), p));
+         SEED_DATA.products.forEach((p, i) => batch.set(doc(db, "products", `prod_${i}`), p));
 
-         // 6. Pipeline
          setMigrationStatus("Uploading pipeline...");
-         data.pipeline.forEach((stage, i) => batch.set(doc(db, "pipeline", `stage_${i}`), stage));
+         SEED_DATA.pipeline.forEach((stage, i) => batch.set(doc(db, "pipeline", `stage_${i}`), stage));
 
-         // 7. Inventory (Loaded items)
-         setMigrationStatus("Uploading stock...");
-         data.inventory.forEach((item, i) => batch.set(doc(db, "inventory", `item_${i}`), item));
-
-         // 8. Delivered
          setMigrationStatus("Uploading history...");
-         data.delivered.forEach((item, i) => batch.set(doc(db, "delivered", `item_${i}`), item));
+         SEED_DATA.delivered.forEach((item, i) => batch.set(doc(db, "delivered", `item_${i}`), item));
 
-         // 9. BONUS: ADD TEST DATA
+         setMigrationStatus("Uploading active route...");
+         SEED_DATA.route.forEach((stop) => batch.set(doc(db, "active_route", stop.id.toString()), stop));
+
+         setMigrationStatus("Uploading area list...");
+         batch.set(doc(db, "settings", "routes"), { names: SEED_DATA.routes });
+
          setMigrationStatus("Adding extra test data...");
          const extraCustomers = [
             { name: "Alice Wonder", phone: "+91 90000 00001", area: "Highlands", frequency: "Morning Only", status: "Active", id: 101 },
@@ -95,18 +139,17 @@ export default function UserProfilePage() {
       }
    };
 
-   const handleSave = () => {
-      // Mutate cached app context globally (simulating persistence before Firebase)
-      data.payment_setup.payee_name = payeeName;
-      data.payment_setup.upi_id = upiId;
-      if (data.system_user) {
-         data.system_user.name = adminName;
-         data.system_user.pin = pin;
+   const handleSave = async () => {
+      try {
+         await setDoc(doc(db, "settings", "general"), {
+            payment: { payee_name: payeeName, upi_id: upiId, currency_code: "INR" },
+            system_user: { name: adminName, pin: pin }
+         });
+         setIsSaved(true);
+         setTimeout(() => setIsSaved(false), 2000);
+      } catch (e: any) {
+         console.error("Failed to save settings:", e.message);
       }
-
-      console.log("Profile updated local cache:", { adminName, pin });
-      setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 2000);
    };
 
    const handleLogout = async () => {
@@ -231,7 +274,7 @@ export default function UserProfilePage() {
                   </p>
 
                   <button
-                     onClick={migrateData}
+                     onClick={() => setIsMigrateModalOpen(true)}
                      disabled={isMigrating}
                      className={`w-full font-bold py-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 ${isMigrating ? 'bg-zinc-100 text-zinc-400' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}
                   >
@@ -248,6 +291,16 @@ export default function UserProfilePage() {
 
             </div>
          </main>
+
+         <Modal 
+            isOpen={isMigrateModalOpen}
+            onClose={() => setIsMigrateModalOpen(false)}
+            onConfirm={migrateData}
+            title="Cloud Migration"
+            message="Are you sure you want to push seed data to the Cloud? This will overwrite your existing setting configurations. This action should typically only be performed once during initial setup."
+            confirmText="Sync to Cloud"
+            cancelText="Not Now"
+         />
       </div>
 
    );

@@ -9,7 +9,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import * as T from "@/types/database";
 
 type DeliveredItem = { name: string; vol: string; count: number; unit: string };
@@ -22,8 +21,14 @@ const fmtDate = (s: string) => {
 
 export default function Dashboard() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, user, loading } = useAuth();
   
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
   const [isSyncing, setIsSyncing] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [manualOverride, setManualOverride] = useState(false);
@@ -127,8 +132,8 @@ export default function Dashboard() {
       <div className="sticky top-0 z-40 border-b bg-slate-50/90 border-black/5 backdrop-blur-md">
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-white shadow-sm flex-shrink-0 relative">
-               <Image src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&auto=format&fit=crop" alt="Profile" fill className="object-cover" />
+            <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-white shadow-sm flex-shrink-0 relative bg-primary flex items-center justify-center">
+               <span className="text-white text-lg font-black">{adminName.charAt(0)}</span>
             </div>
             <div className="flex flex-col leading-tight">
                <p className="text-[12px] font-medium text-zinc-400">{shift === "morning" ? "Good Morning," : "Good Evening,"}</p>

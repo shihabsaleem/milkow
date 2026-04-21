@@ -58,7 +58,7 @@ CREATE TABLE active_route (
 CREATE TABLE bills (
   id TEXT PRIMARY KEY,
   customer_name TEXT,
-  phone TEXT,
+  phone TEXT REFERENCES customers(phone) ON DELETE CASCADE,
   type TEXT DEFAULT 'Daily',
   amount NUMERIC DEFAULT 0,
   status TEXT DEFAULT 'Pending',

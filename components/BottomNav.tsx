@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 export default function BottomNav() {
   const pathname = usePathname();
+  if (pathname === "/login") return null;
 
   const navItems = [
     { icon: Home, label: "Home", href: "/" },

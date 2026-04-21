@@ -1,9 +1,3 @@
-/**
- * lib/automation.ts
- * 
- * Central automation engine for Milkow (Supabase Edition).
- * Refactored from Firestore to PostgreSQL.
- */
 
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
@@ -59,10 +53,10 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
     // 2. Reset active_route
     const { error: resetError } = await supabase
       .from('active_route')
-      .update({ 
-        delivered: false, 
-        extras: {}, 
-        inventory_deducted: false 
+      .update({
+        delivered: false,
+        extras: {},
+        inventory_deducted: false
       })
       .neq('id', 0); // Update all
 
@@ -160,7 +154,7 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
     const settings = settingsData as { value: T.AutomationSettings } | null;
     const lastBillGen = settings?.value?.lastBillGeneration;
     if (lastBillGen === today) {
-        return { ran: false, count: 0, message: `Bills already generated for ${today}` };
+      return { ran: false, count: 0, message: `Bills already generated for ${today}` };
     }
 
     const { data: stopData } = await supabase

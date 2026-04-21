@@ -106,7 +106,7 @@ export default function DeliveryPage() {
    };
 
    const filteredDeliveries = deliveries.filter(d => {
-      const user = allCustomers.find(u => u.name === d.name);
+      const user = allCustomers.find(u => u.phone === d.phone);
       if (user && user.status === 'Inactive') return false;
       const matchesArea = user && selectedRoute === user.area;
       const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase());

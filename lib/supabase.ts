@@ -52,8 +52,12 @@ const mockSupabase: any = {
   }),
 };
 
-const isPlaceholder = supabaseUrl.includes('YOUR_SUPABASE_PROJECT_URL') || !supabaseUrl.startsWith('http');
+const isPlaceholder = !supabaseUrl || supabaseUrl.includes('YOUR_SUPABASE_PROJECT_URL') || !supabaseUrl.startsWith('http');
 const isOff = false; // Set to true to force mock mode
-const hasKeys = !!(supabaseUrl && supabaseAnonKey);
+const hasKeys = !!(supabaseUrl && supabaseAnonKey && supabaseUrl.length > 10);
 
-export const supabase = (isOff || isPlaceholder || !hasKeys) ? mockSupabase : createClient(supabaseUrl, supabaseAnonKey);
+// DEFENSIVE INITIALIZATION: Only call createClient if we have valid-looking keys.
+// This prevents crashes during Vercel builds or pre-rendering.
+export const supabase = (isOff || isPlaceholder || !hasKeys) 
+  ? mockSupabase 
+  : createClient(supabaseUrl, supabaseAnonKey);

@@ -9,13 +9,20 @@ export interface SystemUser {
   pin: string;
 }
 
+export interface AutomationSettings {
+  lastRouteReset: string;
+  lastBillGeneration: string;
+}
+
 export interface Settings {
   payment: PaymentSetup;
   system_user: SystemUser;
+  automation?: AutomationSettings;
+  routes?: { names: string[] };
 }
 
 export interface InventoryItem {
-  id?: string;
+  id: number;
   name: string;
   vol: string;
   count: number;
@@ -24,7 +31,7 @@ export interface InventoryItem {
 }
 
 export interface Product {
-  id?: string;
+  id: string;
   name: string;
   size: string;
   stock: number;
@@ -32,28 +39,40 @@ export interface Product {
 }
 
 export interface Customer {
-  id: string | number;
+  id: string;
   name: string;
   phone: string;
   area: string;
   frequency: string;
   status: 'Active' | 'Inactive';
-  order?: string;
-  outstanding?: string;
+  outstanding: number;
+  created_at?: string;
 }
 
-export interface PipelineStage {
-  id?: string;
-  label: string;
-  value: string;
-  unit: string;
+export interface ActiveRouteStop {
+  id: number;
+  sequence: number;
+  name: string;
+  phone: string;
+  qty: string;
+  delivered: boolean;
+  extras: Record<string, number>;
+  inventory_deducted: boolean;
+  shift: string;
+  updated_at?: string;
 }
 
 export interface Bill {
   id: string;
-  name: string;
-  type: 'Weekly' | 'Monthly';
+  customer_name: string;
+  phone: string;
+  type: string;
   amount: number;
-  status: 'Pending' | 'Paid';
-  date?: string;
+  status: 'Pending' | 'Paid' | string;
+  date: string;
+  date_label: string;
+  qty: number;
+  details: string;
+  auto_generated: boolean;
+  created_at?: string;
 }

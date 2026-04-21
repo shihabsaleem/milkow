@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, Box, ThermometerSnowflake, ChevronRight, X, Calendar as CalendarIcon, Droplet, Milk } from "lucide-react";
+import { Plus, ChevronRight, X, Calendar as CalendarIcon, Droplet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import * as T from "@/types/database";
+
+type PipelineStage = { label: string; value: number; unit: string; id: number };
 
 export default function InventoryPage() {
   const [date, setDate] = useState("2026-04-20");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pipeline, setPipeline] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [pipeline, setPipeline] = useState<PipelineStage[]>([]);
+  const [products, setProducts] = useState<T.Product[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: "" });
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -28,11 +31,11 @@ export default function InventoryPage() {
   useEffect(() => {
     const fetchData = async () => {
       const { data: prods } = await supabase.from('products').select('*');
-      if (prods) setProducts(prods);
+      if (prods) setProducts(prods as T.Product[]);
 
       const { data: pipes } = await supabase.from('inventory').select('*'); 
       // Note: mapping 'inventory' to pipeline for this view
-      if (pipes) setPipeline(pipes.map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id })));
+      if (pipes) setPipeline((pipes as T.InventoryItem[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id })));
     };
 
     fetchData();
@@ -56,8 +59,8 @@ export default function InventoryPage() {
          price: newProduct.price
        };
        
-       if (editingIndex !== null && (products[editingIndex]).id) {
-          await supabase.from('products').update(productToSave).eq('id', (products[editingIndex]).id);
+       if (editingIndex !== null && products[editingIndex].id) {
+          await supabase.from('products').update(productToSave).eq('id', products[editingIndex].id);
        } else {
           await supabase.from('products').insert(productToSave);
        }
@@ -94,7 +97,7 @@ export default function InventoryPage() {
         <div>
           <p className="text-[12px] font-bold uppercase tracking-widest mb-3 text-zinc-400">Supply Pipeline</p>
           <div className="grid grid-cols-2 gap-3">
-            {pipeline.map((stage: any, i: number) => (
+            {pipeline.map((stage, i) => (
               <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5">
                 <div className="text-primary"><Droplet size={20} /></div>
                 <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none" /><span className="text-[13px] font-medium ml-2 flex-shrink-0 text-zinc-400">{stage.unit}</span></div></div>

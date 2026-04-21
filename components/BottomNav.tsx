@@ -1,5 +1,5 @@
 "use client";
-import { Home, Truck, Milk, Wallet2, Users, Package } from "lucide-react";
+import { Home, Truck, Wallet2, Users, Package } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 

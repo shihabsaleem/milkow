@@ -6,25 +6,29 @@ import { QRCodeCanvas } from "qrcode.react";
 import { QrCode, MessageCircle, Wallet2, CheckCircle2, X, Check, Search, Share2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import * as T from "@/types/database";
 
 export default function BillingPage() {
    const searchParams = useSearchParams();
    const qrRef = useRef<HTMLDivElement>(null);
 
    const [searchTerm, setSearchTerm] = useState("");
-   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-   const [bills, setBills] = useState<any[]>([]);
-   const [paymentSettings, setPaymentSettings] = useState<any>(null);
+   const [selectedInvoice, setSelectedInvoice] = useState<T.Bill | null>(null);
+   const [bills, setBills] = useState<T.Bill[]>([]);
+   const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
    const [showToast, setShowToast] = useState(false);
 
    // 1. DATA LOAD & SYNC
    useEffect(() => {
       const fetchData = async () => {
          const { data: billsData } = await supabase.from('bills').select('*').order('created_at', { ascending: false });
-         if (billsData) setBills(billsData);
+         if (billsData) setBills(billsData as T.Bill[]);
 
          const { data: settingsData } = await supabase.from('system_settings').select('value').eq('key', 'payment').single();
-         if (settingsData) setPaymentSettings(settingsData.value);
+         if (settingsData) {
+            const val = settingsData.value as T.PaymentSetup;
+            setPaymentSettings(val);
+         }
       };
 
       fetchData();
@@ -41,7 +45,7 @@ export default function BillingPage() {
       if (search) setSearchTerm(search);
    }, [searchParams]);
 
-   const filteredBills = bills.filter((bill: any) =>
+   const filteredBills = bills.filter((bill) =>
       bill.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       bill.id.toLowerCase().includes(searchTerm.toLowerCase())
    );
@@ -89,7 +93,7 @@ export default function BillingPage() {
       } catch (e) { console.error(e); }
    };
 
-   const handleWhatsAppShare = (invoice: any) => {
+   const handleWhatsAppShare = (invoice: T.Bill) => {
       if (!paymentSettings) return;
       const message = `Hi ${invoice.customer_name}, your bill for ${invoice.type} is ₹${invoice.amount.toFixed(2)}. upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
       const url = `https://wa.me/?text=${encodeURIComponent(message)}`; window.open(url, "_blank");
@@ -109,7 +113,7 @@ export default function BillingPage() {
             </div>
 
             {filteredBills.length > 0 ? (
-               filteredBills.map((bill: any) => {
+               filteredBills.map((bill) => {
                   const isPaid = bill.status === 'Paid';
                   return (
                      <div key={bill.id} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between">

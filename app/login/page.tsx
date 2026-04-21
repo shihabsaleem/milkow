@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Milk, ArrowRight, Mail, Lock } from "lucide-react";
 import { motion } from "framer-motion";
-import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
    const router = useRouter();
@@ -20,26 +19,21 @@ export default function LoginPage() {
       setError("");
       
       try {
-         await signInWithEmailAndPassword(auth, email.trim(), password);
+         const { error: authError } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password: password,
+         });
+
+         if (authError) throw authError;
          
-         // Set a session cookie so Middleware knows we are logged in (24h)
-         document.cookie = "milkow_session=true; path=/; max-age=86400; SameSite=Lax";
-         
+         // In Supabase, the AuthProvider/onAuthStateChange handles the session sync.
+         // We just redirect to home.
          router.push("/");
          router.refresh();
-      } catch (err: any) {
-         console.error("Login Error:", err.code);
-         if (
-            err.code === "auth/user-not-found" ||
-            err.code === "auth/wrong-password" ||
-            err.code === "auth/invalid-credential"
-         ) {
-            setError("Invalid email or password. Please try again.");
-         } else if (err.code === "auth/too-many-requests") {
-            setError("Too many failed attempts. Please try again later.");
-         } else {
-            setError("Login failed. Check your internet connection.");
-         }
+      } catch (err: unknown) {
+         const error = err as Error;
+         console.error("Login Error:", error.message);
+         setError(error.message || "Login failed. Please check your credentials.");
          setIsLoading(false);
       }
    };

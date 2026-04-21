@@ -1,24 +1,23 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Plus, Search, User, MapPin, Phone, ArrowUpRight, ChevronRight, X, UserMinus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, MapPin, ChevronRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import * as T from "@/types/database";
 
 export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<T.Customer[]>([]);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area: "", frequency: "Morning" });
-  const [isSyncing, setIsSyncing] = useState(true);
 
   // 1. DATA LOAD & SYNC
   useEffect(() => {
     const fetchCustomers = async () => {
       const { data } = await supabase.from('customers').select('*').order('name', { ascending: true });
-      if (data) setCustomers(data);
-      setIsSyncing(false);
+      if (data) setCustomers(data as T.Customer[]);
     };
 
     fetchCustomers();

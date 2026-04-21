@@ -3,11 +3,12 @@
 import { ArrowLeft, Save, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase";
-import { doc, setDoc, writeBatch, onSnapshot } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 import Modal from "@/components/Modal";
+import * as T from "@/types/database";
 
 // Seed data for initial migration (used only by the migration tool)
 const SEED_DATA = {
@@ -58,18 +59,22 @@ export default function UserProfilePage() {
    const [migrationStatus, setMigrationStatus] = useState("");
    const [isMigrateModalOpen, setIsMigrateModalOpen] = useState(false);
 
-   // Load current settings from Firestore
+   // Load current settings from Supabase
    useEffect(() => {
-      const unsub = onSnapshot(doc(db, "settings", "general"), (snap) => {
-         if (snap.exists()) {
-            const d = snap.data();
-            setAdminName(d.system_user?.name || "Sayas R.");
-            setPin(d.system_user?.pin || "");
-            setPayeeName(d.payment?.payee_name || "");
-            setUpiId(d.payment?.upi_id || "");
+      const fetchSettings = async () => {
+         const { data } = await supabase.from('system_settings').select('*').eq('key', 'general').single();
+         if (data) {
+            const val = data.value as T.Settings;
+            setAdminName(val.system_user?.name || "Sayas R.");
+            setPin(val.system_user?.pin || "");
+            setPayeeName(val.payment?.payee_name || "");
+            setUpiId(val.payment?.upi_id || "");
          }
-      });
-      return () => unsub();
+      };
+      
+      fetchSettings();
+      const sub = supabase.channel('profile_general').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchSettings).subscribe();
+      return () => { sub.unsubscribe(); };
    }, []);
 
    const migrateData = async () => {
@@ -78,77 +83,56 @@ export default function UserProfilePage() {
       setMigrationStatus("Preparing migration...");
 
       try {
-         const batch = writeBatch(db);
-
          setMigrationStatus("Uploading settings...");
-         batch.set(doc(db, "settings", "general"), {
-            payment: SEED_DATA.payment_setup,
-            system_user: { name: adminName, pin: pin }
+         await supabase.from('system_settings').upsert({
+            key: 'general',
+            value: {
+               payment: SEED_DATA.payment_setup,
+               system_user: { name: adminName, pin: pin }
+            }
          });
 
          setMigrationStatus("Uploading inventory...");
-         SEED_DATA.inventory.forEach((item, i) => batch.set(doc(db, "inventory", `item_${i}`), item));
+         await supabase.from('inventory').upsert(SEED_DATA.inventory);
 
          setMigrationStatus("Uploading customers...");
-         SEED_DATA.users.forEach((u, i) => batch.set(doc(db, "customers", u.phone.replace(/\D/g, '')), { ...u, id: i }));
+         await supabase.from('customers').upsert(SEED_DATA.users.map((u, i) => ({ ...u, outstanding: 0, id: i })));
 
          setMigrationStatus("Uploading bills...");
-         SEED_DATA.bills.forEach((b) => batch.set(doc(db, "bills", b.id), b));
+         await supabase.from('bills').upsert(SEED_DATA.bills.map(b => ({ ...b, customer_name: b.name })));
 
          setMigrationStatus("Uploading products...");
-         SEED_DATA.products.forEach((p, i) => batch.set(doc(db, "products", `prod_${i}`), p));
+         await supabase.from('products').upsert(SEED_DATA.products);
 
-         setMigrationStatus("Uploading pipeline...");
-         SEED_DATA.pipeline.forEach((stage, i) => batch.set(doc(db, "pipeline", `stage_${i}`), stage));
+         setMigrationStatus("Uploading routes...");
+         await supabase.from('system_settings').upsert({
+            key: 'routes',
+            value: { names: SEED_DATA.routes }
+         });
 
-         setMigrationStatus("Uploading history...");
-         SEED_DATA.delivered.forEach((item, i) => batch.set(doc(db, "delivered", `item_${i}`), item));
-
-         setMigrationStatus("Uploading active route...");
-         SEED_DATA.route.forEach((stop) => batch.set(doc(db, "active_route", stop.id.toString()), stop));
-
-         setMigrationStatus("Uploading area list...");
-         batch.set(doc(db, "settings", "routes"), { names: SEED_DATA.routes });
-
-         setMigrationStatus("Adding extra test data...");
-         const extraCustomers = [
-            { name: "Alice Wonder", phone: "+91 90000 00001", area: "Highlands", frequency: "Morning Only", status: "Active", id: 101 },
-            { name: "Bob Builder", phone: "+91 90000 00002", area: "Riverdale", frequency: "Morning & Evening", status: "Active", id: 102 },
-            { name: "Charlie Brown", phone: "+91 90000 00003", area: "Downtown", frequency: "Evening Only", status: "Active", id: 103 }
-         ];
-         extraCustomers.forEach(u => batch.set(doc(db, "customers", u.phone.replace(/\D/g, '')), u));
-
-         const extraBills = [
-            { id: "INV-201", name: "Alice Wonder", type: "Weekly", amount: 250, status: "Pending" },
-            { id: "INV-202", name: "Bob Builder", type: "Monthly", amount: 1500, status: "Paid" }
-         ];
-         extraBills.forEach(b => batch.set(doc(db, "bills", b.id), b));
-
-         const extraProducts = [
-            { name: "Lassi", size: "200ml", stock: 50, price: "₹25" },
-            { name: "Butter", size: "100g", stock: 30, price: "₹60" }
-         ];
-         extraProducts.forEach((p, i) => batch.set(doc(db, "products", `test_prod_${i}`), p));
-
-         await batch.commit();
          setMigrationStatus("Success! Data is now in the Cloud.");
          setTimeout(() => { setMigrationStatus(""); setIsMigrating(false); }, 3000);
-      } catch (e: any) {
-         setMigrationStatus(`Error: ${e.message}`);
+      } catch (e: unknown) {
+         const err = e as Error;
+         setMigrationStatus(`Error: ${err.message}`);
          setIsMigrating(false);
       }
    };
 
    const handleSave = async () => {
       try {
-         await setDoc(doc(db, "settings", "general"), {
-            payment: { payee_name: payeeName, upi_id: upiId, currency_code: "INR" },
-            system_user: { name: adminName, pin: pin }
+         await supabase.from('system_settings').upsert({
+            key: 'general',
+            value: {
+               payment: { payee_name: payeeName, upi_id: upiId, currency_code: "INR" },
+               system_user: { name: adminName, pin: pin }
+            }
          });
          setIsSaved(true);
          setTimeout(() => setIsSaved(false), 2000);
-      } catch (e: any) {
-         console.error("Failed to save settings:", e.message);
+      } catch (e: unknown) {
+         const err = e as Error;
+         console.error("Failed to save settings:", err.message);
       }
    };
 
@@ -179,10 +163,11 @@ export default function UserProfilePage() {
             {/* Profile Picture */}
             <div className="flex flex-col items-center gap-4 mt-4">
                <div className="h-28 w-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-xl relative group">
-                  <img
+                  <Image
                      src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=300&auto=format&fit=crop"
                      alt="Profile"
-                     className="h-full w-full object-cover"
+                     fill
+                     className="object-cover"
                   />
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                      <p className="text-white text-[10px] font-bold uppercase tracking-widest">Change</p>
@@ -270,7 +255,7 @@ export default function UserProfilePage() {
                      Maintenance & Cloud Migration
                   </h3>
                   <p className="text-[11px] text-zinc-500 leading-relaxed italic">
-                     Use this to push your local "data.json" information to the Firebase Cloud. Only do this once!
+                     Use this to push your local &quot;data.json&quot; information to the Supabase Cloud. Only do this once!
                   </p>
 
                   <button
@@ -278,7 +263,7 @@ export default function UserProfilePage() {
                      disabled={isMigrating}
                      className={`w-full font-bold py-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 ${isMigrating ? 'bg-zinc-100 text-zinc-400' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}
                   >
-                     {isMigrating ? "Migrating..." : "🚀 Migrate Data to Firebase"}
+                     {isMigrating ? "Migrating..." : "🚀 Migrate Data to Supabase"}
                   </button>
                   {migrationStatus && (
                      <p className="text-center text-[10px] font-bold text-amber-600 uppercase tracking-widest">{migrationStatus}</p>
@@ -302,6 +287,5 @@ export default function UserProfilePage() {
             cancelText="Not Now"
          />
       </div>
-
    );
 }

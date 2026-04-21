@@ -5,11 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, PackagePlus, Search, Minus, Plus, ChevronDown, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { deductInventoryOnDelivery } from "@/lib/automation";
+import * as T from "@/types/database";
 
 export default function DeliveryPage() {
-   const [deliveries, setDeliveries] = useState<any[]>([]);
-   const [allCustomers, setAllCustomers] = useState<any[]>([]);
-   const [products, setProducts] = useState<any[]>([]);
+   const [deliveries, setDeliveries] = useState<T.ActiveRouteStop[]>([]);
+   const [allCustomers, setAllCustomers] = useState<T.Customer[]>([]);
+   const [products, setProducts] = useState<T.Product[]>([]);
    const [routesList, setRoutesList] = useState<string[]>([]);
    
    const [searchQuery, setSearchQuery] = useState("");
@@ -25,22 +26,24 @@ export default function DeliveryPage() {
          // Routes (Settings)
          const { data: routeSets } = await supabase.from('system_settings').select('value').eq('key', 'routes').single();
          if (routeSets) {
-            const names = routeSets.value?.names || [];
+            const val = routeSets.value as { names: string[] };
+            const names = val?.names || [];
             setRoutesList(names);
-            if (names.length > 0 && !selectedRoute) setSelectedRoute(names[0]);
+            // Only set default if not already set manually
+            setSelectedRoute(current => current || names[0] || "");
          }
 
          // Products
          const { data: prodData } = await supabase.from('products').select('*');
-         if (prodData) setProducts(prodData);
+         if (prodData) setProducts(prodData as T.Product[]);
 
          // Active Route
          const { data: routeData } = await supabase.from('active_route').select('*').order('sequence', { ascending: true });
-         if (routeData) setDeliveries(routeData);
+         if (routeData) setDeliveries(routeData as T.ActiveRouteStop[]);
 
          // Customers
          const { data: custData } = await supabase.from('customers').select('*');
-         if (custData) setAllCustomers(custData);
+         if (custData) setAllCustomers(custData as T.Customer[]);
       };
 
       fetchData();
@@ -52,7 +55,7 @@ export default function DeliveryPage() {
          .subscribe();
 
       return () => { sub.unsubscribe(); };
-   }, []);
+   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
    const toggleDelivery = async (id: number) => {
       const stop = deliveries.find(d => d.id === id);
@@ -147,7 +150,7 @@ export default function DeliveryPage() {
             {filteredDeliveries.map((delivery, index) => {
                const isExpanded = expandedStopId === delivery.id;
                const stopItems = delivery.extras || {};
-               const activeItems = Object.entries(stopItems).filter(([_, qty]) => (qty as number) > 0);
+               const activeItems = Object.entries(stopItems).filter(([__, qty]) => (qty as number) > 0);
                return (
                   <motion.div key={delivery.id} layout className={`border rounded-2xl transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-primary/20 shadow-sm'}`}>
                      <div className="p-4">

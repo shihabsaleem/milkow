@@ -6,6 +6,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import * as T from "@/types/database";
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -27,7 +28,7 @@ function todayLabel(): string {
   });
 }
 
-function parsePrice(priceStr: any): number {
+function parsePrice(priceStr: string | number | null | undefined): number {
   if (!priceStr) return 0;
   if (typeof priceStr === 'number') return priceStr;
   return parseInt(priceStr.replace(/\D/g, ""), 10) || 0;
@@ -42,12 +43,13 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
 
   try {
     // 1. Check automation settings
-    const { data: settings } = await supabase
+    const { data: settingsData } = await supabase
       .from('system_settings')
       .select('value')
       .eq('key', 'automation')
       .single();
 
+    const settings = settingsData as { value: T.AutomationSettings } | null;
     const lastReset = settings?.value?.lastRouteReset;
 
     if (lastReset === today) {
@@ -72,9 +74,10 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
 
     console.log(`[Automation] ✅ Route reset for ${today}`);
     return { ran: true, message: `Route reset for ${today} completed.` };
-  } catch (err: any) {
-    console.error("[Automation] ❌ Route reset failed:", err.message);
-    return { ran: false, message: `Reset failed: ${err.message}` };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Automation] ❌ Route reset failed:", message);
+    return { ran: false, message: `Reset failed: ${message}` };
   }
 }
 
@@ -89,18 +92,20 @@ export async function deductInventoryOnDelivery(
 ): Promise<void> {
   try {
     // 1. Check if already deducted
-    const { data: stop } = await supabase
+    const { data: stopData } = await supabase
       .from('active_route')
       .select('inventory_deducted')
       .eq('id', stopId)
       .single();
 
+    const stop = stopData as T.ActiveRouteStop | null;
     if (stop?.inventory_deducted) return;
 
     const milkBottles = parseInt(qty, 10) || 0;
 
     // 2. Deduct Milk from inventory
-    const { data: inventory } = await supabase.from('inventory').select('*');
+    const { data: inventoryData } = await supabase.from('inventory').select('*');
+    const inventory = inventoryData as T.InventoryItem[] | null;
     if (inventory) {
       const milkItem = inventory.find(i => i.name.toLowerCase().includes('milk'));
       if (milkItem && milkBottles > 0) {
@@ -117,8 +122,8 @@ export async function deductInventoryOnDelivery(
     // 3. Deduct Extras from products
     for (const [name, qtyUsed] of Object.entries(miscProducts)) {
       if (qtyUsed > 0) {
-        // We need to find the product by name. In a real app, use IDs.
-        const { data: prod } = await supabase.from('products').select('*').eq('name', name).single();
+        const { data: prodData } = await supabase.from('products').select('*').eq('name', name).single();
+        const prod = prodData as T.Product | null;
         if (prod) {
           await supabase
             .from('products')
@@ -132,8 +137,9 @@ export async function deductInventoryOnDelivery(
     await supabase.from('active_route').update({ inventory_deducted: true }).eq('id', stopId);
 
     console.log(`[Automation] ✅ Inventory deducted for stop #${stopId}`);
-  } catch (err: any) {
-    console.error("[Automation] ❌ Inventory deduction failed:", err.message);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Automation] ❌ Inventory deduction failed:", message);
   }
 }
 
@@ -145,34 +151,38 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
   const today = todayStr();
 
   try {
-    const { data: settings } = await supabase
+    const { data: settingsData } = await supabase
       .from('system_settings')
       .select('value')
       .eq('key', 'automation')
       .single();
 
+    const settings = settingsData as { value: T.AutomationSettings } | null;
     const lastBillGen = settings?.value?.lastBillGeneration;
     if (lastBillGen === today) {
         return { ran: false, count: 0, message: `Bills already generated for ${today}` };
     }
 
-    const { data: completedStops } = await supabase
+    const { data: stopData } = await supabase
       .from('active_route')
       .select('*')
       .eq('delivered', true);
+
+    const completedStops = stopData as T.ActiveRouteStop[] | null;
 
     if (!completedStops || completedStops.length === 0) {
       return { ran: false, count: 0, message: "No completed deliveries found." };
     }
 
-    const { data: products } = await supabase.from('products').select('*');
+    const { data: productsData } = await supabase.from('products').select('*');
+    const products = productsData as T.Product[] | null;
     const prices: Record<string, number> = {};
     products?.forEach(p => prices[p.name] = parsePrice(p.price));
 
     const milkItemName = Object.keys(prices).find(n => n.toLowerCase().includes("milk")) || "";
     const milkPrice = prices[milkItemName] || 50;
 
-    const billsToCreate = completedStops.map(stop => {
+    const billsToCreate: T.Bill[] = completedStops.map(stop => {
       const qty = parseInt(stop.qty, 10) || 0;
       let totalAmount = qty * milkPrice;
       const extras = stop.extras || {};
@@ -209,9 +219,10 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
     await supabase.from('system_settings').update({ value: newValue }).eq('key', 'automation');
 
     return { ran: true, count: billsToCreate.length, message: `Generated ${billsToCreate.length} bills.` };
-  } catch (err: any) {
-    console.error("[Automation] ❌ Bill generation failed:", err.message);
-    return { ran: false, count: 0, message: `Bill generation failed: ${err.message}` };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Automation] ❌ Bill generation failed:", message);
+    return { ran: false, count: 0, message: `Bill generation failed: ${message}` };
   }
 }
 

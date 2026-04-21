@@ -5,15 +5,16 @@ import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/Modal";
+import * as T from "@/types/database";
 
 export default function CustomerProfilePage() {
    const params = useParams();
    const router = useRouter();
    const phoneId = typeof params?.phone === 'string' ? params.phone : Array.isArray(params?.phone) ? params.phone[0] : '';
 
-   const [customer, setCustomer] = useState<any>(null);
-   const [bills, setBills] = useState<any[]>([]);
-   const [activeRoute, setActiveRoute] = useState<any[]>([]);
+   const [customer, setCustomer] = useState<T.Customer | null>(null);
+   const [bills, setBills] = useState<T.Bill[]>([]);
+   const [activeRoute, setActiveRoute] = useState<T.ActiveRouteStop[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [viewDate, setViewDate] = useState(new Date(2026, 3, 1));
    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -22,13 +23,13 @@ export default function CustomerProfilePage() {
       if (!phoneId) return;
       const fetchData = async () => {
          const { data: custData } = await supabase.from('customers').select('*').eq('phone', phoneId).single();
-         if (custData) setCustomer(custData);
+         if (custData) setCustomer(custData as T.Customer);
 
          const { data: billsData } = await supabase.from('bills').select('*').eq('phone', phoneId);
-         if (billsData) setBills(billsData);
+         if (billsData) setBills(billsData as T.Bill[]);
 
          const { data: routeData } = await supabase.from('active_route').select('*').eq('phone', phoneId);
-         if (routeData) setActiveRoute(routeData);
+         if (routeData) setActiveRoute(routeData as T.ActiveRouteStop[]);
 
          setIsLoading(false);
       };
@@ -124,7 +125,7 @@ export default function CustomerProfilePage() {
             <div className="max-w-2xl mx-auto w-full px-5 py-6">
                <div className="bg-zinc-900 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden">
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Grand Total Ledger</h3>
-                  <div className="flex flex-col gap-2"><div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Pending Invoices</span><span>₹{pendingAmount.toFixed(2)}</span></div><div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Today's Live Deliveries</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div><div className="flex justify-between items-end mt-2"><span className="text-xs font-black text-zinc-300">CALCULATED TOTAL</span><span className="text-3xl font-black text-primary">₹{grandTotalAmount.toFixed(2)}</span></div></div>
+                  <div className="flex flex-col gap-2"><div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Pending Invoices</span><span>₹{pendingAmount.toFixed(2)}</span></div><div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Today&apos;s Live Deliveries</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div><div className="flex justify-between items-end mt-2"><span className="text-xs font-black text-zinc-300">CALCULATED TOTAL</span><span className="text-3xl font-black text-primary">₹{grandTotalAmount.toFixed(2)}</span></div></div>
                </div>
             </div>
          </main>

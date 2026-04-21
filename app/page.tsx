@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { MoreVertical, Calendar, Sunrise, Sunset, User, LogOut, RefreshCcw } from "lucide-react";
 import { checkAndRunAutomations } from "@/lib/automation";
 import { supabase } from "@/lib/supabase";
@@ -9,11 +9,13 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import * as T from "@/types/database";
 
-type InventoryItem = { id: number; name: string; vol: string; count: number; unit: string; loaded: number };
 type DeliveredItem = { name: string; vol: string; count: number; unit: string };
 
 const fmtDate = (s: string) => {
+  if (!s) return "";
   const d = new Date(s);
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 };
@@ -23,17 +25,26 @@ export default function Dashboard() {
   const { logout } = useAuth();
   
   const [isSyncing, setIsSyncing] = useState(false);
-  const [date, setDate] = useState("2026-04-18");
-  const [dayName, setDayName] = useState("");
-  const [shift, setShift] = useState<"morning" | "evening">("morning");
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [manualOverride, setManualOverride] = useState(false);
+  const [internalShift, setInternalShift] = useState<"morning" | "evening" | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [inventory, setInventory] = useState<T.InventoryItem[]>([]);
   const [delivered, setDelivered] = useState<DeliveredItem[]>([]);
   const [adminName, setAdminName] = useState("Sayas R.");
   const [toCollectAmount, setToCollectAmount] = useState(0);
   const [customerCount, setCustomerCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const dayName = useMemo(() => {
+    return new Date(date).toLocaleDateString("en-US", { weekday: "long" });
+  }, [date]);
+
+  const shift = useMemo(() => {
+    if (manualOverride && internalShift) return internalShift;
+    const hour = new Date().getHours();
+    return hour < 14 ? "morning" : "evening";
+  }, [manualOverride, internalShift]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -57,7 +68,7 @@ export default function Dashboard() {
     // Inventory
     const fetchInventory = async () => {
       const { data } = await supabase.from('inventory').select('*');
-      if (data) setInventory(data);
+      if (data) setInventory(data as T.InventoryItem[]);
     };
     fetchInventory();
     const invSub = supabase.channel('inv').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, fetchInventory).subscribe();
@@ -65,7 +76,7 @@ export default function Dashboard() {
     // Delivery Status (Aggregated from active_route)
     const fetchDelivered = async () => {
       const { data } = await supabase.from('active_route').select('qty').eq('delivered', true);
-      const total = data?.reduce((sum, s) => sum + (parseInt(s.qty) || 0), 0) || 0;
+      const total = data?.reduce((sum: number, s: any) => sum + (parseInt(s.qty) || 0), 0) || 0;
       setDelivered([{ name: "Cow Milk", vol: "Live Total", count: total, unit: "Bottles" }]);
     };
     fetchDelivered();
@@ -74,7 +85,7 @@ export default function Dashboard() {
     // Bills (Financials)
     const fetchBills = async () => {
       const { data } = await supabase.from('bills').select('amount').eq('status', 'Pending');
-      const total = data?.reduce((sum, b) => sum + (b.amount || 0), 0) || 0;
+      const total = data?.reduce((sum: number, b: any) => sum + (b.amount || 0), 0) || 0;
       setToCollectAmount(total);
     };
     fetchBills();
@@ -91,7 +102,8 @@ export default function Dashboard() {
     // Admin Settings
     const fetchSettings = async () => {
       const { data } = await supabase.from('system_settings').select('value').eq('key', 'general').single();
-      if (data) setAdminName(data.value?.system_user?.name || "Sayas R.");
+      const val = data?.value as T.Settings | null;
+      if (val) setAdminName(val.system_user?.name || "Sayas R.");
     };
     fetchSettings();
     const setSub = supabase.channel('sets').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchSettings).subscribe();
@@ -105,25 +117,9 @@ export default function Dashboard() {
     };
   }, []);
 
-  useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    setDate(today);
-  }, []);
-
-  useEffect(() => {
-    setDayName(new Date(date).toLocaleDateString("en-US", { weekday: "long" }));
-  }, [date]);
-
-  useEffect(() => {
-    if (!manualOverride) {
-      const hour = new Date().getHours();
-      setShift(hour < 14 ? "morning" : "evening");
-    }
-  }, [manualOverride]);
-
   const handleShiftToggle = (newShift: "morning" | "evening") => {
     setManualOverride(true);
-    setShift(newShift);
+    setInternalShift(newShift);
   };
 
   return (
@@ -131,8 +127,8 @@ export default function Dashboard() {
       <div className="sticky top-0 z-40 border-b bg-slate-50/90 border-black/5 backdrop-blur-md">
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-white shadow-sm flex-shrink-0">
-               <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&auto=format&fit=crop" alt="Profile" className="h-full w-full object-cover" />
+            <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-white shadow-sm flex-shrink-0 relative">
+               <Image src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&auto=format&fit=crop" alt="Profile" fill className="object-cover" />
             </div>
             <div className="flex flex-col leading-tight">
                <p className="text-[12px] font-medium text-zinc-400">{shift === "morning" ? "Good Morning," : "Good Evening,"}</p>
@@ -211,7 +207,7 @@ export default function Dashboard() {
   );
 }
 
-function InventoryCard({ item }: { item: InventoryItem }) {
+function InventoryCard({ item }: { item: T.InventoryItem }) {
   const isEmpty = item.count === 0;
   return (
     <div className="min-w-[210px] sm:min-w-0 flex-shrink-0 rounded-2xl overflow-hidden snap-start hover:brightness-105 transition-all bg-primary">

@@ -30,16 +30,20 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
+import { AuthProvider } from "@/context/AuthContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable} h-full`} style={{ colorScheme: "light" }}>
       <body className="flex h-full flex-col relative font-[family-name:var(--font-geist)]">
-        <main className="flex-1 overflow-y-auto overflow-x-hidden">
-          {children}
-        </main>
-        <BottomNav />
+        <AuthProvider>
+          <main className="flex-1 overflow-y-auto overflow-x-hidden">
+            {children}
+          </main>
+          <BottomNav />
+        </AuthProvider>
       </body>
     </html>
   );

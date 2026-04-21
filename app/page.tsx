@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { MoreVertical, Calendar, Sunrise, Sunset, User, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, doc } from "firebase/firestore";
 import data from "../data/data.json";
 
 type InventoryItem = { name: string; vol: string; count: number; unit: string; loaded: number };
@@ -20,7 +22,38 @@ export default function Dashboard() {
   const [shift, setShift] = useState<"morning" | "evening">("morning");
   const [manualOverride, setManualOverride] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [delivered, setDelivered] = useState<DeliveredItem[]>([]);
+  const [adminName, setAdminName] = useState("Sayas R.");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Live Sync for Inventory
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "inventory"), (snap) => {
+      const list = snap.docs.map(doc => doc.data() as InventoryItem);
+      setInventory(list.length > 0 ? list : data.inventory as InventoryItem[]);
+    });
+    return () => unsub();
+  }, []);
+
+  // Live Sync for Delivered
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "delivered"), (snap) => {
+      const list = snap.docs.map(doc => doc.data() as DeliveredItem);
+      setDelivered(list.length > 0 ? list : data.delivered as DeliveredItem[]);
+    });
+    return () => unsub();
+  }, []);
+
+  // Live Sync for Admin Settings
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "general"), (snap) => {
+      if (snap.exists()) {
+        setAdminName(snap.data().system_user?.name || "Sayas R.");
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     setDayName(new Date(date).toLocaleDateString("en-US", { weekday: "long" }));
@@ -55,7 +88,7 @@ export default function Dashboard() {
               <p className="text-[12px] font-medium text-zinc-400">
                 {shift === "morning" ? "Good Morning," : "Good Evening,"}
               </p>
-              <p className="text-[17px] font-extrabold text-primary">Sayas R.</p>
+              <p className="text-[17px] font-extrabold text-primary">{adminName}</p>
             </div>
           </div>
           <div className="relative">
@@ -140,12 +173,12 @@ export default function Dashboard() {
           </p>
           {/* mobile scroll */}
           <div className="sm:hidden flex gap-4 overflow-x-auto no-scrollbar pb-1 snap-x snap-mandatory pl-7">
-            {data.inventory.map((item: any, i: number) => <InventoryCard key={i} item={item} />)}
+            {inventory.map((item: any, i: number) => <InventoryCard key={i} item={item} />)}
             <div className="min-w-[28px] flex-shrink-0" />
           </div>
           {/* tablet+ grid */}
           <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-3 px-7">
-            {data.inventory.map((item: any, i: number) => <InventoryCard key={i} item={item} />)}
+            {inventory.map((item: any, i: number) => <InventoryCard key={i} item={item} />)}
           </div>
         </section>
 
@@ -155,7 +188,7 @@ export default function Dashboard() {
             Delivered
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-7">
-            {data.delivered.map((item: any, i: number) => <DeliveredCard key={i} item={item} />)}
+            {delivered.map((item: any, i: number) => <DeliveredCard key={i} item={item} />)}
           </div>
         </section>
 

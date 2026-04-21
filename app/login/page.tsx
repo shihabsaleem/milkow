@@ -4,21 +4,37 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Milk, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
    const router = useRouter();
    const [phone, setPhone] = useState("");
    const [pin, setPin] = useState("");
    const [isLoading, setIsLoading] = useState(false);
+   const [error, setError] = useState("");
 
-   const handleLogin = (e: React.FormEvent) => {
+   const handleLogin = async (e: React.FormEvent) => {
       e.preventDefault();
       setIsLoading(true);
+      setError("");
       
-      // Mock login delay
-      setTimeout(() => {
+      try {
+         // Note: For now, we use the phone as a 'fake' email for the login 
+         // Real production should use proper Firebase Phone Auth or Email
+         const email = `${phone}@milkow.com`;
+         await signInWithEmailAndPassword(auth, email, pin);
+         
+         // Set a cookie so our Middleware knows we are logged in
+         document.cookie = "milkow_session=true; path=/; max-age=3600; SameSite=Lax";
+         
          router.push("/");
-      }, 700);
+         router.refresh(); // Reload to let middleware check the new cookie
+      } catch (err: any) {
+         console.error("Login Error:", err);
+         setError("Invalid phone number or PIN. Please try again.");
+         setIsLoading(false);
+      }
    };
 
    return (
@@ -61,6 +77,15 @@ export default function LoginPage() {
                </div>
 
                <form onSubmit={handleLogin} className="flex flex-col gap-4 mt-2">
+                  {error && (
+                     <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-rose-50 text-rose-600 p-3 rounded-xl border border-rose-100 text-[12px] font-bold text-center mb-2"
+                     >
+                        {error}
+                     </motion.div>
+                  )}
                   <div className="flex flex-col gap-1.5">
                      <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Phone Number</label>
                      <input 

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, PackagePlus, Map, AlertCircle, Search, Plus, Minus, ChevronDown, ChevronUp, X, Share2, MessageCircle } from "lucide-react";
 import data from "../../data/data.json";
 
-export default function RoutePage() {
+export default function DeliveryPage() {
    // Fetch from shared memory and dynamically strip any 'Inactive' customers out of the route
    const [deliveries, setDeliveries] = useState(() => {
       const activeUsers = data.users.filter(u => u.status !== 'Inactive').map(u => u.name);

@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Plus, Box, ThermometerSnowflake, ChevronRight, X, Calendar as CalendarIcon, Droplet, Milk, MilkOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, doc, setDoc, updateDoc } from "firebase/firestore";
 import data from "../../data/data.json";
 
 export default function InventoryPage() {
   const [date, setDate] = useState("2026-04-20");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pipeline, setPipeline] = useState(data.pipeline);
-  const [products, setProducts] = useState(data.products);
+  const [pipeline, setPipeline] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: "" });
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -19,33 +21,62 @@ export default function InventoryPage() {
     return d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProduct.name || !newProduct.price) return;
-
-    if (editingIndex !== null) {
-      const updated = [...products];
-      updated[editingIndex] = { ...newProduct, stock: parseInt(newProduct.stock.toString() || "0") };
-      setProducts(updated);
-    } else {
-      setProducts([{ ...newProduct, stock: parseInt(newProduct.stock.toString() || "0") }, ...products]);
-    }
-
-    setNewProduct({ name: "", size: "", stock: "", price: "" });
-    setEditingIndex(null);
-    setIsModalOpen(false);
-  };
-
   const openEditModal = (index: number) => {
     setEditingIndex(index);
     setNewProduct({ ...products[index], stock: products[index].stock.toString() });
     setIsModalOpen(true);
   };
 
-  const updatePipelineValue = (index: number, newValue: string) => {
-    const updated = [...pipeline];
-    updated[index].value = newValue;
-    setPipeline(updated);
+  // Live Sync for Products
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "products"), (snap) => {
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(list.length > 0 ? list : data.products);
+    });
+    return () => unsub();
+  }, []);
+
+  // Live Sync for Pipeline
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "pipeline"), (snap) => {
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPipeline(list.length > 0 ? list : data.pipeline);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProduct.name || !newProduct.price) return;
+
+    try {
+       const id = editingIndex !== null && (products[editingIndex] as any).id 
+         ? (products[editingIndex] as any).id 
+         : `prod_${Date.now()}`;
+       
+       await setDoc(doc(db, "products", id), {
+         ...newProduct,
+         stock: parseInt(newProduct.stock.toString() || "0")
+       });
+       
+       setIsModalOpen(false);
+       setNewProduct({ name: "", size: "", stock: "", price: "" });
+       setEditingIndex(null);
+    } catch (err) {
+       console.error("Error saving product:", err);
+       alert("Failed to save to Cloud.");
+    }
+  };
+
+  const updatePipelineValue = async (index: number, newValue: string) => {
+    const stage = pipeline[index];
+    if (!stage.id) return;
+    
+    try {
+       await updateDoc(doc(db, "pipeline", stage.id), { value: newValue });
+    } catch (err) {
+       console.error("Error updating pipeline:", err);
+    }
   };
 
   return (

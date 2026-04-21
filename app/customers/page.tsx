@@ -1,15 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserPlus, Search, Phone, MapPin, Wallet2, X, Map } from "lucide-react";
 import Link from "next/link";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, doc, setDoc } from "firebase/firestore";
 import data from "../../data/data.json";
 
 export default function CustomersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [customers, setCustomers] = useState(data.users);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area: "", frequency: "Morning & Evening", status: "Active", order: "", serialNumber: "", outstanding: "" });
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Live Sync for Customers
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "customers"), (snap) => {
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCustomers(list.length > 0 ? list : data.users);
+    });
+    return () => unsub();
+  }, []);
 
   const handleOpenModal = () => {
     setNewCustomer({
@@ -25,14 +37,25 @@ export default function CustomersPage() {
     setIsModalOpen(true);
   };
 
-  const handleAddCustomer = (e: React.FormEvent) => {
+  const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustomer.name || !newCustomer.phone) return;
     
-    setCustomers([newCustomer, ...customers]);
-    setNewCustomer({ name: "", phone: "", area: "", frequency: "Morning & Evening", status: "Active", order: "", serialNumber: "", outstanding: "" });
-    setIsModalOpen(false);
+    try {
+      const id = newCustomer.phone.replace(/\D/g, '');
+      await setDoc(doc(db, "customers", id), newCustomer);
+      setIsModalOpen(false);
+      setNewCustomer({ name: "", phone: "", area: "", frequency: "Morning & Evening", status: "Active", order: "", serialNumber: "", outstanding: "" });
+    } catch (err) {
+      console.error("Error adding customer:", err);
+      alert("Failed to add to Cloud.");
+    }
   };
+
+  const filteredCustomers = customers.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.area.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
 
   return (
@@ -52,12 +75,14 @@ export default function CustomersPage() {
           <input
             type="text"
             placeholder="Search by name or area..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white border border-zinc-200 placeholder:text-zinc-400 rounded-2xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
           />
         </div>
 
         <div className="flex flex-col gap-3">
-          {customers.map((user: any, i: number) => (
+          {filteredCustomers.map((user: any, i: number) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 10 }}

@@ -10,7 +10,7 @@ export default function BottomNav() {
     { icon: Home, label: "Home", href: "/" },
     { icon: Package, label: "Inventory", href: "/inventory" },
     { icon: Users, label: "Customers", href: "/customers" },
-    { icon: Truck, label: "Delivery", href: "/route" },
+    { icon: Truck, label: "Delivery", href: "/delivery" },
     { icon: Wallet2, label: "Billing", href: "/billing" },
   ];
 

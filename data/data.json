@@ -4,6 +4,10 @@
     "payee_name": "Milkow Fresh",
     "currency_code": "INR"
   },
+  "system_user": {
+    "name": "Sayas R.",
+    "pin": "123456"
+  },
   "routes": [
     "Downtown Area",
     "Westside Zone",

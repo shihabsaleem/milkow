@@ -65,7 +65,7 @@ export default function InventoryPage() {
           await supabase.from('products').insert(productToSave);
        }
        setIsModalOpen(false);
-       setNewProduct({ name: "", size: "", stock: "", price: "" });
+       setNewProduct({ name: "", size: "", stock: "", price: 0 });
        setEditingIndex(null);
     } catch (err) { console.error(err); }
   };

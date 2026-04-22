@@ -58,7 +58,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
       .eq('status', 'Active');
 
     if (customers && customers.length > 0) {
-      const deliveriesToCreate = customers.map(c => ({
+      const deliveriesToCreate = customers.map((c: any) => ({
         customer_id: c.id,
         delivery_date: today,
         shift: c.frequency === 'Evening Only' ? 'evening' : 'morning',

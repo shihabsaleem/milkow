@@ -58,6 +58,10 @@ const hasKeys = !!(supabaseUrl && supabaseAnonKey && supabaseUrl.length > 10);
 
 // DEFENSIVE INITIALIZATION: Only call createClient if we have valid-looking keys.
 // This prevents crashes during Vercel builds or pre-rendering.
+if (!hasKeys && typeof window !== 'undefined') {
+  console.warn("⚠️ Supabase keys are missing or invalid. Check your NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY env variables.");
+}
+
 export const supabase = (isOff || isPlaceholder || !hasKeys)
   ? mockSupabase
   : createClient(supabaseUrl, supabaseAnonKey);

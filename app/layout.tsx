@@ -12,7 +12,7 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "Milkow | Smart Milk Operations",
   description: "Manage your milk delivery routes, billing, and customers — all in one place.",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/assets/favicon.svg", type: "image/svg+xml" },

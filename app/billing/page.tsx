@@ -73,14 +73,14 @@ export default function BillingPage() {
       ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
       ctx.fillStyle = "#FFFFFF";
       ctx.beginPath(); ctx.roundRect(50, 50, width - 100, height - 100, 60); ctx.fill();
-      ctx.fillStyle = "#111827"; ctx.font = "bold 50px Inter"; ctx.textAlign = "center"; ctx.fillText("MILKOW", width / 2, 160);
-      ctx.fillStyle = "#6B7280"; ctx.font = "medium 30px Inter"; ctx.fillText("Smart Milk Distribution", width / 2, 210);
-      ctx.fillStyle = "#111827"; ctx.font = "black 70px Inter"; ctx.fillText(`₹${Number(selectedInvoice.amount).toFixed(2)}`, width / 2, 330);
-      ctx.fillStyle = "#374151"; ctx.font = "bold 35px Inter"; ctx.fillText(`Payable by ${selectedInvoice.customer?.name}`, width / 2, 390);
+      ctx.fillStyle = "#111827"; ctx.font = "bold 50px Geist Sans"; ctx.textAlign = "center"; ctx.fillText("MILKOW", width / 2, 160);
+      ctx.fillStyle = "#6B7280"; ctx.font = "medium 30px Geist Sans"; ctx.fillText("Smart Milk Distribution", width / 2, 210);
+      ctx.fillStyle = "#111827"; ctx.font = "black 70px Geist Sans"; ctx.fillText(`₹${Number(selectedInvoice.amount).toFixed(2)}`, width / 2, 330);
+      ctx.fillStyle = "#374151"; ctx.font = "bold 35px Geist Sans"; ctx.fillText(`Payable by ${selectedInvoice.customer?.name}`, width / 2, 390);
       const uiQrCanvas = qrRef.current?.querySelector("canvas");
       if (uiQrCanvas) { ctx.drawImage(uiQrCanvas, 150, 450, 500, 500); }
-      ctx.fillStyle = "#111827"; ctx.font = "bold 30px Inter"; ctx.fillText("Scan with any UPI App", width / 2, 1000);
-      ctx.fillStyle = "#9CA3AF"; ctx.font = "medium 24px Inter"; ctx.fillText(`Invoice: ${selectedInvoice.id.slice(0, 8)}`, width / 2, 1040);
+      ctx.fillStyle = "#111827"; ctx.font = "bold 30px Geist"; ctx.fillText("Scan with any UPI App", width / 2, 1000);
+      ctx.fillStyle = "#9CA3AF"; ctx.font = "medium 24px Geist"; ctx.fillText(`Invoice: ${selectedInvoice.id.slice(0, 8)}`, width / 2, 1040);
       try {
          const dataUrl = canvas.toDataURL("image/png");
          const blob = await (await fetch(dataUrl)).blob();
@@ -141,7 +141,20 @@ export default function BillingPage() {
                      <div className="mb-4 mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Payment Request</p><h2 className="text-3xl font-black text-zinc-900">₹{Number(selectedInvoice.amount).toFixed(2)}</h2></div>
                      <div ref={qrRef} className="bg-gradient-to-br from-primary to-primary-dim p-6 rounded-[2.5rem] shadow-2xl my-4 relative overflow-hidden">
                         <div className="bg-white p-4 rounded-[2rem] shadow-inner relative z-10">
-                           <QRCodeCanvas value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${selectedInvoice.amount}&cu=${paymentSettings.currency_code}`} size={200} includeMargin={false} level="H" />
+                           <QRCodeCanvas 
+                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${selectedInvoice.amount}&cu=${paymentSettings.currency_code}`} 
+                              size={200} 
+                              includeMargin={false} 
+                              level="H" 
+                              imageSettings={{
+                                 src: "/assets/icon.svg",
+                                 x: undefined,
+                                 y: undefined,
+                                 height: 40,
+                                 width: 40,
+                                 excavate: true,
+                              }}
+                           />
                         </div>
                         <div className="mt-4 text-white"><p className="text-[10px] font-bold opacity-60 uppercase text-black">{paymentSettings.payee_name}</p><p className="text-sm text-black font-black">{selectedInvoice.customer?.name}</p></div>
                      </div>

@@ -65,3 +65,11 @@ if (!hasKeys && typeof window !== 'undefined') {
 export const supabase = (isOff || isPlaceholder || !hasKeys)
   ? mockSupabase
   : createClient(supabaseUrl, supabaseAnonKey);
+
+if (typeof window !== 'undefined') {
+  console.log(
+    (isOff || isPlaceholder || !hasKeys) 
+      ? "🛠️ Using MOCK Supabase client (Check .env.local)" 
+      : "🚀 Using REAL Supabase client"
+  );
+}

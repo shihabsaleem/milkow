@@ -36,71 +36,82 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
   const today = todayStr();
 
   try {
-    // 1. Check automation settings
-    const { data: settingsData } = await supabase
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'automation')
-      .single();
-
-    const settings = settingsData as { value: T.AutomationSettings } | null;
-    const lastReset = settings?.value?.lastRouteReset;
-
-    if (lastReset === today) {
-      return { ran: false, message: `Route already initialized for ${today}` };
-    }
-
-    // 2. Initialize deliveries for the day
-    // Get all active customers
+    // 1. Get all active customers
     const { data: customers } = await supabase
       .from('customers')
       .select('*')
       .eq('status', 'Active');
 
-    if (customers && customers.length > 0) {
-      const deliveriesToCreate: any[] = [];
-      customers.forEach((c: any) => {
-        const freq = c.frequency || 'Morning Only';
-        if (freq === 'Morning Only' || freq === 'Morning & Evening') {
-          deliveriesToCreate.push({
-            customer_id: c.id,
-            delivery_date: today,
-            shift: 'morning',
-            milk_qty: c.default_qty || 1,
-            sequence_no: c.route_sl_no || 0,
-            delivered: false,
-            inventory_deducted: false,
-            misc_items: []
-          });
-        }
-        if (freq === 'Evening Only' || freq === 'Morning & Evening') {
-          deliveriesToCreate.push({
-            customer_id: c.id,
-            delivery_date: today,
-            shift: 'evening',
-            milk_qty: c.default_qty || 1,
-            sequence_no: c.route_sl_no || 0,
-            delivered: false,
-            inventory_deducted: false,
-            misc_items: []
-          });
-        }
-      });
-
-      const { error: insertError } = await supabase.from('deliveries').insert(deliveriesToCreate);
-      if (insertError) throw insertError;
+    if (!customers || customers.length === 0) {
+      return { ran: false, message: "No active customers found." };
     }
 
-    // 3. Update lastReset timestamp
-    const newValue = { ...(settings?.value || {}), lastRouteReset: today };
-    await supabase.from('system_settings').upsert({ key: 'automation', value: newValue });
+    // 2. Get existing deliveries for today to avoid duplicates
+    const { data: existingDeliveries } = await supabase
+      .from('deliveries')
+      .select('customer_id, shift')
+      .eq('delivery_date', today);
 
-    console.log(`[Automation] ✅ Route initialized for ${today}`);
-    return { ran: true, message: `Route initialized for ${today} completed.` };
+    const existingMap = new Set(existingDeliveries?.map((d: any) => `${d.customer_id}-${d.shift}`) || []);
+
+    // 3. Identify missing records
+    const deliveriesToCreate: any[] = [];
+    customers.forEach((c: any) => {
+      const freq = c.frequency || 'Morning Only';
+
+      const needsMorning = freq === 'Morning Only' || freq === 'Morning & Evening';
+      const needsEvening = freq === 'Evening Only' || freq === 'Morning & Evening';
+
+      if (needsMorning && !existingMap.has(`${c.id}-morning`)) {
+        deliveriesToCreate.push({
+          customer_id: c.id,
+          delivery_date: today,
+          shift: 'morning',
+          milk_qty: c.default_qty || 1,
+          sequence_no: c.route_sl_no || 0,
+          delivered: false,
+          inventory_deducted: false,
+          misc_items: []
+        });
+      }
+
+      if (needsEvening && !existingMap.has(`${c.id}-evening`)) {
+        deliveriesToCreate.push({
+          customer_id: c.id,
+          delivery_date: today,
+          shift: 'evening',
+          milk_qty: c.default_qty || 1,
+          sequence_no: c.route_sl_no || 0,
+          delivered: false,
+          inventory_deducted: false,
+          misc_items: []
+        });
+      }
+    });
+
+    if (deliveriesToCreate.length > 0) {
+      const { error: insertError } = await supabase.from('deliveries').insert(deliveriesToCreate);
+      if (insertError) throw insertError;
+
+      // 1. Fetch current settings to merge
+      const { data: currentSettings } = await supabase.from('system_settings').select('value').eq('key', 'automation').single();
+      const existingValue = (currentSettings as any)?.value || {};
+
+      // 2. Update lastReset timestamp without losing other keys
+      await supabase.from('system_settings').upsert({
+        key: 'automation',
+        value: { ...existingValue, lastRouteReset: today }
+      });
+
+      console.log(`[Automation] ✅ Created ${deliveriesToCreate.length} missing route records for ${today}`);
+      return { ran: true, message: `Added ${deliveriesToCreate.length} new records to today's route.` };
+    }
+
+    return { ran: false, message: `All ${customers.length} customers are already on the route for ${today}.` };
   } catch (err: any) {
     const errorMsg = err?.message || String(err);
-    console.error("[Automation] ❌ Route initialization failed:", errorMsg);
-    return { ran: false, message: `Initialization failed: ${errorMsg}` };
+    console.error("[Automation] ❌ Route sync failed:", errorMsg);
+    return { ran: false, message: `Sync failed: ${errorMsg}` };
   }
 }
 

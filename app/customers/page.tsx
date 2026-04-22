@@ -6,50 +6,55 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
+import { checkAndRunAutomations } from "@/lib/automation";
 
 export default function CustomersPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [customers, setCustomers] = useState<(T.Customer & { area: T.Area })[]>([]);
-  const [areas, setAreas] = useState<T.Area[]>([]);
-  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only" });
+   const [searchTerm, setSearchTerm] = useState("");
+   const [isModalOpen, setIsModalOpen] = useState(false);
+   const [customers, setCustomers] = useState<(T.Customer & { area: T.Area })[]>([]);
+   const [areas, setAreas] = useState<T.Area[]>([]);
+   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
 
-  // 1. DATA LOAD & SYNC
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: custs } = await supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true });
-      if (custs) setCustomers(custs as (T.Customer & { area: T.Area })[]);
+   // 1. DATA LOAD & SYNC
+   useEffect(() => {
+      const fetchData = async () => {
+         const { data: custs } = await supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true });
+         if (custs) setCustomers(custs as (T.Customer & { area: T.Area })[]);
 
-      const { data: areaList } = await supabase.from('areas').select('*').order('name', { ascending: true });
-      if (areaList) setAreas(areaList as T.Area[]);
-    };
+         const { data: areaList } = await supabase.from('areas').select('*').order('name', { ascending: true });
+         if (areaList) setAreas(areaList as T.Area[]);
+      };
 
-    fetchData();
+      fetchData();
 
-    const sub = supabase.channel('cust_list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, fetchData)
-      .subscribe();
+      const sub = supabase.channel('cust_list')
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, fetchData)
+         .subscribe();
 
-    return () => { sub.unsubscribe(); };
-  }, []);
+      return () => { sub.unsubscribe(); };
+   }, []);
 
-  const handleAddCustomer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCustomer.name || !newCustomer.phone || !newCustomer.area_id) return;
-    try {
-      await supabase.from('customers').insert({
-        name: newCustomer.name,
-        phone: newCustomer.phone,
-        area_id: parseInt(newCustomer.area_id),
-        frequency: newCustomer.frequency,
-        status: 'Active',
-        past_outstanding: 0
-      });
-      setIsModalOpen(false);
-      setNewCustomer({ name: "", phone: "", area_id: "", frequency: "Morning Only" });
-    } catch (err) { console.error(err); }
-  };
+   const handleAddCustomer = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newCustomer.name || !newCustomer.phone || !newCustomer.area_id) return;
+      try {
+         await supabase.from('customers').insert({
+            name: newCustomer.name,
+            phone: newCustomer.phone,
+            area_id: parseInt(newCustomer.area_id),
+            frequency: newCustomer.frequency,
+            status: 'Active',
+            past_outstanding: parseFloat(newCustomer.outstanding) || 0
+         });
+
+         // 🚀 Sync route immediately so new customer shows up in delivery list
+         await checkAndRunAutomations();
+
+         setIsModalOpen(false);
+         setNewCustomer({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
+      } catch (err) { console.error(err); }
+   };
 
   const filteredCustomers = customers.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,6 +114,7 @@ export default function CustomersPage() {
                     <option value="Morning & Evening">Morning & Evening</option>
                   </select>
                 </div>
+                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Outstanding (₹)</label><input type="number" placeholder="0.00" value={newCustomer.outstanding} onChange={e => setNewCustomer({ ...newCustomer, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Complete Registration</button>
               </form>
             </motion.div>

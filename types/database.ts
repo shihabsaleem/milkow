@@ -20,7 +20,9 @@ export interface AutomationSettings {
 export interface Settings {
   system_user?: {
     name: string;
+    pin?: string;
   };
+  payment?: PaymentSetup;
   [key: string]: any;
 }
 

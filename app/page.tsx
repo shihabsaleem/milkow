@@ -69,11 +69,40 @@ export default function Dashboard() {
     const fetchDelivered = async () => {
       const { data } = await supabase
         .from('deliveries')
-        .select('milk_qty')
+        .select('*')
         .eq('delivered', true)
         .eq('delivery_date', new Date().toISOString().split('T')[0]);
-      const total = data?.reduce((sum: number, s: any) => sum + (Number(s.milk_qty) || 0), 0) || 0;
-      setDelivered([{ name: "Cow Milk", vol: "Live Total", count: total, unit: "Bottles" }]);
+
+      if (!data) return;
+
+      const summary: Record<string, { count: number; unit: string }> = {};
+      data.forEach((d: any) => {
+        // Milk
+        const milkQty = Number(d.milk_qty) || 0;
+        if (milkQty > 0) {
+          summary['Cow Milk'] = { 
+            count: (summary['Cow Milk']?.count || 0) + milkQty,
+            unit: 'Bottles'
+          };
+        }
+        // Extras
+        const extras = d.misc_items || [];
+        extras.forEach((item: any) => {
+          summary[item.name] = {
+            count: (summary[item.name]?.count || 0) + (item.qty || 0),
+            unit: 'Items'
+          };
+        });
+      });
+
+      const list = Object.entries(summary).map(([name, val]) => ({
+        name,
+        vol: "Today Total",
+        count: val.count,
+        unit: val.unit
+      }));
+
+      setDelivered(list);
     };
     fetchDelivered();
     const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchDelivered).subscribe();
@@ -209,8 +238,8 @@ export default function Dashboard() {
 function InventoryCard({ item }: { item: T.InventoryItem }) {
   const isEmpty = item.count === 0;
   return (
-    <div className="min-w-[210px] sm:min-w-0 flex-shrink-0 rounded-2xl overflow-hidden snap-start hover:brightness-105 transition-all bg-primary">
-      <div className="p-5 pb-4">
+    <div className="min-w-[210px] sm:min-w-0 flex-shrink-0 rounded-2xl overflow-hidden snap-start hover:brightness-105 transition-all bg-primary flex flex-col h-full">
+      <div className="p-5 pb-4 flex-1">
         <p className="text-white text-[18px] font-bold leading-tight">{item.name}</p>
         <p className="text-[13px] font-medium text-white/60">{item.vol}</p>
         <div className="mt-4">
@@ -218,7 +247,7 @@ function InventoryCard({ item }: { item: T.InventoryItem }) {
           <p className="text-[11px] font-semibold uppercase tracking-widest mt-1 text-white/60">{item.unit}</p>
         </div>
       </div>
-      <div className="px-5 py-3 flex items-center justify-between bg-black/20">
+      <div className="px-5 py-3 flex items-center justify-between bg-black/20 mt-auto">
         <p className="text-[11px] font-semibold tracking-wide text-white/70">Loaded to Van</p>
         <p className="text-[14px] font-bold text-white">{isEmpty ? "—" : item.loaded}<span className="text-[10px] font-medium ml-1 text-white/70">{item.unit}</span></p>
       </div>

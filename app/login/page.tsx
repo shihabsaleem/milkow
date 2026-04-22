@@ -67,7 +67,8 @@ export default function LoginPage() {
                      alt="Milkow Logo"
                      width={192}
                      height={40}
-                     className="object-contain"
+                     className="object-contain h-auto"
+                     priority
                   />
                </motion.div>
 

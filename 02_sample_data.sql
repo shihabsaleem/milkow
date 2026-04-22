@@ -1,11 +1,8 @@
 -- ==========================================
--- MILKOW COMPREHENSIVE SAMPLE DATA
+-- MILKOW COMPREHENSIVE SAMPLE DATA (V4)
 -- ==========================================
 
--- Clean existing data (optional, but recommended for a fresh start)
--- TRUNCATE deliveries, bills, customers, areas, products, inventory RESTART IDENTITY CASCADE;
-
--- 1. SEED SYSTEM SETTINGS (MUST DO FIRST for profile settings)
+-- 1. SEED SYSTEM SETTINGS
 INSERT INTO system_settings (key, value)
 VALUES (
     'general', 
@@ -34,19 +31,14 @@ INSERT INTO products (name, size, price, stock, unit) VALUES
 ('Desi Cow Ghee', '500ml', 750.00, 25, 'Jars'),
 ('Fresh Malai Paneer', '200g', 120.00, 30, 'Packets'),
 ('Spiced Buttermilk', '200ml', 15.00, 100, 'Bottles')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO UPDATE SET price = EXCLUDED.price;
 
 -- 4. SEED INVENTORY (Sync with Products)
-DELETE FROM inventory; -- Reset inventory display
-INSERT INTO inventory (name, vol, count, loaded, unit) VALUES
-('A2 Cow Milk', '1L Bottle', 150, 60, 'Bottles'),
-('Buffalo Milk', '1L Bottle', 80, 30, 'Bottles'),
-('Malai Dahi', '500g Pkt', 40, 15, 'Packets'),
-('Desi Cow Ghee', '500ml Jar', 25, 5, 'Jars'),
-('Fresh Malai Paneer', '200g Pkt', 30, 10, 'Packets'),
-('Spiced Buttermilk', '200ml Btl', 100, 20, 'Bottles');
+DELETE FROM inventory;
+INSERT INTO inventory (product_id, name, vol, count, loaded, unit) 
+SELECT id, name, size, stock, stock/2, unit FROM products;
 
--- 5. SEED CUSTOMERS (Linking to Areas)
+-- 5. SEED CUSTOMERS
 DO $$
 DECLARE
     indira_id INT := (SELECT id FROM areas WHERE name = 'Indiranagar' LIMIT 1);
@@ -69,62 +61,80 @@ BEGIN
     ON CONFLICT (phone) DO NOTHING;
 END $$;
 
--- 6. SEED DELIVERIES (Last 3 days + Today)
+-- 6. SEED DELIVERIES & DELIVERY ITEMS
 DO $$
 DECLARE
-    cust1 UUID := (SELECT id FROM customers WHERE phone = '9876500001'); -- Rahul (Morn)
-    cust2 UUID := (SELECT id FROM customers WHERE phone = '9876500002'); -- Priya (Morn & Eve)
-    cust3 UUID := (SELECT id FROM customers WHERE phone = '9876500003'); -- Amit (Eve)
-    cust6 UUID := (SELECT id FROM customers WHERE phone = '9876500006'); -- Anjali (Morn)
-    cust8 UUID := (SELECT id FROM customers WHERE phone = '9876500008'); -- Neha (Morn & Eve)
+    cust1 UUID := (SELECT id FROM customers WHERE phone = '9876500001');
+    cust2 UUID := (SELECT id FROM customers WHERE phone = '9876500002');
+    cust3 UUID := (SELECT id FROM customers WHERE phone = '9876500003');
+    cust6 UUID := (SELECT id FROM customers WHERE phone = '9876500006');
+    cust8 UUID := (SELECT id FROM customers WHERE phone = '9876500008');
+    paneer_id UUID := (SELECT id FROM products WHERE name = 'Fresh Malai Paneer');
+    dahi_id UUID := (SELECT id FROM products WHERE name = 'Malai Dahi');
+    ghee_id UUID := (SELECT id FROM products WHERE name = 'Desi Cow Ghee');
+    del_id UUID;
 BEGIN
     -- 3 Days Ago
     INSERT INTO deliveries (customer_id, delivery_date, shift, milk_qty, delivered, inventory_deducted) VALUES
     (cust1, CURRENT_DATE - 3, 'morning', 2, TRUE, TRUE),
     (cust2, CURRENT_DATE - 3, 'morning', 1, TRUE, TRUE),
     (cust2, CURRENT_DATE - 3, 'evening', 1, TRUE, TRUE),
-    (cust3, CURRENT_DATE - 3, 'evening', 1, TRUE, TRUE);
+    (cust3, CURRENT_DATE - 3, 'evening', 1, TRUE, TRUE)
+    ON CONFLICT DO NOTHING;
 
-    -- 2 Days Ago
-    INSERT INTO deliveries (customer_id, delivery_date, shift, milk_qty, delivered, inventory_deducted, misc_items) VALUES
-    (cust1, CURRENT_DATE - 2, 'morning', 2, TRUE, TRUE, '[{"name": "Fresh Malai Paneer", "qty": 1}]'::jsonb),
-    (cust2, CURRENT_DATE - 2, 'morning', 1, TRUE, TRUE, '[]'::jsonb),
-    (cust6, CURRENT_DATE - 2, 'morning', 1, TRUE, TRUE, '[]'::jsonb),
-    (cust2, CURRENT_DATE - 2, 'evening', 1, TRUE, TRUE, '[]'::jsonb),
-    (cust3, CURRENT_DATE - 2, 'evening', 1, TRUE, TRUE, '[]'::jsonb);
+    -- 2 Days Ago (with Misc Items)
+    INSERT INTO deliveries (customer_id, delivery_date, shift, milk_qty, delivered, inventory_deducted, misc_items) 
+    VALUES (cust1, CURRENT_DATE - 2, 'morning', 2, TRUE, TRUE, '[{"name": "Fresh Malai Paneer", "qty": 1}]'::jsonb)
+    ON CONFLICT (customer_id, delivery_date, shift) DO UPDATE SET id = EXCLUDED.id 
+    RETURNING id INTO del_id;
+    
+    IF del_id IS NOT NULL THEN
+        INSERT INTO delivery_items (delivery_id, product_id, quantity, unit_price)
+        VALUES (del_id, paneer_id, 1, 120.00) ON CONFLICT DO NOTHING;
+    END IF;
 
-    -- Yesterday
-    INSERT INTO deliveries (customer_id, delivery_date, shift, milk_qty, delivered, inventory_deducted, misc_items) VALUES
-    (cust1, CURRENT_DATE - 1, 'morning', 2, TRUE, TRUE, '[]'::jsonb),
-    (cust2, CURRENT_DATE - 1, 'morning', 1, TRUE, TRUE, '[]'::jsonb),
-    (cust6, CURRENT_DATE - 1, 'morning', 1, FALSE, FALSE, '[]'::jsonb),
-    (cust8, CURRENT_DATE - 1, 'morning', 1, TRUE, TRUE, '[{"name": "Malai Dahi", "qty": 2}]'::jsonb),
-    (cust2, CURRENT_DATE - 1, 'evening', 1, TRUE, TRUE, '[]'::jsonb),
-    (cust3, CURRENT_DATE - 1, 'evening', 1, FALSE, FALSE, '[]'::jsonb);
-
-    -- Today (Morning - Completed)
-    INSERT INTO deliveries (customer_id, delivery_date, shift, milk_qty, delivered, inventory_deducted, misc_items) VALUES
-    (cust1, CURRENT_DATE, 'morning', 2, TRUE, TRUE, '[{"name": "Desi Cow Ghee", "qty": 1}]'::jsonb),
-    (cust2, CURRENT_DATE, 'morning', 1, TRUE, TRUE, '[]'::jsonb),
-    (cust6, CURRENT_DATE, 'morning', 1, TRUE, TRUE, '[]'::jsonb),
-    (cust8, CURRENT_DATE, 'morning', 1, TRUE, TRUE, '[]'::jsonb);
-
-    -- Today (Evening - Pending)
     INSERT INTO deliveries (customer_id, delivery_date, shift, milk_qty, delivered, inventory_deducted) VALUES
-    (cust2, CURRENT_DATE, 'evening', 1, FALSE, FALSE),
-    (cust3, CURRENT_DATE, 'evening', 1, FALSE, FALSE),
-    (cust8, CURRENT_DATE, 'evening', 1, FALSE, FALSE);
+    (cust2, CURRENT_DATE - 2, 'morning', 1, TRUE, TRUE),
+    (cust6, CURRENT_DATE - 2, 'morning', 1, TRUE, TRUE),
+    (cust2, CURRENT_DATE - 2, 'evening', 1, TRUE, TRUE),
+    (cust3, CURRENT_DATE - 2, 'evening', 1, TRUE, TRUE)
+    ON CONFLICT DO NOTHING;
+
+    -- Yesterday (with Dahi)
+    INSERT INTO deliveries (customer_id, delivery_date, shift, milk_qty, delivered, inventory_deducted, misc_items) 
+    VALUES (cust8, CURRENT_DATE - 1, 'morning', 1, TRUE, TRUE, '[{"name": "Malai Dahi", "qty": 2}]'::jsonb)
+    ON CONFLICT (customer_id, delivery_date, shift) DO UPDATE SET id = EXCLUDED.id 
+    RETURNING id INTO del_id;
+
+    IF del_id IS NOT NULL THEN
+        INSERT INTO delivery_items (delivery_id, product_id, quantity, unit_price)
+        VALUES (del_id, dahi_id, 2, 50.00) ON CONFLICT DO NOTHING;
+    END IF;
+
+    -- Today (with Ghee)
+    INSERT INTO deliveries (customer_id, delivery_date, shift, milk_qty, delivered, inventory_deducted, misc_items) 
+    VALUES (cust1, CURRENT_DATE, 'morning', 2, TRUE, TRUE, '[{"name": "Desi Cow Ghee", "qty": 1}]'::jsonb)
+    ON CONFLICT (customer_id, delivery_date, shift) DO UPDATE SET id = EXCLUDED.id 
+    RETURNING id INTO del_id;
+
+    IF del_id IS NOT NULL THEN
+        INSERT INTO delivery_items (delivery_id, product_id, quantity, unit_price)
+        VALUES (del_id, ghee_id, 1, 750.00) ON CONFLICT DO NOTHING;
+    END IF;
 END $$;
 
--- 7. SEED BILLS
+-- 7. SEED BILLS & BILL DELIVERIES
 DO $$
 DECLARE
     cust1 UUID := (SELECT id FROM customers WHERE phone = '9876500001');
-    cust5 UUID := (SELECT id FROM customers WHERE phone = '9876500005');
-    cust9 UUID := (SELECT id FROM customers WHERE phone = '9876500009');
+    bill1_id UUID;
 BEGIN
-    INSERT INTO bills (customer_id, type, amount, status) VALUES
-    (cust1, 'Monthly', 3500.00, 'Pending'),
-    (cust5, 'Monthly', 1850.00, 'Paid'),
-    (cust9, 'Weekly', 910.00, 'Pending');
+    -- Create a bill for Rahul (cust1)
+    INSERT INTO bills (customer_id, type, amount, status, start_date, end_date) 
+    VALUES (cust1, 'Monthly', 3500.00, 'Pending', CURRENT_DATE - 30, CURRENT_DATE)
+    RETURNING id INTO bill1_id;
+
+    -- Link recent deliveries to this bill
+    INSERT INTO bill_deliveries (bill_id, delivery_id)
+    SELECT bill1_id, id FROM deliveries WHERE customer_id = cust1 AND delivery_date >= CURRENT_DATE - 30;
 END $$;

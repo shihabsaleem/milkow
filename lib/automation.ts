@@ -139,7 +139,8 @@ export async function deductInventoryOnDelivery(
     const { data: inventoryData } = await supabase.from('inventory').select('*');
     const inventory = inventoryData as T.InventoryItem[] | null;
     if (inventory) {
-      const milkItem = inventory.find(i => i.name.toLowerCase().includes('milk'));
+      // Find the specific milk item (case insensitive)
+      const milkItem = inventory.find(i => i.name.toLowerCase() === 'cow milk' || i.name.toLowerCase() === 'milk');
       if (milkItem && milkQty > 0) {
         await supabase
           .from('inventory')
@@ -199,6 +200,7 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
       .from('deliveries')
       .select('*, customer:customers(*)')
       .eq('delivered', true)
+      .eq('billed', false)
       .eq('delivery_date', today);
 
     const completedDeliveries = deliveryData as (T.Delivery & { customer: T.Customer })[] | null;
@@ -237,6 +239,10 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
     // Batch insert bills
     const { error: insertError } = await supabase.from('bills').insert(billsToCreate);
     if (insertError) throw insertError;
+
+    // 4. Mark these deliveries as billed
+    const deliveryIds = completedDeliveries.map(d => d.id);
+    await supabase.from('deliveries').update({ billed: true }).in('id', deliveryIds);
 
     // Update timestamp
     const newValue = { ...(settings?.value || {}), lastBillGeneration: today };

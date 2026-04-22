@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Search, MapPin, ChevronRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -9,10 +10,12 @@ import * as T from "@/types/database";
 import { checkAndRunAutomations } from "@/lib/automation";
 
 export default function CustomersPage() {
+   const router = useRouter();
    const [searchTerm, setSearchTerm] = useState("");
    const [isModalOpen, setIsModalOpen] = useState(false);
    const [customers, setCustomers] = useState<(T.Customer & { area: T.Area })[]>([]);
    const [areas, setAreas] = useState<T.Area[]>([]);
+   const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
    const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
 
    // 1. DATA LOAD & SYNC
@@ -56,10 +59,11 @@ export default function CustomersPage() {
       } catch (err) { console.error(err); }
    };
 
-  const filteredCustomers = customers.filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.phone.includes(searchTerm)
-  );
+  const filteredCustomers = customers.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone.includes(searchTerm);
+    const matchesArea = selectedAreaId === "all" || c.area_id?.toString() === selectedAreaId;
+    return matchesSearch && matchesArea;
+  });
 
   return (
     <div className="min-h-full w-full pb-32 bg-zinc-50/50">
@@ -69,9 +73,15 @@ export default function CustomersPage() {
             <div><p className="text-[20px] font-black text-zinc-900 leading-none">Customers</p><p className="text-[12px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">{customers.length} Subscribers</p></div>
             <button onClick={() => setIsModalOpen(true)} className="h-10 w-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
           </div>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-            <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+              <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
+            </div>
+            <select value={selectedAreaId} onChange={(e) => setSelectedAreaId(e.target.value)} className="bg-white border border-zinc-200 rounded-2xl px-4 py-3.5 text-sm font-bold text-zinc-700 focus:ring-2 transition-all shadow-sm min-w-[140px]">
+              <option value="all">All Routes</option>
+              {areas.map(a => <option key={a.id} value={a.id.toString()}>{a.name}</option>)}
+            </select>
           </div>
         </div>
       </div>
@@ -84,7 +94,19 @@ export default function CustomersPage() {
                 <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg font-black ${customer.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>{customer.name.charAt(0)}</div>
                 <div><h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors">{customer.name}</h3><p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5"><MapPin size={12} /> {customer.area?.name || 'No Area'}</p></div>
               </div>
-              <ChevronRight size={18} className="text-zinc-300 group-hover:text-primary transition-all translate-x-0 group-hover:translate-x-1" />
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={(e) => { 
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    router.push(`/billing?search=${encodeURIComponent(customer.name)}`); 
+                  }} 
+                  className="p-2.5 bg-primary/5 text-primary rounded-xl hover:bg-primary/10 transition-colors border border-primary/10 flex items-center gap-2"
+                >
+                   <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">QR Bill</span>
+                   <ChevronRight size={18} className="text-primary/50 group-hover:text-primary transition-all translate-x-0 group-hover:translate-x-1" />
+                </button>
+              </div>
             </motion.div>
           </Link>
         ))}

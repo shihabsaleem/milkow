@@ -1,6 +1,6 @@
 -- ==========================================
 -- MILKOW FULL SYSTEM SCHEMA (SUPABASE)
--- V3 (Cleaned and optimized)
+-- V4 (Enhanced Atomicity & Consistency)
 -- ==========================================
 
 -- 1. SETUP EXTENSIONS & TYPES
@@ -26,12 +26,14 @@ END $$;
 
 -- 2. CREATE TABLES
 
+-- Areas: Master list of delivery regions
 CREATE TABLE IF NOT EXISTS areas (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Customers: Linked to areas, ensures phone uniqueness
 CREATE TABLE IF NOT EXISTS customers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -45,10 +47,13 @@ CREATE TABLE IF NOT EXISTS customers (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_customers_area_id ON customers(area_id);
+CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status);
 
+-- Products: Master list of all items (Milk, Ghee, etc.)
 CREATE TABLE IF NOT EXISTS products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
+    name TEXT UNIQUE NOT NULL,
     size TEXT,
     price DECIMAL(10, 2) NOT NULL,
     stock INTEGER DEFAULT 0,
@@ -57,41 +62,75 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Inventory: Tracking physical stock/loading, linked to products
 CREATE TABLE IF NOT EXISTS inventory (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+    product_id UUID REFERENCES products(id) ON DELETE SET NULL,
+    name TEXT NOT NULL, -- Redundant but kept for app compatibility
     vol TEXT,
-    count INTEGER DEFAULT 0,
-    loaded INTEGER DEFAULT 0,
+    count INTEGER DEFAULT 0, -- Current physical stock
+    loaded INTEGER DEFAULT 0, -- Stock loaded into delivery vehicle
     unit TEXT DEFAULT 'Bottles',
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_inventory_product_id ON inventory(product_id);
 
+-- Deliveries: Core transaction table
 CREATE TABLE IF NOT EXISTS deliveries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     delivery_date DATE NOT NULL DEFAULT CURRENT_DATE,
     shift shift_type NOT NULL,
     milk_qty INTEGER DEFAULT 0,
-    misc_items JSONB DEFAULT '[]'::jsonb,
+    misc_items JSONB DEFAULT '[]'::jsonb, -- Legacy JSON support
     delivered BOOLEAN DEFAULT FALSE,
     inventory_deducted BOOLEAN DEFAULT FALSE,
     sequence_no INTEGER,
     created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    -- Consistency: Prevent duplicate deliveries for same customer/shift/day
+    UNIQUE(customer_id, delivery_date, shift)
 );
+CREATE INDEX IF NOT EXISTS idx_deliveries_customer_id ON deliveries(customer_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_date ON deliveries(delivery_date);
+CREATE INDEX IF NOT EXISTS idx_deliveries_composite_lookup ON deliveries(delivery_date, shift);
 
+-- Delivery Items: Normalized items for each delivery (Atomicity & Integrity)
+CREATE TABLE IF NOT EXISTS delivery_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    delivery_id UUID NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price DECIMAL(10, 2) NOT NULL, -- Snapshot price at time of delivery
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_delivery_items_delivery_id ON delivery_items(delivery_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_items_product_id ON delivery_items(product_id);
+
+-- Bills: Aggregated charges for customers
 CREATE TABLE IF NOT EXISTS bills (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     type bill_type DEFAULT 'Monthly',
-    amount DECIMAL(12, 2) NOT NULL,
+    amount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     status bill_status DEFAULT 'Pending',
+    start_date DATE,
+    end_date DATE,
     created_at TIMESTAMPTZ DEFAULT now(),
     paid_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_bills_customer_id ON bills(customer_id);
+CREATE INDEX IF NOT EXISTS idx_bills_status ON bills(status);
 
+-- Bill Deliveries: Linking table to track which deliveries are covered by which bill
+CREATE TABLE IF NOT EXISTS bill_deliveries (
+    bill_id UUID NOT NULL REFERENCES bills(id) ON DELETE CASCADE,
+    delivery_id UUID NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
+    PRIMARY KEY (bill_id, delivery_id)
+);
+
+-- System Settings: Global configurations
 CREATE TABLE IF NOT EXISTS system_settings (
     key TEXT PRIMARY KEY,
     value JSONB,
@@ -123,7 +162,9 @@ ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deliveries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE delivery_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bill_deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
 -- ALLOW ALL FOR AUTHENTICATED USERS

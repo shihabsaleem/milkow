@@ -33,7 +33,7 @@ export default function Preloader() {
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="relative w-24 h-9"
             >
-              <Image src="/assets/logo.svg" alt="Milkow" fill className="object-contain" priority />
+              <Image src="/assets/logo.svg" alt="Milkow" fill className="object-contain h-auto" priority />
             </motion.div>
 
             <div className="h-[2px] w-20 rounded-full overflow-hidden bg-zinc-100">

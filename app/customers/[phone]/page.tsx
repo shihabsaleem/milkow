@@ -22,7 +22,7 @@ export default function CustomerProfilePage() {
    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [areas, setAreas] = useState<T.Area[]>([]);
-   const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only" });
+   const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
 
    useEffect(() => {
       if (!phoneId) return;
@@ -44,7 +44,8 @@ export default function CustomerProfilePage() {
                name: custData.name,
                phone: custData.phone,
                area_id: custData.area_id?.toString() || "",
-               frequency: custData.frequency
+               frequency: custData.frequency,
+               outstanding: custData.past_outstanding?.toString() || "0"
             });
             const customerId = custData.id;
 
@@ -103,7 +104,7 @@ export default function CustomerProfilePage() {
    };
 
    const pendingAmount = bills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
-   const unbilledDeliveries = deliveries.filter(d => d.delivered);
+   const unbilledDeliveries = deliveries.filter(d => d.delivered && !d.billed);
    const currentDeliveriesAmount = unbilledDeliveries.reduce((acc, d) => acc + calculateDeliveryTotal(d), 0);
    const grandTotalAmount = pendingAmount + currentDeliveriesAmount;
 
@@ -133,7 +134,8 @@ export default function CustomerProfilePage() {
             name: editForm.name,
             phone: editForm.phone,
             area_id: parseInt(editForm.area_id),
-            frequency: editForm.frequency
+            frequency: editForm.frequency,
+            past_outstanding: parseFloat(editForm.outstanding) || 0
          }).eq('id', customer.id);
          setIsEditModalOpen(false);
          if (editForm.phone !== customer.phone) {
@@ -143,6 +145,33 @@ export default function CustomerProfilePage() {
          }
       } catch (err) {
          console.error(err);
+         setIsLoading(false);
+      }
+   };
+
+   const handleGenerateBill = async () => {
+      if (!customer || unbilledDeliveries.length === 0) return;
+      try {
+         setIsLoading(true);
+         // 1. Create the bill
+         const { data: newBill, error: billError } = await supabase.from('bills').insert({
+            customer_id: customer.id,
+            amount: currentDeliveriesAmount,
+            type: 'Monthly',
+            status: 'Pending',
+            created_at: new Date().toISOString(),
+         }).select().single();
+
+         if (billError) throw billError;
+
+         // 2. Mark deliveries as billed
+         const ids = unbilledDeliveries.map(d => d.id);
+         await supabase.from('deliveries').update({ billed: true }).in('id', ids);
+
+         // 3. Go to billing page to show QR
+         router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
+      } catch (err) {
+         console.error("Failed to generate bill:", err);
          setIsLoading(false);
       }
    };
@@ -168,6 +197,10 @@ export default function CustomerProfilePage() {
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between gap-4">
                <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-lg font-bold">{customer.name}</h1><p className="text-xs text-zinc-500">Customer Profile</p></div></div>
                <div className="flex items-center gap-2">
+                  <button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
+                     <Receipt size={16} />
+                     <span className="hidden sm:inline">QR Bill</span>
+                  </button>
                   <button onClick={() => setIsEditModalOpen(true)} className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl active:scale-90"><Edit2 size={20} /></button>
                   <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl active:scale-90"><Trash2 size={20} /></button>
                </div>
@@ -222,7 +255,10 @@ export default function CustomerProfilePage() {
                                        {delivery.milk_qty > 0 && hasMisc ? ' + ' : ''}
                                        {hasMisc ? 'Extras' : (delivery.milk_qty === 0 ? 'Misc Purchase' : '')}
                                     </p>
-                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-tight">Delivery Success</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-2">
+                                       <span className="text-emerald-600">Delivery Success</span>
+                                       {delivery.billed && <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded text-[8px] border border-zinc-200">BILLED</span>}
+                                    </p>
                                  </div>
                               </div>
                               <div className="text-right">
@@ -245,7 +281,21 @@ export default function CustomerProfilePage() {
             <div className="max-w-2xl mx-auto w-full px-5 py-6">
                <div className="bg-zinc-900 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden">
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Grand Total Ledger</h3>
-                  <div className="flex flex-col gap-2"><div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Pending Invoices</span><span>₹{pendingAmount.toFixed(2)}</span></div><div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Unbilled Deliveries</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div><div className="flex justify-between items-end mt-2"><span className="text-xs font-black text-zinc-300">CALCULATED TOTAL</span><span className="text-3xl font-black text-primary">₹{grandTotalAmount.toFixed(2)}</span></div></div>
+                  <div className="flex flex-col gap-2">
+                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Pending Invoices</span><span>₹{pendingAmount.toFixed(2)}</span></div>
+                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Unbilled Deliveries</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div>
+                     <div className="flex justify-between items-end mt-2"><span className="text-xs font-black text-zinc-300">CALCULATED TOTAL</span><span className="text-3xl font-black text-primary">₹{grandTotalAmount.toFixed(2)}</span></div>
+                  </div>
+                  
+                  {currentDeliveriesAmount > 0 && (
+                     <button 
+                        onClick={handleGenerateBill}
+                        className="w-full mt-6 bg-primary text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                     >
+                        <Receipt size={18} />
+                        Generate Bill for QR
+                     </button>
+                  )}
                </div>
             </div>
          </main>
@@ -276,6 +326,7 @@ export default function CustomerProfilePage() {
                               <option value="Morning & Evening">Morning & Evening</option>
                            </select>
                         </div>
+                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Outstanding (₹)</label><input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                         <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Save Changes</button>
                      </form>
                   </motion.div>

@@ -66,6 +66,7 @@ export interface Delivery {
   delivered: boolean;
   sequence_no: number;
   inventory_deducted: boolean;
+  billed: boolean;
   created_at?: string;
 }
 

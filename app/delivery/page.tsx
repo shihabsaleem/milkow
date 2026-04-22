@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, PackagePlus, Search, Minus, Plus, ChevronDown, X } from "lucide-react";
+import { Check, PackagePlus, Search, Minus, Plus, ChevronDown, X, Sunrise, Sunset } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { deductInventoryOnDelivery } from "@/lib/automation";
 import * as T from "@/types/database";
 
+type DeliveryWithCustomer = T.Delivery & { customer: T.Customer };
+
 export default function DeliveryPage() {
-   const [deliveries, setDeliveries] = useState<T.ActiveRouteStop[]>([]);
+   const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [allCustomers, setAllCustomers] = useState<T.Customer[]>([]);
    const [products, setProducts] = useState<T.Product[]>([]);
    const [routesList, setRoutesList] = useState<string[]>([]);
@@ -16,10 +18,16 @@ export default function DeliveryPage() {
    const [searchQuery, setSearchQuery] = useState("");
    const [selectedRoute, setSelectedRoute] = useState("");
    const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
-   const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
-   const [editingSeqId, setEditingSeqId] = useState<number | null>(null);
+   const [expandedStopId, setExpandedStopId] = useState<string | null>(null);
+   const [editingSeqId, setEditingSeqId] = useState<string | null>(null);
    const [editSeqVal, setEditSeqVal] = useState("");
+   const [manualShift, setManualShift] = useState<'morning' | 'evening' | null>(null);
 
+   // Auto-detect shift from time of day
+   const shift = useMemo<'morning' | 'evening'>(() => {
+      if (manualShift) return manualShift;
+      return new Date().getHours() < 14 ? 'morning' : 'evening';
+   }, [manualShift]);
    // 1. DATA LOAD & SYNC
    useEffect(() => {
       const fetchData = async () => {
@@ -37,9 +45,13 @@ export default function DeliveryPage() {
          const { data: prodData } = await supabase.from('products').select('*');
          if (prodData) setProducts(prodData as T.Product[]);
 
-         // Active Route
-         const { data: routeData } = await supabase.from('active_route').select('*').order('sequence', { ascending: true });
-         if (routeData) setDeliveries(routeData as T.ActiveRouteStop[]);
+         // Deliveries (with customer join)
+         const { data: routeData } = await supabase
+            .from('deliveries')
+            .select('*, customer:customers(*)')
+            .eq('delivery_date', new Date().toISOString().split('T')[0])
+            .order('sequence_no', { ascending: true });
+         if (routeData) setDeliveries(routeData as (T.Delivery & { customer: T.Customer })[]);
 
          // Customers
          const { data: custData } = await supabase.from('customers').select('*');
@@ -48,69 +60,107 @@ export default function DeliveryPage() {
 
       fetchData();
 
-      // Real-time updates for active_route
       const sub = supabase.channel('route_page')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'active_route' }, fetchData)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
          .subscribe();
 
       return () => { sub.unsubscribe(); };
    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-   const toggleDelivery = async (id: number) => {
+   const toggleDelivery = async (id: string) => {
       const stop = deliveries.find(d => d.id === id);
       if (!stop) return;
       
       const nowDelivered = !stop.delivered;
 
+      // Optimistic UI update
+      setDeliveries(prev => prev.map(d => d.id === id ? { ...d, delivered: nowDelivered } : d));
+
       try {
-         await supabase.from('active_route').update({ delivered: nowDelivered }).eq('id', id);
+         await supabase.from('deliveries').update({ delivered: nowDelivered }).eq('id', id);
 
          if (nowDelivered) {
-            const miscProducts = stop.extras || {};
-            await deductInventoryOnDelivery(id, stop.qty, miscProducts);
+            const miscProducts = stop.misc_items || [];
+            const extrasRecord: Record<string, number> = {};
+            miscProducts.forEach((item: any) => extrasRecord[item.name] = item.qty);
+            await deductInventoryOnDelivery(id, stop.milk_qty, extrasRecord);
          }
       } catch (err) {
          console.error("Failed to toggle delivery:", err);
+         // Revert on error
+         setDeliveries(prev => prev.map(d => d.id === id ? { ...d, delivered: stop.delivered } : d));
       }
    };
 
-   const updateProductQty = async (stopId: number, productName: string, delta: number) => {
+   const updateProductQty = async (stopId: string, productName: string, delta: number) => {
       const stop = deliveries.find(d => d.id === stopId);
       if (!stop) return;
 
-      const currentExtras = stop.extras || {};
-      const newQty = Math.max(0, (currentExtras[productName] || 0) + delta);
+      const currentExtras = stop.misc_items || [];
+      const itemIndex = currentExtras.findIndex((item: any) => item.name === productName);
+      let updatedExtras = [...currentExtras];
+
+      if (itemIndex > -1) {
+         const newQty = Math.max(0, updatedExtras[itemIndex].qty + delta);
+         if (newQty === 0) {
+            updatedExtras.splice(itemIndex, 1);
+         } else {
+            updatedExtras[itemIndex] = { ...updatedExtras[itemIndex], qty: newQty };
+         }
+      } else if (delta > 0) {
+         updatedExtras.push({ name: productName, qty: delta });
+      }
+
+      // Optimistic update
+      setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, misc_items: updatedExtras } : d));
       
       try {
-         const updatedExtras = { ...currentExtras };
-         if (newQty === 0) {
-            delete updatedExtras[productName];
-         } else {
-            updatedExtras[productName] = newQty;
-         }
-         await supabase.from('active_route').update({ extras: updatedExtras }).eq('id', stopId);
+         await supabase.from('deliveries').update({ misc_items: updatedExtras }).eq('id', stopId);
       } catch (err) {
          console.error("Failed to update extra product qty:", err);
+         // Revert
+         setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, misc_items: stop.misc_items } : d));
       }
    };
 
-   const updateSequence = async (id: number, newSeqRaw: string) => {
+   const updateMilkQty = async (stopId: string, delta: number) => {
+      const stop = deliveries.find(d => d.id === stopId);
+      if (!stop) return;
+      const newQty = Math.max(0, (stop.milk_qty || 0) + delta);
+      // Optimistic update
+      setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, milk_qty: newQty } : d));
+      try {
+         await supabase.from('deliveries').update({ milk_qty: newQty }).eq('id', stopId);
+      } catch (err) {
+         console.error("Failed to update milk qty:", err);
+         setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, milk_qty: stop.milk_qty } : d));
+      }
+   };
+
+   const updateSequence = async (id: string, newSeqRaw: string) => {
       const newSeq = parseInt(newSeqRaw);
       if (isNaN(newSeq)) return;
       try {
-         await supabase.from('active_route').update({ sequence: newSeq }).eq('id', id);
+         await supabase.from('deliveries').update({ sequence_no: newSeq }).eq('id', id);
       } catch (err) {
          console.error("Failed to update sequence:", err);
       }
    };
 
    const filteredDeliveries = deliveries.filter(d => {
-      const user = allCustomers.find(u => u.phone === d.phone);
-      if (user && user.status === 'Inactive') return false;
-      const matchesArea = user && selectedRoute === user.area;
-      const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesArea && matchesSearch;
+      const user = d.customer;
+      if (!user || user.status === 'Inactive') return false;
+
+      // Filter by shift: show if frequency includes current shift
+      const freq = user.frequency;
+      if (shift === 'morning' && freq === 'Evening Only') return false;
+      if (shift === 'evening' && freq === 'Morning Only') return false;
+      // Also filter by delivery shift column
+      if (d.shift !== shift) return false;
+      
+      const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
    });
 
    const remainingStops = filteredDeliveries.filter(d => !d.delivered).length;
@@ -118,13 +168,14 @@ export default function DeliveryPage() {
    return (
       <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
-            <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between">
-               <div className="relative">
-                  <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-2 group">
-                     <h1 className="text-xl font-black text-zinc-900">{selectedRoute}</h1>
-                     <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  <p className="text-xs font-bold text-primary tracking-wider uppercase mt-0.5">{remainingStops} Stops Remaining</p>
+            <div className="max-w-2xl mx-auto w-full px-5 py-4 flex flex-col gap-3">
+               <div className="flex items-center justify-between">
+                  <div className="relative">
+                     <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-2 group">
+                        <h1 className="text-xl font-black text-zinc-900">{selectedRoute || 'Delivery'}</h1>
+                        <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
+                     </button>
+                     <p className="text-xs font-bold text-primary tracking-wider uppercase mt-0.5">{remainingStops} Stops Remaining</p>
                   <AnimatePresence>
                      {isRouteMenuOpen && (
                         <>
@@ -137,6 +188,18 @@ export default function DeliveryPage() {
                         </>
                      )}
                   </AnimatePresence>
+                  </div>
+               </div>
+
+               {/* Morning / Evening Toggle */}
+               <div className="grid grid-cols-2 p-1 rounded-2xl bg-[#EBEBEF] relative h-11">
+                  <motion.div layout className="absolute inset-y-1 rounded-xl shadow-sm z-0 bg-white" style={{ left: shift === 'morning' ? '4px' : '50%', width: 'calc(50% - 4px)' }} transition={{ type: 'spring', stiffness: 450, damping: 35 }} />
+                  <button onClick={() => setManualShift('morning')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-xl transition-all text-sm font-bold ${shift === 'morning' ? 'text-primary' : 'text-[#A1A1AA]'}`}>
+                     <Sunrise size={15} strokeWidth={2.5} /><span>Morning</span>
+                  </button>
+                  <button onClick={() => setManualShift('evening')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-xl transition-all text-sm font-bold ${shift === 'evening' ? 'text-primary' : 'text-[#A1A1AA]'}`}>
+                     <Sunset size={15} strokeWidth={2.5} /><span>Evening</span>
+                  </button>
                </div>
             </div>
          </header>
@@ -149,29 +212,28 @@ export default function DeliveryPage() {
 
             {filteredDeliveries.map((delivery, index) => {
                const isExpanded = expandedStopId === delivery.id;
-               const stopItems = delivery.extras || {};
-               const activeItems = Object.entries(stopItems).filter(([__, qty]) => (qty as number) > 0);
+               const activeItems = delivery.misc_items || [];
                return (
                   <motion.div key={delivery.id} layout className={`border rounded-2xl transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-primary/20 shadow-sm'}`}>
                      <div className="p-4">
                         <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedStopId(isExpanded ? null : delivery.id)}>
                            <div className="flex items-start gap-3">
-                              <input type="text" inputMode="numeric" value={editingSeqId === delivery.id ? editSeqVal : (delivery.sequence || index + 1)} 
+                              <input type="text" inputMode="numeric" value={editingSeqId === delivery.id ? editSeqVal : (delivery.sequence_no || index + 1)} 
                                  onChange={(e) => { setEditingSeqId(delivery.id); setEditSeqVal(e.target.value); }}
                                  onBlur={() => { if (editingSeqId === delivery.id) { updateSequence(delivery.id, editSeqVal); setEditingSeqId(null); } }}
-                                 onClick={(e) => { e.stopPropagation(); setEditingSeqId(delivery.id); setEditSeqVal((delivery.sequence || index + 1).toString()); }}
+                                 onClick={(e) => { e.stopPropagation(); setEditingSeqId(delivery.id); setEditSeqVal((delivery.sequence_no || index + 1).toString()); }}
                                  className={`mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs text-center focus:outline-none transition-all ${delivery.delivered ? 'bg-zinc-200 text-zinc-500' : 'bg-primary text-white shadow-md'}`}
                               />
                               <div>
-                                 <h3 className={`font-bold text-lg ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.name}</h3>
-                                 <p className="font-semibold text-primary text-sm mt-0.5">{delivery.qty} Milk</p>
+                                 <h3 className={`font-bold text-lg ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
+                                 <p className="font-semibold text-primary text-sm mt-0.5">{delivery.milk_qty} Milk</p>
                               </div>
                            </div>
                            <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'}`}><Check size={20} strokeWidth={3} /></button>
                         </div>
                         {!isExpanded && activeItems.length > 0 && (
                            <div className="mt-3 flex flex-wrap gap-2 mb-2">
-                              {activeItems.map(([name, qty]) => (<span key={name} className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-md">{qty as number}x {name}</span>))}
+                              {activeItems.map((item: any) => (<span key={item.name} className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-md">{item.qty}x {item.name}</span>))}
                            </div>
                         )}
                         <div className="mt-4 pt-3 border-t border-zinc-100">
@@ -188,11 +250,30 @@ export default function DeliveryPage() {
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-5">
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl pt-6 pb-12 px-6 flex flex-col relative">
                      <button onClick={() => setExpandedStopId(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-500"><X size={20} /></button>
-                     <div className="mb-6"><h2 className="text-xl font-black text-zinc-900">Add Products</h2><p className="text-sm text-zinc-500">For {deliveries.find(d => d.id === expandedStopId)?.name}</p></div>
+                     <div className="mb-6"><h2 className="text-xl font-black text-zinc-900">Add Products</h2><p className="text-sm text-zinc-500">For {deliveries.find(d => d.id === expandedStopId)?.customer?.name}</p></div>
                      <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto no-scrollbar py-1">
-                        {products.map((product) => {
-                           const stopItems = deliveries.find(d => d.id === expandedStopId)?.extras || {};
-                           const qty = stopItems[product.name] || 0;
+                        {/* Milk Control */}
+                        {(() => {
+                           const stop = deliveries.find(d => d.id === expandedStopId);
+                           const milkQty = stop?.milk_qty || 0;
+                           return (
+                              <div className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all ${milkQty > 0 ? 'bg-primary/5 border-primary/40' : 'bg-white border-zinc-100'}`}>
+                                 <div className="flex flex-col"><span className="text-sm font-black text-zinc-800">Fresh Milk</span><span className="text-[11px] font-medium text-zinc-500">Standard Delivery</span></div>
+                                 <div className="flex items-center gap-3 bg-white border border-zinc-100 rounded-xl p-1 shadow-sm">
+                                    <button onClick={() => updateMilkQty(expandedStopId!, -1)} className="h-8 w-8 flex items-center justify-center text-zinc-400 hover:text-rose-500"><Minus size={16} /></button>
+                                    <span className="text-sm font-black w-5 text-center">{milkQty}</span>
+                                    <button onClick={() => updateMilkQty(expandedStopId!, 1)} className="h-8 w-8 flex items-center justify-center text-zinc-400 hover:text-emerald-500"><Plus size={16} /></button>
+                                 </div>
+                              </div>
+                           );
+                        })()}
+
+                        <div className="h-px bg-zinc-100 my-1" />
+
+                        {products.filter(p => !p.name.toLowerCase().includes('milk')).map((product) => {
+                           const stopItems = deliveries.find(d => d.id === expandedStopId)?.misc_items || [];
+                           const item = stopItems.find((i: any) => i.name === product.name);
+                           const qty = item ? item.qty : 0;
                            return (
                               <div key={product.name} className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all ${qty > 0 ? 'bg-primary/10 border-primary/20' : 'bg-white border-zinc-100'}`}>
                                  <div className="flex flex-col"><span className="text-sm font-bold text-zinc-800">{product.name}</span><span className="text-[11px] font-medium text-zinc-500">{product.size} • {product.price}</span></div>

@@ -46,9 +46,9 @@ const mockSupabase: any = {
   from: () => chain(),
   channel: () => ({
     on: () => ({
-      subscribe: () => ({ unsubscribe: () => {} }),
+      subscribe: () => ({ unsubscribe: () => { } }),
     }),
-    subscribe: () => ({ unsubscribe: () => {} }),
+    subscribe: () => ({ unsubscribe: () => { } }),
   }),
 };
 
@@ -58,6 +58,6 @@ const hasKeys = !!(supabaseUrl && supabaseAnonKey && supabaseUrl.length > 10);
 
 // DEFENSIVE INITIALIZATION: Only call createClient if we have valid-looking keys.
 // This prevents crashes during Vercel builds or pre-rendering.
-export const supabase = (isOff || isPlaceholder || !hasKeys) 
-  ? mockSupabase 
+export const supabase = (isOff || isPlaceholder || !hasKeys)
+  ? mockSupabase
   : createClient(supabaseUrl, supabaseAnonKey);

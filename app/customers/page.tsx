@@ -10,20 +10,25 @@ import * as T from "@/types/database";
 export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [customers, setCustomers] = useState<T.Customer[]>([]);
-  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area: "", frequency: "Morning" });
+  const [customers, setCustomers] = useState<(T.Customer & { area: T.Area })[]>([]);
+  const [areas, setAreas] = useState<T.Area[]>([]);
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only" });
 
   // 1. DATA LOAD & SYNC
   useEffect(() => {
-    const fetchCustomers = async () => {
-      const { data } = await supabase.from('customers').select('*').order('name', { ascending: true });
-      if (data) setCustomers(data as T.Customer[]);
+    const fetchData = async () => {
+      const { data: custs } = await supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true });
+      if (custs) setCustomers(custs as (T.Customer & { area: T.Area })[]);
+
+      const { data: areaList } = await supabase.from('areas').select('*').order('name', { ascending: true });
+      if (areaList) setAreas(areaList as T.Area[]);
     };
 
-    fetchCustomers();
+    fetchData();
 
     const sub = supabase.channel('cust_list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchCustomers)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, fetchData)
       .subscribe();
 
     return () => { sub.unsubscribe(); };
@@ -31,15 +36,18 @@ export default function CustomersPage() {
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCustomer.name || !newCustomer.phone) return;
+    if (!newCustomer.name || !newCustomer.phone || !newCustomer.area_id) return;
     try {
       await supabase.from('customers').insert({
-        ...newCustomer,
+        name: newCustomer.name,
+        phone: newCustomer.phone,
+        area_id: parseInt(newCustomer.area_id),
+        frequency: newCustomer.frequency,
         status: 'Active',
-        outstanding: 0
+        past_outstanding: 0
       });
       setIsModalOpen(false);
-      setNewCustomer({ name: "", phone: "", area: "", frequency: "Morning" });
+      setNewCustomer({ name: "", phone: "", area_id: "", frequency: "Morning Only" });
     } catch (err) { console.error(err); }
   };
 
@@ -69,7 +77,7 @@ export default function CustomersPage() {
             <motion.div layout className="bg-white border border-zinc-100 p-4 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group">
               <div className="flex items-center gap-4">
                 <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg font-black ${customer.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>{customer.name.charAt(0)}</div>
-                <div><h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors">{customer.name}</h3><p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5"><MapPin size={12} /> {customer.area}</p></div>
+                <div><h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors">{customer.name}</h3><p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5"><MapPin size={12} /> {customer.area?.name || 'No Area'}</p></div>
               </div>
               <ChevronRight size={18} className="text-zinc-300 group-hover:text-primary transition-all translate-x-0 group-hover:translate-x-1" />
             </motion.div>
@@ -87,7 +95,12 @@ export default function CustomersPage() {
                 <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus placeholder="e.g. Rahul Sharma" value={newCustomer.name} onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</label><input placeholder="9876543210" value={newCustomer.phone} onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Area</label><input placeholder="Phase 1" value={newCustomer.area} onChange={e => setNewCustomer({ ...newCustomer, area: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Area</label>
+                    <select value={newCustomer.area_id} onChange={e => setNewCustomer({ ...newCustomer, area_id: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all">
+                      <option value="">Select Area</option>
+                      {areas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </div>
                 </div>
                 <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Complete Registration</button>
               </form>

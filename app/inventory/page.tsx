@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, ChevronRight, X, Calendar as CalendarIcon, Droplet } from "lucide-react";
+import { Plus, ChevronRight, X, Calendar as CalendarIcon, Droplet, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
@@ -14,7 +14,7 @@ export default function InventoryPage() {
   const [pipeline, setPipeline] = useState<PipelineStage[]>([]);
   const [products, setProducts] = useState<T.Product[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: "" });
+  const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: 0 });
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   const fmtDate = (s: string) => {
@@ -24,7 +24,7 @@ export default function InventoryPage() {
 
   const openEditModal = (index: number) => {
     setEditingIndex(index);
-    setNewProduct({ ...products[index], stock: products[index].stock?.toString() || "0" });
+    setNewProduct({ ...products[index], stock: products[index].stock?.toString() || "0", price: Number(products[index].price) || 0 });
     setIsModalOpen(true);
   };
 
@@ -56,7 +56,7 @@ export default function InventoryPage() {
          name: newProduct.name,
          size: newProduct.size,
          stock: parseInt(newProduct.stock.toString() || "0"),
-         price: newProduct.price
+         price: Number(newProduct.price) || 0
        };
        
        if (editingIndex !== null && products[editingIndex].id) {
@@ -70,10 +70,32 @@ export default function InventoryPage() {
     } catch (err) { console.error(err); }
   };
 
-  const updatePipelineValue = async (id: number, newValue: string) => {
+  const handleDeleteProduct = async () => {
+    if (editingIndex === null || !products[editingIndex].id) return;
+    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
-       await supabase.from('inventory').update({ count: parseInt(newValue) || 0 }).eq('id', id);
+       await supabase.from('products').delete().eq('id', products[editingIndex].id);
+       setIsModalOpen(false);
+       setEditingIndex(null);
     } catch (err) { console.error(err); }
+  };
+
+  const updatePipelineValue = async (id: number, newValue: string) => {
+    const numValue = parseInt(newValue) || 0;
+    
+    // 1. Optimistic UI update
+    setPipeline(prev => prev.map(p => p.id === id ? { ...p, value: numValue } : p));
+
+    try {
+       // 2. Sync to Supabase
+       const { error } = await supabase.from('inventory').update({ count: numValue }).eq('id', id);
+       if (error) throw error;
+    } catch (err) { 
+      console.error(err);
+      // Revert if failed (fetch data again)
+      const { data } = await supabase.from('inventory').select('*');
+      if (data) setPipeline((data as T.InventoryItem[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id })));
+    }
   };
 
   return (
@@ -82,7 +104,7 @@ export default function InventoryPage() {
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div><p className="text-[20px] font-extrabold text-zinc-900">Inventory</p><p className="text-[13px] font-medium text-zinc-400">Stock & Pipeline</p></div>
-            <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: "" }); setIsModalOpen(true); }} className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
+            <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0 }); setIsModalOpen(true); }} className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
           </div>
           <div className="w-full bg-white border border-slate-200/60 rounded-2xl p-3.5 flex items-center gap-3 relative shadow-sm" onClick={() => dateInputRef.current?.showPicker()}>
             <div className="p-2 bg-primary/10 text-primary rounded-xl"><CalendarIcon size={18} /></div>
@@ -107,12 +129,12 @@ export default function InventoryPage() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-3"><p className="text-[12px] font-bold uppercase tracking-widest text-zinc-400">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: "" }); setIsModalOpen(true); }} className="text-[12px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all text-primary bg-primary/10"><Plus size={13} /> Add</button></div>
+          <div className="flex items-center justify-between mb-3"><p className="text-[12px] font-bold uppercase tracking-widest text-zinc-400">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0 }); setIsModalOpen(true); }} className="text-[12px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all text-primary bg-primary/10"><Plus size={13} /> Add</button></div>
           <div className="flex flex-col gap-2.5">
             {products.map((p, i) => (
               <div key={i} onClick={() => openEditModal(i)} className="flex items-center justify-between p-4 rounded-2xl border transition-colors cursor-pointer bg-white border-black/5">
                 <div><p className="text-[15px] font-bold text-zinc-900">{p.name}</p><p className="text-[12px] font-medium mt-0.5 text-zinc-400">{p.size} · {p.stock} in stock</p></div>
-                <div className="flex flex-col items-end"><p className="text-[16px] font-black text-primary">₹{p.price.replace('₹', '')}</p><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Selling Price</p></div>
+                <div className="flex flex-col items-end"><p className="text-[16px] font-black text-primary">₹{p.price}</p><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Selling Price</p></div>
               </div>
             ))}
           </div>
@@ -129,10 +151,15 @@ export default function InventoryPage() {
                 <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Name</label><input autoFocus placeholder="e.g. Cow Milk" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Size</label><input placeholder="e.g. 1L" value={newProduct.size} onChange={e => setNewProduct({ ...newProduct, size: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Price</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-zinc-400">₹</span><input placeholder="90" value={newProduct.price.replace('₹', '')} onChange={e => setNewProduct({ ...newProduct, price: '₹' + e.target.value.replace('₹', '') })} className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-4 py-3 text-sm font-bold focus:ring-2 transition-all" /></div></div>
+                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Price</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-zinc-400">₹</span><input placeholder="90" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-4 py-3 text-sm font-bold focus:ring-2 transition-all" /></div></div>
                 </div>
                 <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Initial Stock</label><input type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">{editingIndex !== null ? "Save Changes" : "Create Product"}</button>
+                <div className="flex gap-2 mt-2">
+                  {editingIndex !== null && (
+                    <button type="button" onClick={handleDeleteProduct} className="flex-shrink-0 w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center hover:bg-rose-100 transition-colors"><Trash2 size={20} /></button>
+                  )}
+                  <button type="submit" className="flex-grow bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">{editingIndex !== null ? "Save Changes" : "Create Product"}</button>
+                </div>
               </form>
             </motion.div>
           </div>

@@ -78,14 +78,18 @@ export default function Dashboard() {
     fetchInventory();
     const invSub = supabase.channel('inv').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, fetchInventory).subscribe();
 
-    // Delivery Status (Aggregated from active_route)
+    // Delivery Status (Aggregated from deliveries)
     const fetchDelivered = async () => {
-      const { data } = await supabase.from('active_route').select('qty').eq('delivered', true);
-      const total = data?.reduce((sum: number, s: any) => sum + (parseInt(s.qty) || 0), 0) || 0;
+      const { data } = await supabase
+        .from('deliveries')
+        .select('milk_qty')
+        .eq('delivered', true)
+        .eq('delivery_date', new Date().toISOString().split('T')[0]);
+      const total = data?.reduce((sum: number, s: any) => sum + (Number(s.milk_qty) || 0), 0) || 0;
       setDelivered([{ name: "Cow Milk", vol: "Live Total", count: total, unit: "Bottles" }]);
     };
     fetchDelivered();
-    const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'active_route' }, fetchDelivered).subscribe();
+    const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchDelivered).subscribe();
 
     // Bills (Financials)
     const fetchBills = async () => {

@@ -47,31 +47,42 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
     const lastReset = settings?.value?.lastRouteReset;
 
     if (lastReset === today) {
-      return { ran: false, message: `Route already reset for ${today}` };
+      return { ran: false, message: `Route already initialized for ${today}` };
     }
 
-    // 2. Reset active_route
-    const { error: resetError } = await supabase
-      .from('active_route')
-      .update({
-        delivered: false,
-        extras: {},
-        inventory_deducted: false
-      })
-      .neq('id', 0); // Update all
+    // 2. Initialize deliveries for the day
+    // Get all active customers
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('status', 'Active');
 
-    if (resetError) throw resetError;
+    if (customers && customers.length > 0) {
+      const deliveriesToCreate = customers.map(c => ({
+        customer_id: c.id,
+        delivery_date: today,
+        shift: c.frequency === 'Evening Only' ? 'evening' : 'morning',
+        milk_qty: c.default_qty || 1,
+        sequence_no: c.route_sl_no || 0,
+        delivered: false,
+        inventory_deducted: false,
+        misc_items: []
+      }));
+
+      const { error: insertError } = await supabase.from('deliveries').insert(deliveriesToCreate);
+      if (insertError) throw insertError;
+    }
 
     // 3. Update lastReset timestamp
     const newValue = { ...(settings?.value || {}), lastRouteReset: today };
-    await supabase.from('system_settings').update({ value: newValue }).eq('key', 'automation');
+    await supabase.from('system_settings').upsert({ key: 'automation', value: newValue });
 
-    console.log(`[Automation] ✅ Route reset for ${today}`);
-    return { ran: true, message: `Route reset for ${today} completed.` };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[Automation] ❌ Route reset failed:", message);
-    return { ran: false, message: `Reset failed: ${message}` };
+    console.log(`[Automation] ✅ Route initialized for ${today}`);
+    return { ran: true, message: `Route initialized for ${today} completed.` };
+  } catch (err: any) {
+    const errorMsg = err?.message || String(err);
+    console.error("[Automation] ❌ Route initialization failed:", errorMsg);
+    return { ran: false, message: `Initialization failed: ${errorMsg}` };
   }
 }
 
@@ -80,34 +91,32 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
 // ─────────────────────────────────────────────
 
 export async function deductInventoryOnDelivery(
-  stopId: number,
-  qty: string,
+  stopId: string,
+  milkQty: number,
   miscProducts: Record<string, number> = {}
 ): Promise<void> {
   try {
     // 1. Check if already deducted
     const { data: stopData } = await supabase
-      .from('active_route')
+      .from('deliveries')
       .select('inventory_deducted')
       .eq('id', stopId)
       .single();
 
-    const stop = stopData as T.ActiveRouteStop | null;
+    const stop = stopData as T.Delivery | null;
     if (stop?.inventory_deducted) return;
-
-    const milkBottles = parseInt(qty, 10) || 0;
 
     // 2. Deduct Milk from inventory
     const { data: inventoryData } = await supabase.from('inventory').select('*');
     const inventory = inventoryData as T.InventoryItem[] | null;
     if (inventory) {
       const milkItem = inventory.find(i => i.name.toLowerCase().includes('milk'));
-      if (milkItem && milkBottles > 0) {
+      if (milkItem && milkQty > 0) {
         await supabase
           .from('inventory')
           .update({
-            count: Math.max(0, (milkItem.count || 0) - milkBottles),
-            loaded: Math.max(0, (milkItem.loaded || 0) - milkBottles),
+            count: Math.max(0, (milkItem.count || 0) - milkQty),
+            loaded: Math.max(0, (milkItem.loaded || 0) - milkQty),
           })
           .eq('id', milkItem.id);
       }
@@ -128,9 +137,9 @@ export async function deductInventoryOnDelivery(
     }
 
     // 4. Mark as deducted
-    await supabase.from('active_route').update({ inventory_deducted: true }).eq('id', stopId);
+    await supabase.from('deliveries').update({ inventory_deducted: true }).eq('id', stopId);
 
-    console.log(`[Automation] ✅ Inventory deducted for stop #${stopId}`);
+    console.log(`[Automation] ✅ Inventory deducted for delivery #${stopId}`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[Automation] ❌ Inventory deduction failed:", message);
@@ -157,66 +166,58 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
       return { ran: false, count: 0, message: `Bills already generated for ${today}` };
     }
 
-    const { data: stopData } = await supabase
-      .from('active_route')
-      .select('*')
-      .eq('delivered', true);
+    const { data: deliveryData } = await supabase
+      .from('deliveries')
+      .select('*, customer:customers(*)')
+      .eq('delivered', true)
+      .eq('delivery_date', today);
 
-    const completedStops = stopData as T.ActiveRouteStop[] | null;
+    const completedDeliveries = deliveryData as (T.Delivery & { customer: T.Customer })[] | null;
 
-    if (!completedStops || completedStops.length === 0) {
-      return { ran: false, count: 0, message: "No completed deliveries found." };
+    if (!completedDeliveries || completedDeliveries.length === 0) {
+      return { ran: false, count: 0, message: "No completed deliveries found for today." };
     }
 
     const { data: productsData } = await supabase.from('products').select('*');
-    const products = productsData as T.Product[] | null;
+    const productsList = productsData as T.Product[] | null;
     const prices: Record<string, number> = {};
-    products?.forEach(p => prices[p.name] = parsePrice(p.price));
+    productsList?.forEach(p => prices[p.name] = p.price);
 
     const milkItemName = Object.keys(prices).find(n => n.toLowerCase().includes("milk")) || "";
     const milkPrice = prices[milkItemName] || 50;
 
-    const billsToCreate: T.Bill[] = completedStops.map(stop => {
-      const qty = parseInt(stop.qty, 10) || 0;
+    const billsToCreate = completedDeliveries.map(delivery => {
+      const qty = delivery.milk_qty || 0;
       let totalAmount = qty * milkPrice;
-      const extras = stop.extras || {};
-      const extraDetails: string[] = [];
+      const miscItems = delivery.misc_items || [];
 
-      Object.entries(extras).forEach(([name, count]) => {
-        const itemPrice = prices[name] || 0;
-        const itemTotal = (count as number) * itemPrice;
-        totalAmount += itemTotal;
-        if (itemTotal > 0) extraDetails.push(`${count}x ${name}`);
+      miscItems.forEach((item: any) => {
+        const itemPrice = prices[item.name] || 0;
+        totalAmount += item.qty * itemPrice;
       });
 
-      const billId = `BILL-${today.replace(/-/g, "")}-${stop.id}`;
       return {
-        id: billId,
-        customer_name: stop.name,
-        phone: stop.phone,
-        type: "Daily",
+        customer_id: delivery.customer_id,
+        type: 'Monthly',
         amount: totalAmount,
-        status: "Pending",
-        date: today,
-        date_label: todayLabel(),
-        qty: qty,
-        details: extraDetails.length > 0 ? `Extras: ${extraDetails.join(", ")}` : "Regular Delivery",
-        auto_generated: true,
+        status: 'Pending',
+        created_at: new Date().toISOString(),
       };
     });
 
     // Batch insert bills
-    await supabase.from('bills').upsert(billsToCreate);
+    const { error: insertError } = await supabase.from('bills').insert(billsToCreate);
+    if (insertError) throw insertError;
 
     // Update timestamp
     const newValue = { ...(settings?.value || {}), lastBillGeneration: today };
-    await supabase.from('system_settings').update({ value: newValue }).eq('key', 'automation');
+    await supabase.from('system_settings').upsert({ key: 'automation', value: newValue });
 
     return { ran: true, count: billsToCreate.length, message: `Generated ${billsToCreate.length} bills.` };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[Automation] ❌ Bill generation failed:", message);
-    return { ran: false, count: 0, message: `Bill generation failed: ${message}` };
+  } catch (err: any) {
+    const errorMsg = err?.message || String(err);
+    console.error("[Automation] ❌ Bill generation failed:", errorMsg);
+    return { ran: false, count: 0, message: `Bill generation failed: ${errorMsg}` };
   }
 }
 

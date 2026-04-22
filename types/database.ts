@@ -4,21 +4,17 @@ export interface PaymentSetup {
   currency_code: string;
 }
 
-export interface SystemUser {
+export interface Admin {
+  id: string;
   name: string;
-  pin: string;
+  phone: string;
+  pin_hash: string;
+  created_at: string;
 }
 
 export interface AutomationSettings {
   lastRouteReset: string;
   lastBillGeneration: string;
-}
-
-export interface Settings {
-  payment: PaymentSetup;
-  system_user: SystemUser;
-  automation?: AutomationSettings;
-  routes?: { names: string[] };
 }
 
 export interface InventoryItem {
@@ -35,44 +31,46 @@ export interface Product {
   name: string;
   size: string;
   stock: number;
-  price: string;
+  price: number;
 }
 
 export interface Customer {
   id: string;
   name: string;
   phone: string;
-  area: string;
-  frequency: string;
+  area_id: number;
+  frequency: 'Morning Only' | 'Evening Only' | 'Morning & Evening';
   status: 'Active' | 'Inactive';
-  outstanding: number;
+  route_sl_no: number;
+  default_qty: number;
+  past_outstanding: number;
   created_at?: string;
 }
 
-export interface ActiveRouteStop {
-  id: number;
-  sequence: number;
-  name: string;
-  phone: string;
-  qty: string;
+export interface Delivery {
+  id: string;
+  customer_id: string;
+  delivery_date: string;
+  shift: 'morning' | 'evening';
+  milk_qty: number;
+  misc_items: any[];
   delivered: boolean;
-  extras: Record<string, number>;
+  sequence_no: number;
   inventory_deducted: boolean;
-  shift: string;
-  updated_at?: string;
+  created_at?: string;
 }
 
 export interface Bill {
   id: string;
-  customer_name: string;
-  phone: string;
-  type: string;
+  customer_id: string;
+  type: 'Weekly' | 'Monthly' | 'Spot';
   amount: number;
-  status: 'Pending' | 'Paid' | string;
-  date: string;
-  date_label: string;
-  qty: number;
-  details: string;
-  auto_generated: boolean;
-  created_at?: string;
+  status: 'Pending' | 'Paid';
+  created_at: string;
+  paid_at?: string;
+}
+
+export interface Area {
+  id: number;
+  name: string;
 }

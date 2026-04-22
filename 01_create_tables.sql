@@ -1,5 +1,6 @@
 -- ==========================================
 -- MILKOW FULL SYSTEM SCHEMA (SUPABASE)
+-- V3 (Cleaned and optimized)
 -- ==========================================
 
 -- 1. SETUP EXTENSIONS & TYPES
@@ -24,14 +25,6 @@ DO $$ BEGIN
 END $$;
 
 -- 2. CREATE TABLES
-CREATE TABLE IF NOT EXISTS admins (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT,
-    phone TEXT UNIQUE,
-    pin_hash TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
 
 CREATE TABLE IF NOT EXISTS areas (
     id SERIAL PRIMARY KEY,
@@ -99,14 +92,6 @@ CREATE TABLE IF NOT EXISTS bills (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS payment_config (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    upi_id TEXT NOT NULL,
-    payee_name TEXT NOT NULL,
-    currency_code TEXT DEFAULT 'INR',
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
 CREATE TABLE IF NOT EXISTS system_settings (
     key TEXT PRIMARY KEY,
     value JSONB,
@@ -132,29 +117,13 @@ BEGIN
     END LOOP;
 END $$;
 
--- 4. SEED DATA
-INSERT INTO payment_config (id, upi_id, payee_name, currency_code) 
-SELECT 1, '9999999999@okbizaxis', 'Milkow Fresh', 'INR'
-WHERE NOT EXISTS (SELECT 1 FROM payment_config WHERE id = 1);
-
-INSERT INTO system_settings (key, value)
-VALUES ('automation', '{"lastRouteReset": "", "lastBillGeneration": ""}'::jsonb)
-ON CONFLICT (key) DO NOTHING;
-
-INSERT INTO inventory (name, vol, count, loaded, unit)
-VALUES 
-('Fresh Cow Milk', '1L Bottle', 0, 0, 'Bottles'),
-('Buffalo Milk', '1L Bottle', 0, 0, 'Bottles')
-ON CONFLICT DO NOTHING;
-
--- 5. ROW LEVEL SECURITY (RLS)
-ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
+-- 4. ROW LEVEL SECURITY (RLS)
 ALTER TABLE areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bills ENABLE ROW LEVEL SECURITY;
-ALTER TABLE payment_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
 -- ALLOW ALL FOR AUTHENTICATED USERS

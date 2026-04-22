@@ -1,7 +1,8 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2 } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/Modal";
@@ -19,6 +20,9 @@ export default function CustomerProfilePage() {
    const [isLoading, setIsLoading] = useState(true);
    const [viewDate, setViewDate] = useState(new Date());
    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+   const [areas, setAreas] = useState<T.Area[]>([]);
+   const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only" });
 
    useEffect(() => {
       if (!phoneId) return;
@@ -30,8 +34,18 @@ export default function CustomerProfilePage() {
             .eq('phone', phoneId)
             .single();
 
+         // Fetch Areas for Edit Modal
+         const { data: areaList } = await supabase.from('areas').select('*').order('name', { ascending: true });
+         if (areaList) setAreas(areaList as T.Area[]);
+
          if (custData) {
             setCustomer(custData as (T.Customer & { area: T.Area }));
+            setEditForm({
+               name: custData.name,
+               phone: custData.phone,
+               area_id: custData.area_id?.toString() || "",
+               frequency: custData.frequency
+            });
             const customerId = custData.id;
 
             // 2. Fetch Bills
@@ -110,6 +124,29 @@ export default function CustomerProfilePage() {
       } catch (err) { console.error(err); setIsLoading(false); }
    };
 
+   const handleEditSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!customer || !editForm.name || !editForm.phone || !editForm.area_id) return;
+      try {
+         setIsLoading(true);
+         await supabase.from('customers').update({
+            name: editForm.name,
+            phone: editForm.phone,
+            area_id: parseInt(editForm.area_id),
+            frequency: editForm.frequency
+         }).eq('id', customer.id);
+         setIsEditModalOpen(false);
+         if (editForm.phone !== customer.phone) {
+            router.push(`/customers/${editForm.phone}`);
+         } else {
+            setIsLoading(false);
+         }
+      } catch (err) {
+         console.error(err);
+         setIsLoading(false);
+      }
+   };
+
    const changeMonth = (delta: number) => {
       const newDate = new Date(viewDate); 
       newDate.setMonth(newDate.getMonth() + delta); 
@@ -130,7 +167,10 @@ export default function CustomerProfilePage() {
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between gap-4">
                <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-lg font-bold">{customer.name}</h1><p className="text-xs text-zinc-500">Customer Profile</p></div></div>
-               <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl active:scale-90"><Trash2 size={20} /></button>
+               <div className="flex items-center gap-2">
+                  <button onClick={() => setIsEditModalOpen(true)} className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl active:scale-90"><Edit2 size={20} /></button>
+                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl active:scale-90"><Trash2 size={20} /></button>
+               </div>
             </div>
          </header>
 
@@ -211,6 +251,37 @@ export default function CustomerProfilePage() {
          </main>
 
          <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={deleteCustomer} title="Delete Customer" message={`Are you sure you want to delete ${customer.name}? This action cannot be undone.`} confirmText="Yes, Delete" type="danger" />
+
+         <AnimatePresence>
+            {isEditModalOpen && (
+               <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-5">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Edit Customer</p><button onClick={() => setIsEditModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+                     <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</label><input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                           <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Route</label>
+                              <select value={editForm.area_id} onChange={e => setEditForm({ ...editForm, area_id: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all">
+                                 <option value="">Select Route</option>
+                                 {areas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                              </select>
+                           </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Delivery Frequency</label>
+                           <select value={editForm.frequency} onChange={e => setEditForm({ ...editForm, frequency: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all">
+                              <option value="Morning Only">Morning Only</option>
+                              <option value="Evening Only">Evening Only</option>
+                              <option value="Morning & Evening">Morning & Evening</option>
+                           </select>
+                        </div>
+                        <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Save Changes</button>
+                     </form>
+                  </motion.div>
+               </div>
+            )}
+         </AnimatePresence>
       </div>
    );
 }

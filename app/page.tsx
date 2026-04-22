@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { MoreVertical, Calendar, Sunrise, Sunset, User, LogOut, RefreshCcw } from "lucide-react";
-import { checkAndRunAutomations } from "@/lib/automation";
+import { MoreVertical, Calendar, Sunrise, Sunset, User, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 import { motion } from "framer-motion";
@@ -29,7 +28,6 @@ export default function Dashboard() {
     }
   }, [user, loading, router]);
 
-  const [isSyncing, setIsSyncing] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [manualOverride, setManualOverride] = useState(false);
   const [internalShift, setInternalShift] = useState<"morning" | "evening" | null>(null);
@@ -50,17 +48,6 @@ export default function Dashboard() {
     const hour = new Date().getHours();
     return hour < 14 ? "morning" : "evening";
   }, [manualOverride, internalShift]);
-
-  const handleSync = async () => {
-    setIsSyncing(true);
-    try {
-      await checkAndRunAutomations();
-    } catch (err) {
-      console.error("Sync failed:", err);
-    }
-    setIsSyncing(false);
-    setMenuOpen(false);
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -160,11 +147,6 @@ export default function Dashboard() {
                 <>
                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                    <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="absolute right-0 top-12 w-52 bg-white border border-zinc-200 shadow-2xl rounded-2xl overflow-hidden py-1 z-50 origin-top-right text-left">
-                      <button onClick={handleSync} disabled={isSyncing} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-zinc-700 hover:bg-zinc-50 active:bg-zinc-100 transition-colors disabled:opacity-50">
-                         <RefreshCcw size={16} className={`text-zinc-400 ${isSyncing ? 'animate-spin' : ''}`} /> 
-                         {isSyncing ? 'Syncing...' : 'Sync Cloud Status'}
-                      </button>
-                      <div className="w-full h-[1px] bg-zinc-100" />
                       <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-zinc-700 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"><User size={16} className="text-zinc-400" /> Profile</Link>
                       <div className="w-full h-[1px] bg-zinc-100" />
                       <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-rose-600 hover:bg-rose-50 active:bg-rose-100 transition-colors"><LogOut size={16} className="text-rose-400" /> Log Out</button>

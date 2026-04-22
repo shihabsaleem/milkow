@@ -11,12 +11,11 @@ type DeliveryWithCustomer = T.Delivery & { customer: T.Customer };
 
 export default function DeliveryPage() {
    const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
-   const [allCustomers, setAllCustomers] = useState<T.Customer[]>([]);
    const [products, setProducts] = useState<T.Product[]>([]);
-   const [routesList, setRoutesList] = useState<string[]>([]);
+   const [routesList, setRoutesList] = useState<T.Area[]>([]);
    
    const [searchQuery, setSearchQuery] = useState("");
-   const [selectedRoute, setSelectedRoute] = useState("");
+   const [selectedRoute, setSelectedRoute] = useState<number | "">("");
    const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
    const [expandedStopId, setExpandedStopId] = useState<string | null>(null);
    const [editingSeqId, setEditingSeqId] = useState<string | null>(null);
@@ -31,14 +30,13 @@ export default function DeliveryPage() {
    // 1. DATA LOAD & SYNC
    useEffect(() => {
       const fetchData = async () => {
-         // Routes (Settings)
-         const { data: routeSets } = await supabase.from('system_settings').select('value').eq('key', 'routes').single();
+         // Routes (Areas)
+         const { data: routeSets } = await supabase.from('areas').select('*').order('name', { ascending: true });
          if (routeSets) {
-            const val = routeSets.value as { names: string[] };
-            const names = val?.names || [];
-            setRoutesList(names);
+            const areas = routeSets as T.Area[];
+            setRoutesList(areas);
             // Only set default if not already set manually
-            setSelectedRoute(current => current || names[0] || "");
+            setSelectedRoute(current => current || (areas.length > 0 ? areas[0].id : ""));
          }
 
          // Products
@@ -52,10 +50,6 @@ export default function DeliveryPage() {
             .eq('delivery_date', new Date().toISOString().split('T')[0])
             .order('sequence_no', { ascending: true });
          if (routeData) setDeliveries(routeData as (T.Delivery & { customer: T.Customer })[]);
-
-         // Customers
-         const { data: custData } = await supabase.from('customers').select('*');
-         if (custData) setAllCustomers(custData as T.Customer[]);
       };
 
       fetchData();
@@ -152,6 +146,9 @@ export default function DeliveryPage() {
       const user = d.customer;
       if (!user || user.status === 'Inactive') return false;
 
+      // Filter by selected route (area)
+      if (selectedRoute !== "" && user.area_id !== selectedRoute) return false;
+
       // Filter by shift: show if frequency includes current shift
       const freq = user.frequency;
       if (shift === 'morning' && freq === 'Evening Only') return false;
@@ -172,7 +169,7 @@ export default function DeliveryPage() {
                <div className="flex items-center justify-between">
                   <div className="relative">
                      <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-2 group">
-                        <h1 className="text-xl font-black text-zinc-900">{selectedRoute || 'Delivery'}</h1>
+                        <h1 className="text-xl font-black text-zinc-900">{routesList.find(r => r.id === selectedRoute)?.name || 'Delivery'}</h1>
                         <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
                      </button>
                      <p className="text-xs font-bold text-primary tracking-wider uppercase mt-0.5">{remainingStops} Stops Remaining</p>
@@ -182,7 +179,7 @@ export default function DeliveryPage() {
                            <div className="fixed inset-0 z-40" onClick={() => setIsRouteMenuOpen(false)} />
                            <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute left-0 mt-2 w-56 bg-white border border-zinc-200 shadow-2xl rounded-2xl overflow-hidden py-2 z-50">
                               {routesList.map((route) => (
-                                 <button key={route} onClick={() => { setSelectedRoute(route); setIsRouteMenuOpen(false); }} className={`w-full text-left px-4 py-3 text-sm font-bold ${selectedRoute === route ? 'bg-primary/10 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}>{route}</button>
+                                 <button key={route.id} onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }} className={`w-full text-left px-4 py-3 text-sm font-bold ${selectedRoute === route.id ? 'bg-primary/10 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}>{route.name}</button>
                               ))}
                            </motion.div>
                         </>

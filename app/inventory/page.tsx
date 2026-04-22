@@ -9,7 +9,7 @@ import * as T from "@/types/database";
 type PipelineStage = { label: string; value: number; unit: string; id: number };
 
 export default function InventoryPage() {
-  const [date, setDate] = useState("2026-04-20");
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pipeline, setPipeline] = useState<PipelineStage[]>([]);
   const [products, setProducts] = useState<T.Product[]>([]);
@@ -98,6 +98,35 @@ export default function InventoryPage() {
     }
   };
 
+  const handleCloseDay = async () => {
+    if (!confirm("Are you sure you want to close the day? This will reset all stock to zero and record today's prices.")) return;
+
+    try {
+      // 1. Store Daily Prices
+      const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
+      const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
+      const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
+      
+      await supabase.from('system_settings').upsert({
+        key: 'daily_prices',
+        value: { ...dailyPrices, [date]: currentPrices }
+      });
+
+      // 2. Reset Inventory Stock to Zero
+      const { data: invData } = await supabase.from('inventory').select('id');
+      if (invData) {
+        for (const item of invData) {
+           await supabase.from('inventory').update({ count: 0, loaded: 0 }).eq('id', item.id);
+        }
+      }
+
+      alert("Day closed and stock reset successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to close day.");
+    }
+  };
+
   return (
     <div className="min-h-full w-full pb-32 bg-slate-50">
       <div className="sticky top-0 z-40 border-b bg-slate-50/90 border-black/5 backdrop-blur-md">
@@ -139,6 +168,10 @@ export default function InventoryPage() {
             ))}
           </div>
         </div>
+
+        <button onClick={handleCloseDay} className="w-full bg-rose-50 border border-rose-100 text-rose-600 font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm">
+           Close Day & Reset Stock
+        </button>
       </div>
 
       <AnimatePresence>
@@ -148,7 +181,7 @@ export default function InventoryPage() {
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
               <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">{editingIndex !== null ? "Edit Product" : "New Product"}</p><button onClick={() => setIsModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
               <form onSubmit={handleSaveProduct} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Name</label><input autoFocus placeholder="e.g. Cow Milk" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Name</label><input autoFocus placeholder="e.g. Raw Milk" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Size</label><input placeholder="e.g. 1L" value={newProduct.size} onChange={e => setNewProduct({ ...newProduct, size: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Price</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-zinc-400">₹</span><input placeholder="90" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-4 py-3 text-sm font-bold focus:ring-2 transition-all" /></div></div>

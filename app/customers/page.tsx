@@ -92,15 +92,22 @@ export default function CustomersPage() {
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
               <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">New Onboarding</p><button onClick={() => setIsModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
               <form onSubmit={handleAddCustomer} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus placeholder="e.g. Rahul Sharma" value={newCustomer.name} onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus placeholder="e.g. Sayas Rahman" value={newCustomer.name} onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</label><input placeholder="9876543210" value={newCustomer.phone} onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Area</label>
+                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Route</label>
                     <select value={newCustomer.area_id} onChange={e => setNewCustomer({ ...newCustomer, area_id: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all">
-                      <option value="">Select Area</option>
+                      <option value="">Select Route</option>
                       {areas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                     </select>
                   </div>
+                </div>
+                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Delivery Frequency</label>
+                  <select value={newCustomer.frequency} onChange={e => setNewCustomer({ ...newCustomer, frequency: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all">
+                    <option value="Morning Only">Morning Only</option>
+                    <option value="Evening Only">Evening Only</option>
+                    <option value="Morning & Evening">Morning & Evening</option>
+                  </select>
                 </div>
                 <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Complete Registration</button>
               </form>

@@ -1,11 +1,23 @@
 -- ==========================================
--- MILKOW COMPREHENSIVE SAMPLE DATA (V2)
+-- MILKOW COMPREHENSIVE SAMPLE DATA
 -- ==========================================
 
 -- Clean existing data (optional, but recommended for a fresh start)
 -- TRUNCATE deliveries, bills, customers, areas, products, inventory RESTART IDENTITY CASCADE;
 
--- 1. SEED AREAS
+-- 1. SEED SYSTEM SETTINGS (MUST DO FIRST for profile settings)
+INSERT INTO system_settings (key, value)
+VALUES (
+    'general', 
+    '{"system_user": {"name": "Admin Sayas", "pin": "123456"}, "payment": {"upi_id": "9999999999@okbizaxis", "payee_name": "Milkow Fresh", "currency_code": "INR"}}'::jsonb
+)
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+INSERT INTO system_settings (key, value)
+VALUES ('automation', '{"lastRouteReset": "", "lastBillGeneration": ""}'::jsonb)
+ON CONFLICT (key) DO NOTHING;
+
+-- 2. SEED AREAS
 INSERT INTO areas (name) VALUES 
 ('Downtown'),
 ('Uptown'),
@@ -13,7 +25,7 @@ INSERT INTO areas (name) VALUES
 ('Suburbs')
 ON CONFLICT (name) DO NOTHING;
 
--- 2. SEED PRODUCTS
+-- 3. SEED PRODUCTS
 INSERT INTO products (name, size, price, stock, unit) VALUES
 ('Fresh Cow Milk', '1L', 60.00, 100, 'Bottles'),
 ('Premium Buffalo Milk', '1L', 80.00, 50, 'Bottles'),
@@ -22,7 +34,7 @@ INSERT INTO products (name, size, price, stock, unit) VALUES
 ('Fresh Paneer', '200g', 110.00, 25, 'Packets')
 ON CONFLICT DO NOTHING;
 
--- 3. SEED INVENTORY (Sync with Products)
+-- 4. SEED INVENTORY (Sync with Products)
 DELETE FROM inventory; -- Reset inventory display
 INSERT INTO inventory (name, vol, count, loaded, unit) VALUES
 ('Fresh Cow Milk', '1L Bottle', 100, 40, 'Bottles'),
@@ -31,12 +43,12 @@ INSERT INTO inventory (name, vol, count, loaded, unit) VALUES
 ('Ghee', '500ml Jar', 20, 5, 'Jars'),
 ('Paneer', '200g Pkt', 25, 5, 'Packets');
 
--- 4. SEED CUSTOMERS (Linking to Areas)
+-- 5. SEED CUSTOMERS (Linking to Areas)
 DO $$
 DECLARE
-    downtown_id INT := (SELECT id FROM areas WHERE name = 'Downtown');
-    uptown_id INT := (SELECT id FROM areas WHERE name = 'Uptown');
-    midtown_id INT := (SELECT id FROM areas WHERE name = 'Midtown');
+    downtown_id INT := (SELECT id FROM areas WHERE name = 'Downtown' LIMIT 1);
+    uptown_id INT := (SELECT id FROM areas WHERE name = 'Uptown' LIMIT 1);
+    midtown_id INT := (SELECT id FROM areas WHERE name = 'Midtown' LIMIT 1);
 BEGIN
     INSERT INTO customers (name, phone, area_id, frequency, status, route_sl_no, default_qty, past_outstanding) VALUES
     ('John Doe', '9876543210', downtown_id, 'Morning Only', 'Active', 1, 2, 120.00),
@@ -48,7 +60,7 @@ BEGIN
     ON CONFLICT (phone) DO NOTHING;
 END $$;
 
--- 5. SEED DELIVERIES (Last 2 days + Today)
+-- 6. SEED DELIVERIES (Last 2 days + Today)
 DO $$
 DECLARE
     cust1 UUID := (SELECT id FROM customers WHERE phone = '9876543210');
@@ -73,7 +85,7 @@ BEGIN
     (cust3, CURRENT_DATE, 'evening', 1, FALSE, FALSE);
 END $$;
 
--- 6. SEED BILLS
+-- 7. SEED BILLS
 DO $$
 DECLARE
     cust1 UUID := (SELECT id FROM customers WHERE phone = '9876543210');
@@ -83,12 +95,3 @@ BEGIN
     (cust1, 'Monthly', 1200.00, 'Pending'),
     (cust6, 'Spot', 210.00, 'Paid');
 END $$;
-
--- 7. UPDATE SYSTEM SETTINGS
-INSERT INTO system_settings (key, value)
-VALUES ('routes', '{"names": ["Downtown", "Uptown", "Midtown", "Suburbs"]}'::jsonb)
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
-
-INSERT INTO system_settings (key, value)
-VALUES ('general', '{"system_user": {"name": "Admin Sayas", "phone": "9999888877"}}'::jsonb)
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;

@@ -58,16 +58,34 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
       .eq('status', 'Active');
 
     if (customers && customers.length > 0) {
-      const deliveriesToCreate = customers.map((c: any) => ({
-        customer_id: c.id,
-        delivery_date: today,
-        shift: c.frequency === 'Evening Only' ? 'evening' : 'morning',
-        milk_qty: c.default_qty || 1,
-        sequence_no: c.route_sl_no || 0,
-        delivered: false,
-        inventory_deducted: false,
-        misc_items: []
-      }));
+      const deliveriesToCreate: any[] = [];
+      customers.forEach((c: any) => {
+        const freq = c.frequency || 'Morning Only';
+        if (freq === 'Morning Only' || freq === 'Morning & Evening') {
+          deliveriesToCreate.push({
+            customer_id: c.id,
+            delivery_date: today,
+            shift: 'morning',
+            milk_qty: c.default_qty || 1,
+            sequence_no: c.route_sl_no || 0,
+            delivered: false,
+            inventory_deducted: false,
+            misc_items: []
+          });
+        }
+        if (freq === 'Evening Only' || freq === 'Morning & Evening') {
+          deliveriesToCreate.push({
+            customer_id: c.id,
+            delivery_date: today,
+            shift: 'evening',
+            milk_qty: c.default_qty || 1,
+            sequence_no: c.route_sl_no || 0,
+            delivered: false,
+            inventory_deducted: false,
+            misc_items: []
+          });
+        }
+      });
 
       const { error: insertError } = await supabase.from('deliveries').insert(deliveriesToCreate);
       if (insertError) throw insertError;

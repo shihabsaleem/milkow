@@ -89,7 +89,7 @@ export default function LoginPage() {
                            value={email}
                            onChange={(e) => setEmail(e.target.value)}
                            className="w-full bg-slate-50 border border-zinc-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-zinc-300 placeholder:font-medium"
-                           placeholder="admin@milkow.com"
+                           placeholder="info@milkow.in"
                            required
                         />
                      </div>

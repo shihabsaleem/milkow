@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Save, LogOut } from "lucide-react";
+import { ArrowLeft, Save, LogOut, X, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -17,6 +17,9 @@ export default function UserProfilePage() {
    const [upiId, setUpiId] = useState("");
    const [pin, setPin] = useState("");
    const [isSaved, setIsSaved] = useState(false);
+   
+   const [areas, setAreas] = useState<T.Area[]>([]);
+   const [newRoute, setNewRoute] = useState("");
 
    // Load current settings from Supabase
    useEffect(() => {
@@ -29,10 +32,16 @@ export default function UserProfilePage() {
             setPayeeName(val.payment?.payee_name || "");
             setUpiId(val.payment?.upi_id || "");
          }
+
+         const { data: areaData } = await supabase.from('areas').select('*').order('name', { ascending: true });
+         if (areaData) setAreas(areaData as T.Area[]);
       };
       
       fetchSettings();
-      const sub = supabase.channel('profile_general').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchSettings).subscribe();
+      const sub = supabase.channel('profile_settings')
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchSettings)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, fetchSettings)
+         .subscribe();
       return () => { sub.unsubscribe(); };
    }, []);
 
@@ -45,11 +54,33 @@ export default function UserProfilePage() {
                system_user: { name: adminName, pin: pin }
             }
          });
+
          setIsSaved(true);
          setTimeout(() => setIsSaved(false), 2000);
       } catch (e: unknown) {
          const err = e as Error;
          console.error("Failed to save settings:", err.message);
+      }
+   };
+
+   const addRoute = async () => {
+      const name = newRoute.trim();
+      if (!name) return;
+      try {
+         await supabase.from('areas').insert({ name });
+         setNewRoute('');
+      } catch (e: unknown) {
+         const err = e as Error;
+         console.error("Failed to add route:", err.message);
+      }
+   };
+
+   const removeRoute = async (id: number) => {
+      try {
+         await supabase.from('areas').delete().eq('id', id);
+      } catch (e: unknown) {
+         const err = e as Error;
+         console.error("Failed to remove route:", err.message);
       }
    };
 
@@ -151,14 +182,56 @@ export default function UserProfilePage() {
                         className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                      />
                   </div>
-
-                  <button
-                     onClick={handleSave}
-                     className={`w-full text-white font-bold py-4 rounded-xl mt-2 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 ${isSaved ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-primary shadow-primary/20'}`}
-                  >
-                     <Save size={18} /> {isSaved ? "Profile Updated!" : "Save All Changes"}
-                  </button>
                </div>
+
+               {/* Delivery Routes Section */}
+               <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
+                  <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                     Delivery Routes
+                  </h3>
+
+                  <div className="flex flex-col gap-3">
+                     {areas.map((area) => (
+                        <div key={area.id} className="flex items-center justify-between bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3">
+                           <span className="text-sm font-bold text-zinc-900">{area.name}</span>
+                           <button 
+                              onClick={() => removeRoute(area.id)}
+                              className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors"
+                           >
+                              <X size={16} />
+                           </button>
+                        </div>
+                     ))}
+
+                     <div className="flex items-center gap-2 mt-2">
+                        <input
+                           type="text"
+                           value={newRoute}
+                           onChange={(e) => setNewRoute(e.target.value)}
+                           onKeyDown={(e) => {
+                              if (e.key === 'Enter') addRoute();
+                           }}
+                           placeholder="Add new route..."
+                           className="flex-1 bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        />
+                        <button
+                           onClick={addRoute}
+                           disabled={!newRoute.trim()}
+                           className="bg-zinc-900 text-white p-3 rounded-xl hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                        >
+                           <Plus size={20} />
+                        </button>
+                     </div>
+                  </div>
+               </div>
+
+               <button
+                  onClick={handleSave}
+                  className={`w-full text-white font-bold py-4 rounded-xl mt-2 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 ${isSaved ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-primary shadow-primary/20'}`}
+               >
+                  <Save size={18} /> {isSaved ? "Profile Updated!" : "Save All Changes"}
+               </button>
 
                <button onClick={handleLogout} className="w-full bg-rose-50 text-rose-600 font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm border border-rose-100 flex items-center justify-center gap-2">
                   <LogOut size={18} /> Sign Out of Milkow

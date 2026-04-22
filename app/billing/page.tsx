@@ -24,10 +24,10 @@ export default function BillingPage() {
          const { data: billsData } = await supabase.from('bills').select('*, customer:customers(*)').order('created_at', { ascending: false });
          if (billsData) setBills(billsData as (T.Bill & { customer: T.Customer })[]);
 
-         const { data: settingsData } = await supabase.from('system_settings').select('value').eq('key', 'payment').single();
+         const { data: settingsData } = await supabase.from('system_settings').select('value').eq('key', 'general').single();
          if (settingsData) {
-            const val = settingsData.value as T.PaymentSetup;
-            setPaymentSettings(val);
+            const general = settingsData.value as { payment?: T.PaymentSetup };
+            if (general?.payment) setPaymentSettings(general.payment);
          }
       };
 

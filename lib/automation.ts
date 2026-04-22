@@ -139,7 +139,8 @@ export async function deductInventoryOnDelivery(
     const { data: inventoryData } = await supabase.from('inventory').select('*');
     const inventory = inventoryData as T.InventoryItem[] | null;
     if (inventory) {
-      const milkItem = inventory.find(i => i.name.toLowerCase().includes('milk'));
+      // Find the specific milk item (case insensitive)
+      const milkItem = inventory.find(i => i.name.toLowerCase() === 'cow milk' || i.name.toLowerCase() === 'milk');
       if (milkItem && milkQty > 0) {
         await supabase
           .from('inventory')

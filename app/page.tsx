@@ -69,11 +69,40 @@ export default function Dashboard() {
     const fetchDelivered = async () => {
       const { data } = await supabase
         .from('deliveries')
-        .select('milk_qty')
+        .select('*')
         .eq('delivered', true)
         .eq('delivery_date', new Date().toISOString().split('T')[0]);
-      const total = data?.reduce((sum: number, s: any) => sum + (Number(s.milk_qty) || 0), 0) || 0;
-      setDelivered([{ name: "Cow Milk", vol: "Live Total", count: total, unit: "Bottles" }]);
+
+      if (!data) return;
+
+      const summary: Record<string, { count: number; unit: string }> = {};
+      data.forEach((d: any) => {
+        // Milk
+        const milkQty = Number(d.milk_qty) || 0;
+        if (milkQty > 0) {
+          summary['Cow Milk'] = { 
+            count: (summary['Cow Milk']?.count || 0) + milkQty,
+            unit: 'Bottles'
+          };
+        }
+        // Extras
+        const extras = d.misc_items || [];
+        extras.forEach((item: any) => {
+          summary[item.name] = {
+            count: (summary[item.name]?.count || 0) + (item.qty || 0),
+            unit: 'Items'
+          };
+        });
+      });
+
+      const list = Object.entries(summary).map(([name, val]) => ({
+        name,
+        vol: "Today Total",
+        count: val.count,
+        unit: val.unit
+      }));
+
+      setDelivered(list);
     };
     fetchDelivered();
     const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchDelivered).subscribe();

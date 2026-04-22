@@ -80,6 +80,13 @@ export default function InventoryPage() {
     } catch (err) { console.error(err); }
   };
 
+  const deletePipelineItem = async (id: number) => {
+    if (!confirm("Are you sure you want to remove this stage from the pipeline?")) return;
+    try {
+       await supabase.from('inventory').delete().eq('id', id);
+    } catch (err) { console.error(err); }
+  };
+
   const updatePipelineValue = async (id: number, newValue: string) => {
     const numValue = parseInt(newValue) || 0;
     
@@ -149,7 +156,8 @@ export default function InventoryPage() {
           <p className="text-[12px] font-bold uppercase tracking-widest mb-3 text-zinc-400">Supply Pipeline</p>
           <div className="grid grid-cols-2 gap-3">
             {pipeline.map((stage, i) => (
-              <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5">
+              <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5 group relative">
+                <button onClick={() => deletePipelineItem(stage.id)} className="absolute top-3 right-3 p-1.5 text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-rose-600"><Trash2 size={14} /></button>
                 <div className="text-primary"><Droplet size={20} /></div>
                 <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none" /><span className="text-[13px] font-medium ml-2 flex-shrink-0 text-zinc-400">{stage.unit}</span></div></div>
               </div>

@@ -22,7 +22,7 @@ export default function CustomerProfilePage() {
    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [areas, setAreas] = useState<T.Area[]>([]);
-   const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only" });
+   const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
 
    useEffect(() => {
       if (!phoneId) return;
@@ -44,7 +44,8 @@ export default function CustomerProfilePage() {
                name: custData.name,
                phone: custData.phone,
                area_id: custData.area_id?.toString() || "",
-               frequency: custData.frequency
+               frequency: custData.frequency,
+               outstanding: custData.past_outstanding?.toString() || "0"
             });
             const customerId = custData.id;
 
@@ -133,7 +134,8 @@ export default function CustomerProfilePage() {
             name: editForm.name,
             phone: editForm.phone,
             area_id: parseInt(editForm.area_id),
-            frequency: editForm.frequency
+            frequency: editForm.frequency,
+            past_outstanding: parseFloat(editForm.outstanding) || 0
          }).eq('id', customer.id);
          setIsEditModalOpen(false);
          if (editForm.phone !== customer.phone) {
@@ -276,6 +278,7 @@ export default function CustomerProfilePage() {
                               <option value="Morning & Evening">Morning & Evening</option>
                            </select>
                         </div>
+                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Outstanding (₹)</label><input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                         <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Save Changes</button>
                      </form>
                   </motion.div>

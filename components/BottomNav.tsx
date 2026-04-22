@@ -2,10 +2,13 @@
 import { Home, Truck, Wallet2, Users, Package } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function BottomNav() {
   const pathname = usePathname();
-  if (pathname === "/login") return null;
+  const { user } = useAuth();
+  
+  if (!user || pathname === "/login") return null;
 
   const navItems = [
     { icon: Home, label: "Home", href: "/" },

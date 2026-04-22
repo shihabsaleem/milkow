@@ -17,6 +17,13 @@ export interface AutomationSettings {
   lastBillGeneration: string;
 }
 
+export interface Settings {
+  system_user?: {
+    name: string;
+  };
+  [key: string]: any;
+}
+
 export interface InventoryItem {
   id: number;
   name: string;

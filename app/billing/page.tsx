@@ -14,12 +14,13 @@ export default function BillingPage() {
 
    const [searchTerm, setSearchTerm] = useState("");
    const [selectedInvoice, setSelectedInvoice] = useState<(T.Bill & { customer: T.Customer }) | null>(null);
-   const [bills, setBills] = useState<(T.Bill & { customer: T.Customer })[]>([]);
-   const [routesList, setRoutesList] = useState<T.Area[]>([]);
-   const [selectedRoute, setSelectedRoute] = useState<number | "">("");
-   const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
-   const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
-   const [showToast, setShowToast] = useState(false);
+    const [bills, setBills] = useState<(T.Bill & { customer: T.Customer })[]>([]);
+    const [products, setProducts] = useState<T.Product[]>([]);
+    const [routesList, setRoutesList] = useState<T.Area[]>([]);
+    const [selectedRoute, setSelectedRoute] = useState<number | "">("");
+    const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
+    const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
+    const [showToast, setShowToast] = useState(false);
 
    // 1. DATA LOAD & SYNC
    useEffect(() => {
@@ -31,8 +32,38 @@ export default function BillingPage() {
          const { data: billsData } = await supabase.from('bills').select('*, customer:customers(*)').order('created_at', { ascending: false });
          let allBills = (billsData || []) as (T.Bill & { customer: T.Customer })[];
 
+         // Fetch Products for calculation
+         const { data: productList } = await supabase.from('products').select('*');
+         const prods = (productList || []) as T.Product[];
+         setProducts(prods);
+
+         const prices: Record<string, number> = {};
+         prods.forEach(p => { prices[p.id] = p.price; prices[p.name] = p.price; });
+
+         // Fetch Unbilled Deliveries
+         const { data: delData } = await supabase.from('deliveries').select('*, customer:customers(*)').eq('delivered', true).eq('billed', false);
+         const unbilled = (delData || []) as (T.Delivery & { customer: T.Customer })[];
+
+         unbilled.forEach((d: T.Delivery & { customer: T.Customer }) => {
+            const milkPrice = prices[d.product_id || ""] || prices[prods.find(p => p.id === d.product_id)?.name || ""] || 0;
+            let total = (d.milk_qty || 0) * milkPrice;
+            (d.misc_items || []).forEach((item: { name: string; qty: number }) => {
+               total += (item.qty || 0) * (prices[item.name] || 0);
+            });
+
+            allBills.push({
+               id: `DEL-${d.id}`,
+               customer_id: d.customer_id,
+               amount: total,
+               type: 'Spot' as any,
+               status: 'Pending',
+               created_at: d.delivery_date || new Date().toISOString(),
+               customer: d.customer as any
+            });
+         });
+
          const { data: customersWithOutstanding } = await supabase.from('customers').select('*').gt('past_outstanding', 0);
-         customersWithOutstanding?.forEach(c => {
+         customersWithOutstanding?.forEach((c: T.Customer) => {
             allBills.push({
                id: `OP-${c.id.slice(0, 8)}`,
                customer_id: c.id,
@@ -58,6 +89,7 @@ export default function BillingPage() {
       const sub = supabase.channel('bills_page')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchData)
          .subscribe();
 
       return () => { sub.unsubscribe(); };
@@ -80,6 +112,19 @@ export default function BillingPage() {
          if (id.startsWith('OP-')) {
             const customerId = bills.find(b => b.id === id)?.customer_id;
             if (customerId) await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
+         } else if (id.startsWith('DEL-')) {
+            const bill = bills.find(b => b.id === id);
+            if (bill) {
+               const deliveryId = id.replace('DEL-', '');
+               await supabase.from('bills').insert({
+                  customer_id: bill.customer_id,
+                  amount: bill.amount,
+                  type: 'Spot',
+                  status: 'Paid',
+                  paid_at: new Date().toISOString()
+               });
+               await supabase.from('deliveries').update({ billed: true }).eq('id', deliveryId);
+            }
          } else {
             await supabase.from('bills').update({ status: 'Paid' }).eq('id', id);
          }

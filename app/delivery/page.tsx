@@ -204,20 +204,6 @@ export default function DeliveryPage() {
                      </AnimatePresence>
                   </div>
 
-                  <div className="flex bg-zinc-100 p-1 rounded-xl gap-1 h-fit">
-                     <button 
-                        onClick={() => setManualShift('morning')}
-                        className={`p-2 rounded-lg transition-all ${shift === 'morning' ? 'bg-white text-primary shadow-sm' : 'text-zinc-400'}`}
-                     >
-                        <Sunrise size={18} />
-                     </button>
-                     <button 
-                        onClick={() => setManualShift('evening')}
-                        className={`p-2 rounded-lg transition-all ${shift === 'evening' ? 'bg-white text-primary shadow-sm' : 'text-zinc-400'}`}
-                     >
-                        <Sunset size={18} />
-                     </button>
-                  </div>
                </div>
 
                {/* Morning / Evening Toggle */}

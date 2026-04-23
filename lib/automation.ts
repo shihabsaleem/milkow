@@ -39,7 +39,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
     // 1. Get all active customers
     const { data: customers } = await supabase
       .from('customers')
-      .select('*')
+      .select('*, default_product_id, default_qty')
       .eq('status', 'Active');
 
     if (!customers || customers.length === 0) {
@@ -67,6 +67,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
           customer_id: c.id,
           delivery_date: today,
           shift: 'morning',
+          product_id: c.default_product_id,
           milk_qty: c.default_qty || 1,
           sequence_no: c.route_sl_no || 0,
           delivered: false,
@@ -80,6 +81,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
           customer_id: c.id,
           delivery_date: today,
           shift: 'evening',
+          product_id: c.default_product_id,
           milk_qty: c.default_qty || 1,
           sequence_no: c.route_sl_no || 0,
           delivered: false,
@@ -128,27 +130,33 @@ export async function deductInventoryOnDelivery(
     // 1. Check if already deducted
     const { data: stopData } = await supabase
       .from('deliveries')
-      .select('inventory_deducted')
+      .select('inventory_deducted, product_id')
       .eq('id', stopId)
       .single();
 
     const stop = stopData as T.Delivery | null;
     if (stop?.inventory_deducted) return;
 
-    // 2. Deduct Milk from inventory
-    const { data: inventoryData } = await supabase.from('inventory').select('*');
-    const inventory = inventoryData as T.InventoryItem[] | null;
-    if (inventory) {
-      // Find the specific milk item (case insensitive)
-      const milkItem = inventory.find(i => i.name.toLowerCase() === 'cow milk' || i.name.toLowerCase() === 'milk');
-      if (milkItem && milkQty > 0) {
+    if (stop?.product_id && milkQty > 0) {
+      const { data: prodData } = await supabase.from('products').select('*').eq('id', stop.product_id).single();
+      const prod = prodData as T.Product | null;
+      if (prod) {
         await supabase
-          .from('inventory')
-          .update({
-            count: Math.max(0, (milkItem.count || 0) - milkQty),
-            loaded: Math.max(0, (milkItem.loaded || 0) - milkQty),
-          })
-          .eq('id', milkItem.id);
+          .from('products')
+          .update({ stock: Math.max(0, (prod.stock || 0) - milkQty) })
+          .eq('id', prod.id);
+        
+        // Also update the linked inventory pipeline record if it exists
+        const { data: invData } = await supabase.from('inventory').select('*').eq('product_id', prod.id).single();
+        if (invData) {
+          await supabase
+            .from('inventory')
+            .update({ 
+              count: Math.max(0, (invData.count || 0) - milkQty),
+              loaded: Math.max(0, (invData.loaded || 0) - milkQty)
+            })
+            .eq('id', invData.id);
+        }
       }
     }
 
@@ -212,17 +220,19 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
     const { data: productsData } = await supabase.from('products').select('*');
     const productsList = productsData as T.Product[] | null;
     const prices: Record<string, number> = {};
-    productsList?.forEach(p => prices[p.name] = p.price);
-
-    const milkItemName = Object.keys(prices).find(n => n.toLowerCase().includes("milk")) || "";
-    const milkPrice = prices[milkItemName] || 50;
+    productsList?.forEach(p => {
+      prices[p.id] = p.price;
+      prices[p.name] = p.price;
+    });
 
     const billsToCreate = completedDeliveries.map(delivery => {
       const qty = delivery.milk_qty || 0;
-      let totalAmount = qty * milkPrice;
+      const unitPrice = prices[delivery.product_id || ""] || 0;
+      let totalAmount = qty * unitPrice;
       const miscItems = delivery.misc_items || [];
 
       miscItems.forEach((item: any) => {
+        // ... (remaining logic for misc items remains same)
         const itemPrice = prices[item.name] || 0;
         totalAmount += item.qty * itemPrice;
       });

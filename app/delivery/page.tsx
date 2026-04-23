@@ -223,7 +223,14 @@ export default function DeliveryPage() {
                               />
                               <div>
                                  <h3 className={`font-bold text-lg ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
-                                 <p className="font-semibold text-primary text-sm mt-0.5">{delivery.milk_qty} Milk</p>
+                                 {(() => {
+                                    const prod = products.find(p => p.id === delivery.product_id);
+                                    return (
+                                       <p className="font-semibold text-primary text-sm mt-0.5">
+                                          {delivery.milk_qty} {prod ? `${prod.name} (${prod.size})` : 'Milk'}
+                                       </p>
+                                    );
+                                 })()}
                               </div>
                            </div>
                            <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'}`}><Check size={20} strokeWidth={3} /></button>
@@ -253,9 +260,13 @@ export default function DeliveryPage() {
                         {(() => {
                            const stop = deliveries.find(d => d.id === expandedStopId);
                            const milkQty = stop?.milk_qty || 0;
+                           const prod = products.find(p => p.id === stop?.product_id);
                            return (
                               <div className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all ${milkQty > 0 ? 'bg-primary/5 border-primary/40' : 'bg-white border-zinc-100'}`}>
-                                 <div className="flex flex-col"><span className="text-sm font-black text-zinc-800">Fresh Milk</span><span className="text-[11px] font-medium text-zinc-500">Standard Delivery</span></div>
+                                 <div className="flex flex-col">
+                                    <span className="text-sm font-black text-zinc-800">{prod ? prod.name : 'Fresh Milk'}</span>
+                                    <span className="text-[11px] font-medium text-zinc-500">{prod ? prod.size : 'Standard Delivery'}</span>
+                                 </div>
                                  <div className="flex items-center gap-3 bg-white border border-zinc-100 rounded-xl p-1 shadow-sm">
                                     <button onClick={() => updateMilkQty(expandedStopId!, -1)} className="h-8 w-8 flex items-center justify-center text-zinc-400 hover:text-rose-500"><Minus size={16} /></button>
                                     <span className="text-sm font-black w-5 text-center">{milkQty}</span>

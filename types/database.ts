@@ -52,6 +52,7 @@ export interface Customer {
   status: 'Active' | 'Inactive';
   route_sl_no: number;
   default_qty: number;
+  default_product_id?: string | null;
   past_outstanding: number;
   created_at?: string;
 }
@@ -61,6 +62,7 @@ export interface Delivery {
   customer_id: string;
   delivery_date: string;
   shift: 'morning' | 'evening';
+  product_id?: string | null;
   milk_qty: number;
   misc_items: any[];
   delivered: boolean;

@@ -16,7 +16,16 @@ export default function CustomersPage() {
    const [customers, setCustomers] = useState<(T.Customer & { area: T.Area })[]>([]);
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
-   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
+   const [newCustomer, setNewCustomer] = useState({ 
+      name: "", 
+      phone: "", 
+      area_id: "", 
+      frequency: "Morning Only", 
+      outstanding: "",
+      default_qty: "1",
+      default_product_id: ""
+   });
+   const [products, setProducts] = useState<T.Product[]>([]);
 
    // 1. DATA LOAD & SYNC
    useEffect(() => {
@@ -26,6 +35,9 @@ export default function CustomersPage() {
 
          const { data: areaList } = await supabase.from('areas').select('*').order('name', { ascending: true });
          if (areaList) setAreas(areaList as T.Area[]);
+
+         const { data: productList } = await supabase.from('products').select('*').order('name', { ascending: true });
+         if (productList) setProducts(productList as T.Product[]);
       };
 
       fetchData();
@@ -48,6 +60,8 @@ export default function CustomersPage() {
             area_id: parseInt(newCustomer.area_id),
             frequency: newCustomer.frequency,
             status: 'Active',
+            default_qty: parseInt(newCustomer.default_qty) || 1,
+            default_product_id: newCustomer.default_product_id || null,
             past_outstanding: parseFloat(newCustomer.outstanding) || 0
          });
 
@@ -55,7 +69,15 @@ export default function CustomersPage() {
          await checkAndRunAutomations();
 
          setIsModalOpen(false);
-         setNewCustomer({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
+         setNewCustomer({ 
+            name: "", 
+            phone: "", 
+            area_id: "", 
+            frequency: "Morning Only", 
+            outstanding: "", 
+            default_qty: "1", 
+            default_product_id: "" 
+         });
       } catch (err) { console.error(err); }
    };
 
@@ -129,12 +151,42 @@ export default function CustomersPage() {
                     </select>
                   </div>
                 </div>
-                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Delivery Frequency</label>
-                  <select value={newCustomer.frequency} onChange={e => setNewCustomer({ ...newCustomer, frequency: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Delivery Frequency</label>
+                  <select 
+                    value={newCustomer.frequency} 
+                    onChange={e => setNewCustomer({ ...newCustomer, frequency: e.target.value })} 
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                  >
                     <option value="Morning Only">Morning Only</option>
                     <option value="Evening Only">Evening Only</option>
                     <option value="Morning & Evening">Morning & Evening</option>
                   </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Daily Product</label>
+                    <select 
+                      value={newCustomer.default_product_id} 
+                      onChange={e => setNewCustomer({ ...newCustomer, default_product_id: e.target.value })} 
+                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                    >
+                      <option value="">Select Product</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} ({p.size})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Daily Qty</label>
+                    <input 
+                      type="number" 
+                      placeholder="1" 
+                      value={newCustomer.default_qty} 
+                      onChange={e => setNewCustomer({ ...newCustomer, default_qty: e.target.value })} 
+                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" 
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Outstanding (₹)</label><input type="number" placeholder="0.00" value={newCustomer.outstanding} onChange={e => setNewCustomer({ ...newCustomer, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Complete Registration</button>

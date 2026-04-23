@@ -26,8 +26,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // 1. Get initial session
-    supabase.auth.getSession().then((res: { data: { session: Session | null } }) => {
-      const session = res.data.session;
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("[Auth] Error getting initial session:", error.message);
+        
+        // Handle "Refresh Token Not Found" or similar by clearing session
+        if (error.message?.includes("Refresh Token Not Found") || error.message?.includes("invalid_grant")) {
+          console.warn("[Auth] Stale session detected, clearing storage...");
+          supabase.auth.signOut().catch(e => console.error("[Auth] Error clearing stale session:", e));
+        }
+        
+        setLoading(false);
+        return;
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);

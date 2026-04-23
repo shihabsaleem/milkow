@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
 
-// Mock Supabase client for "off" state
+// Mock Supabase client for "off" state or missing keys
 const chain = () => ({
   select: chain,
   eq: chain,
@@ -27,18 +28,15 @@ const mockSupabase: any = {
     getSession: async () => ({ data: { session: mockSession }, error: null }),
     onAuthStateChange: (callback: any) => {
       authListeners.add(callback);
-      // Return subscription object
       return { data: { subscription: { unsubscribe: () => authListeners.delete(callback) } } };
     },
     signInWithPassword: async ({ email }: { email: string }) => {
       mockSession = { user: { email, id: 'mock-uuid' }, access_token: 'mock-token' };
-      // Notify listeners
       authListeners.forEach(cb => cb('SIGNED_IN', mockSession));
       return { data: { user: mockSession.user, session: mockSession }, error: null };
     },
     signOut: async () => {
       mockSession = null;
-      // Notify listeners
       authListeners.forEach(cb => cb('SIGNED_OUT', null));
       return { error: null };
     },
@@ -53,23 +51,38 @@ const mockSupabase: any = {
 };
 
 const isPlaceholder = !supabaseUrl || supabaseUrl.includes('YOUR_SUPABASE_PROJECT_URL') || !supabaseUrl.startsWith('http');
-const isOff = false; // Set to true to force mock mode
+const isOff = false; 
 const hasKeys = !!(supabaseUrl && supabaseAnonKey && supabaseUrl.length > 10);
 
-// DEFENSIVE INITIALIZATION: Only call createClient if we have valid-looking keys.
-// This prevents crashes during Vercel builds or pre-rendering.
-if (!hasKeys && typeof window !== 'undefined') {
-  console.warn("⚠️ Supabase keys are missing or invalid. Check your NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY env variables.");
-}
+// Use a singleton for the client-side to avoid multiple instances
+let clientInstance: any = null;
 
-export const supabase = (isOff || isPlaceholder || !hasKeys)
-  ? mockSupabase
-  : createClient(supabaseUrl, supabaseAnonKey);
+const getSupabaseClient = () => {
+  if (isOff || isPlaceholder || !hasKeys) return mockSupabase;
+
+  // Browser-side initialization with @supabase/ssr
+  if (typeof window !== 'undefined') {
+    if (!clientInstance) {
+      clientInstance = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      });
+    }
+    return clientInstance;
+  }
+
+  // Server-side initialization
+  return createClient(supabaseUrl, supabaseAnonKey);
+};
+
+export const supabase = getSupabaseClient();
 
 if (typeof window !== 'undefined') {
-  console.log(
-    (isOff || isPlaceholder || !hasKeys) 
-      ? "🛠️ Using MOCK Supabase client (Check .env.local)" 
-      : "🚀 Using REAL Supabase client"
-  );
+  const status = (isOff || isPlaceholder || !hasKeys) 
+    ? "🛠️ Using MOCK Supabase client" 
+    : "🚀 Using REAL Supabase client";
+  console.log(status);
 }

@@ -10,76 +10,99 @@ import * as T from "@/types/database";
 import { checkAndRunAutomations } from "@/lib/automation";
 
 export default function CustomersPage() {
-   const router = useRouter();
-   const [searchTerm, setSearchTerm] = useState("");
-   const [isModalOpen, setIsModalOpen] = useState(false);
-   const [customers, setCustomers] = useState<(T.Customer & { area: T.Area })[]>([]);
-   const [areas, setAreas] = useState<T.Area[]>([]);
-   const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
-   const [newCustomer, setNewCustomer] = useState({ 
-      name: "", 
-      phone: "", 
-      area_id: "", 
-      frequency: "Morning Only", 
-      outstanding: "",
-      default_qty: "1",
-      default_product_id: ""
-   });
-   const [products, setProducts] = useState<T.Product[]>([]);
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [customers, setCustomers] = useState<(T.Customer & { area: T.Area })[]>([]);
+  const [areas, setAreas] = useState<T.Area[]>([]);
+  const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
+  const [newCustomer, setNewCustomer] = useState({
+    name: "",
+    phone: "",
+    area_id: "",
+    frequency: "Morning Only",
+    outstanding: "",
+    default_qty: "1",
+    default_product_id: ""
+  });
+  const [products, setProducts] = useState<T.Product[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-   // 1. DATA LOAD & SYNC
-   useEffect(() => {
-      const fetchData = async () => {
-         const { data: custs } = await supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true });
-         if (custs) setCustomers(custs as (T.Customer & { area: T.Area })[]);
+  // 1. DATA LOAD & SYNC
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: custs } = await supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true });
+      if (custs) setCustomers(custs as (T.Customer & { area: T.Area })[]);
 
-         const { data: areaList } = await supabase.from('areas').select('*').order('name', { ascending: true });
-         if (areaList) setAreas(areaList as T.Area[]);
+      const { data: areaList } = await supabase.from('areas').select('*').order('name', { ascending: true });
+      if (areaList) setAreas(areaList as T.Area[]);
 
-         const { data: productList } = await supabase.from('products').select('*').order('name', { ascending: true });
-         if (productList) setProducts(productList as T.Product[]);
-      };
+      const { data: productList } = await supabase.from('products').select('*').order('name', { ascending: true });
+      if (productList) setProducts(productList as T.Product[]);
+    };
 
-      fetchData();
+    fetchData();
 
-      const sub = supabase.channel('cust_list')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, fetchData)
-         .subscribe();
+    const sub = supabase.channel('cust_list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, fetchData)
+      .subscribe();
 
-      return () => { sub.unsubscribe(); };
-   }, []);
+    return () => { sub.unsubscribe(); };
+  }, []);
 
-   const handleAddCustomer = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!newCustomer.name || !newCustomer.phone || !newCustomer.area_id) return;
-      try {
-         await supabase.from('customers').insert({
-            name: newCustomer.name,
-            phone: newCustomer.phone,
-            area_id: parseInt(newCustomer.area_id),
-            frequency: newCustomer.frequency,
-            status: 'Active',
-            default_qty: parseInt(newCustomer.default_qty) || 1,
-            default_product_id: newCustomer.default_product_id || null,
-            past_outstanding: parseFloat(newCustomer.outstanding) || 0
-         });
+  const handleAddCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustomer.name || !newCustomer.phone || !newCustomer.area_id) return;
+    try {
+      setIsLoading(true);
 
-         // 🚀 Sync route immediately so new customer shows up in delivery list
-         await checkAndRunAutomations();
+      // 1. Calculate the new delivery_order using Decimal Midpoint Indexing
+      const { data: lastCustomer } = await supabase
+        .from('customers')
+        .select('delivery_order')
+        .eq('area_id', parseInt(newCustomer.area_id))
+        .order('delivery_order', { ascending: false })
+        .limit(1)
+        .single();
 
-         setIsModalOpen(false);
-         setNewCustomer({ 
-            name: "", 
-            phone: "", 
-            area_id: "", 
-            frequency: "Morning Only", 
-            outstanding: "", 
-            default_qty: "1", 
-            default_product_id: "" 
-         });
-      } catch (err) { console.error(err); }
-   };
+      const prevOrder = lastCustomer ? Number(lastCustomer.delivery_order) : 0;
+      const newOrder = prevOrder + 1000;
+
+      // 2. Insert with the new delivery_order
+      const { error } = await supabase.from('customers').insert({
+        name: newCustomer.name,
+        phone: newCustomer.phone,
+        area_id: parseInt(newCustomer.area_id),
+        frequency: newCustomer.frequency,
+        status: 'Active',
+        default_qty: parseInt(newCustomer.default_qty) || 1,
+        default_product_id: newCustomer.default_product_id || null,
+        past_outstanding: parseFloat(newCustomer.outstanding) || 0,
+        delivery_order: newOrder
+      });
+
+      if (error) throw error;
+
+      // 🚀 Sync route immediately
+      await checkAndRunAutomations();
+
+      setIsModalOpen(false);
+      setNewCustomer({
+        name: "",
+        phone: "",
+        area_id: "",
+        frequency: "Morning Only",
+        outstanding: "",
+        default_qty: "1",
+        default_product_id: ""
+      });
+    } catch (err) {
+      console.error("Failed to add customer:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredCustomers = customers.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone.includes(searchTerm);
@@ -110,27 +133,35 @@ export default function CustomersPage() {
 
       <main className="max-w-2xl mx-auto px-5 py-6 flex flex-col gap-3">
         {filteredCustomers.map((customer, i) => (
-          <Link key={i} href={`/customers/${customer.phone}`}>
-            <motion.div layout className="bg-white border border-zinc-100 p-4 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group">
-              <div className="flex items-center gap-4">
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg font-black ${customer.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>{customer.name.charAt(0)}</div>
-                <div><h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors">{customer.name}</h3><p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5"><MapPin size={12} /> {customer.area?.name || 'No Area'}</p></div>
+          <motion.div
+            key={i}
+            layout
+            onClick={() => {
+              if (customer.id) router.push(`/customers/${customer.id}`);
+            }}
+            className="bg-white border border-zinc-100 p-4 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg font-black ${customer.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>{customer.name.charAt(0)}</div>
+              <div>
+                <h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors">{customer.name}</h3>
+                <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5"><MapPin size={12} /> {customer.area?.name || 'No Area'}</p>
               </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={(e) => { 
-                    e.preventDefault(); 
-                    e.stopPropagation(); 
-                    router.push(`/billing?search=${encodeURIComponent(customer.name)}`); 
-                  }} 
-                  className="p-2.5 bg-primary/5 text-primary rounded-xl hover:bg-primary/10 transition-colors border border-primary/10 flex items-center gap-2"
-                >
-                   <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">QR Bill</span>
-                   <ChevronRight size={18} className="text-primary/50 group-hover:text-primary transition-all translate-x-0 group-hover:translate-x-1" />
-                </button>
-              </div>
-            </motion.div>
-          </Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
+                }}
+                className="p-2.5 bg-primary/5 text-primary rounded-xl hover:bg-primary/10 transition-colors border border-primary/10 flex items-center gap-2"
+              >
+                <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">QR Bill</span>
+                <ChevronRight size={18} className="text-primary/50 group-hover:text-primary transition-all translate-x-0 group-hover:translate-x-1" />
+              </button>
+            </div>
+          </motion.div>
         ))}
       </main>
 
@@ -153,9 +184,9 @@ export default function CustomersPage() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Delivery Frequency</label>
-                  <select 
-                    value={newCustomer.frequency} 
-                    onChange={e => setNewCustomer({ ...newCustomer, frequency: e.target.value })} 
+                  <select
+                    value={newCustomer.frequency}
+                    onChange={e => setNewCustomer({ ...newCustomer, frequency: e.target.value })}
                     className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
                   >
                     <option value="Morning Only">Morning Only</option>
@@ -166,9 +197,9 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Daily Product</label>
-                    <select 
-                      value={newCustomer.default_product_id} 
-                      onChange={e => setNewCustomer({ ...newCustomer, default_product_id: e.target.value })} 
+                    <select
+                      value={newCustomer.default_product_id}
+                      onChange={e => setNewCustomer({ ...newCustomer, default_product_id: e.target.value })}
                       className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
                     >
                       <option value="">Select Product</option>
@@ -179,12 +210,12 @@ export default function CustomersPage() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Daily Qty</label>
-                    <input 
-                      type="number" 
-                      placeholder="1" 
-                      value={newCustomer.default_qty} 
-                      onChange={e => setNewCustomer({ ...newCustomer, default_qty: e.target.value })} 
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" 
+                    <input
+                      type="number"
+                      placeholder="1"
+                      value={newCustomer.default_qty}
+                      onChange={e => setNewCustomer({ ...newCustomer, default_qty: e.target.value })}
+                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
                     />
                   </div>
                 </div>

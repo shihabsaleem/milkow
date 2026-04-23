@@ -45,6 +45,7 @@ export interface Product {
 
 export interface Customer {
   id: string;
+  cust_id?: string;
   name: string;
   phone: string;
   area_id: number;

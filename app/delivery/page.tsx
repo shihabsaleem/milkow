@@ -30,6 +30,8 @@ export default function DeliveryPage() {
    // 1. DATA LOAD & SYNC
    useEffect(() => {
       const fetchData = async () => {
+         const today = new Date().toLocaleDateString('en-CA'); // Robust YYYY-MM-DD
+
          // Routes (Areas)
          const { data: routeSets } = await supabase.from('areas').select('*').order('name', { ascending: true });
          if (routeSets) {
@@ -43,12 +45,12 @@ export default function DeliveryPage() {
          const { data: prodData } = await supabase.from('products').select('*');
          if (prodData) setProducts(prodData as T.Product[]);
 
-         // Deliveries (with customer join)
+         // Deliveries (with customer join, ordered by the new delivery_order)
          const { data: routeData } = await supabase
             .from('deliveries')
             .select('*, customer:customers(*)')
-            .eq('delivery_date', new Date().toISOString().split('T')[0])
-            .order('sequence_no', { ascending: true });
+            .eq('delivery_date', today)
+            .order('delivery_order', { foreignTable: 'customers', ascending: true });
          if (routeData) setDeliveries(routeData as (T.Delivery & { customer: T.Customer })[]);
       };
 
@@ -132,16 +134,6 @@ export default function DeliveryPage() {
       }
    };
 
-   const updateSequence = async (id: string, newSeqRaw: string) => {
-      const newSeq = parseInt(newSeqRaw);
-      if (isNaN(newSeq)) return;
-      try {
-         await supabase.from('deliveries').update({ sequence_no: newSeq }).eq('id', id);
-      } catch (err) {
-         console.error("Failed to update sequence:", err);
-      }
-   };
-
    const filteredDeliveries = deliveries.filter(d => {
       const user = d.customer;
       if (!user || user.status === 'Inactive') return false;
@@ -173,18 +165,34 @@ export default function DeliveryPage() {
                         <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
                      </button>
                      <p className="text-xs font-bold text-primary tracking-wider uppercase mt-0.5">{remainingStops} Stops Remaining</p>
-                  <AnimatePresence>
-                     {isRouteMenuOpen && (
-                        <>
-                           <div className="fixed inset-0 z-40" onClick={() => setIsRouteMenuOpen(false)} />
-                           <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute left-0 mt-2 w-56 bg-white border border-zinc-200 shadow-2xl rounded-2xl overflow-hidden py-2 z-50">
-                              {routesList.map((route) => (
-                                 <button key={route.id} onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }} className={`w-full text-left px-4 py-3 text-sm font-bold ${selectedRoute === route.id ? 'bg-primary/10 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}>{route.name}</button>
-                              ))}
-                           </motion.div>
-                        </>
-                     )}
-                  </AnimatePresence>
+                     
+                     <AnimatePresence>
+                        {isRouteMenuOpen && (
+                           <>
+                              <div className="fixed inset-0 z-40" onClick={() => setIsRouteMenuOpen(false)} />
+                              <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute left-0 mt-2 w-56 bg-white border border-zinc-200 shadow-2xl rounded-2xl overflow-hidden py-2 z-50">
+                                 {routesList.map((route) => (
+                                    <button key={route.id} onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }} className={`w-full text-left px-4 py-3 text-sm font-bold ${selectedRoute === route.id ? 'bg-primary/10 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}>{route.name}</button>
+                                 ))}
+                              </motion.div>
+                           </>
+                        )}
+                     </AnimatePresence>
+                  </div>
+
+                  <div className="flex bg-zinc-100 p-1 rounded-xl gap-1 h-fit">
+                     <button 
+                        onClick={() => setManualShift('morning')}
+                        className={`p-2 rounded-lg transition-all ${shift === 'morning' ? 'bg-white text-primary shadow-sm' : 'text-zinc-400'}`}
+                     >
+                        <Sunrise size={18} />
+                     </button>
+                     <button 
+                        onClick={() => setManualShift('evening')}
+                        className={`p-2 rounded-lg transition-all ${shift === 'evening' ? 'bg-white text-primary shadow-sm' : 'text-zinc-400'}`}
+                     >
+                        <Sunset size={18} />
+                     </button>
                   </div>
                </div>
 
@@ -215,12 +223,9 @@ export default function DeliveryPage() {
                      <div className="p-4">
                         <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedStopId(isExpanded ? null : delivery.id)}>
                            <div className="flex items-start gap-3">
-                              <input type="text" inputMode="numeric" value={editingSeqId === delivery.id ? editSeqVal : (delivery.sequence_no || index + 1)} 
-                                 onChange={(e) => { setEditingSeqId(delivery.id); setEditSeqVal(e.target.value); }}
-                                 onBlur={() => { if (editingSeqId === delivery.id) { updateSequence(delivery.id, editSeqVal); setEditingSeqId(null); } }}
-                                 onClick={(e) => { e.stopPropagation(); setEditingSeqId(delivery.id); setEditSeqVal((delivery.sequence_no || index + 1).toString()); }}
-                                 className={`mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs text-center focus:outline-none transition-all ${delivery.delivered ? 'bg-zinc-200 text-zinc-500' : 'bg-primary text-white shadow-md'}`}
-                              />
+                              <div className={`mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs text-center transition-all ${delivery.delivered ? 'bg-zinc-200 text-zinc-500' : 'bg-primary text-white shadow-md'}`}>
+                                 {index + 1}
+                              </div>
                               <div>
                                  <h3 className={`font-bold text-lg ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
                                  {(() => {

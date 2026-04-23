@@ -1,6 +1,6 @@
 -- ==========================================
 -- MILKOW FULL SYSTEM SCHEMA (SUPABASE)
--- V4 (Enhanced Atomicity & Consistency)
+-- V5 (Production Ready - Product Specifics & Decimal Indexing)
 -- ==========================================
 
 -- 1. SETUP EXTENSIONS & TYPES
@@ -20,11 +20,14 @@ DO $$ BEGIN
         CREATE TYPE bill_status AS ENUM ('Pending', 'Paid');
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bill_type') THEN
-        CREATE TYPE bill_type AS ENUM ('Weekly', 'Monthly', 'Spot');
+        CREATE TYPE bill_type AS ENUM ('Weekly', 'Monthly', 'Spot', 'Opening Balance');
     END IF;
 END $$;
 
--- 2. CREATE TABLES
+-- 2. CREATE SEQUENCES
+CREATE SEQUENCE IF NOT EXISTS cust_id_seq START 1001;
+
+-- 3. CREATE TABLES
 
 -- Areas: Master list of delivery regions
 CREATE TABLE IF NOT EXISTS areas (
@@ -32,23 +35,6 @@ CREATE TABLE IF NOT EXISTS areas (
     name TEXT UNIQUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now()
 );
-
--- Customers: Linked to areas, ensures phone uniqueness
-CREATE TABLE IF NOT EXISTS customers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    phone TEXT UNIQUE,
-    area_id INTEGER REFERENCES areas(id) ON DELETE SET NULL,
-    frequency delivery_frequency DEFAULT 'Morning Only',
-    status customer_status DEFAULT 'Active',
-    route_sl_no INTEGER,
-    default_qty INTEGER DEFAULT 1,
-    past_outstanding DECIMAL(12, 2) DEFAULT 0.00,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_customers_area_id ON customers(area_id);
-CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status);
 
 -- Products: Master list of all items (Milk, Ghee, etc.)
 CREATE TABLE IF NOT EXISTS products (
@@ -62,14 +48,34 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Customers: Linked to areas, includes delivery preferences and fractional ordering
+CREATE TABLE IF NOT EXISTS customers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cust_id TEXT UNIQUE DEFAULT 'MILKOW' || nextval('cust_id_seq'),
+    name TEXT NOT NULL,
+    phone TEXT UNIQUE,
+    area_id INTEGER REFERENCES areas(id) ON DELETE SET NULL,
+    frequency delivery_frequency DEFAULT 'Morning Only',
+    status customer_status DEFAULT 'Active',
+    delivery_order DECIMAL(20, 10) DEFAULT 0, -- Decimal Midpoint Indexing
+    default_product_id UUID REFERENCES products(id) ON DELETE SET NULL,
+    default_qty INTEGER DEFAULT 1,
+    past_outstanding DECIMAL(12, 2) DEFAULT 0.00,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_customers_area_id ON customers(area_id);
+CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status);
+CREATE INDEX IF NOT EXISTS idx_customers_delivery_order ON customers(delivery_order);
+
 -- Inventory: Tracking physical stock/loading, linked to products
 CREATE TABLE IF NOT EXISTS inventory (
     id SERIAL PRIMARY KEY,
     product_id UUID REFERENCES products(id) ON DELETE SET NULL,
-    name TEXT NOT NULL, -- Redundant but kept for app compatibility
+    name TEXT NOT NULL,
     vol TEXT,
-    count INTEGER DEFAULT 0, -- Current physical stock
-    loaded INTEGER DEFAULT 0, -- Stock loaded into delivery vehicle
+    count INTEGER DEFAULT 0,
+    loaded INTEGER DEFAULT 0,
     unit TEXT DEFAULT 'Bottles',
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -81,31 +87,20 @@ CREATE TABLE IF NOT EXISTS deliveries (
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     delivery_date DATE NOT NULL DEFAULT CURRENT_DATE,
     shift shift_type NOT NULL,
+    product_id UUID REFERENCES products(id) ON DELETE SET NULL,
     milk_qty INTEGER DEFAULT 0,
-    misc_items JSONB DEFAULT '[]'::jsonb, -- Legacy JSON support
+    misc_items JSONB DEFAULT '[]'::jsonb,
     delivered BOOLEAN DEFAULT FALSE,
     inventory_deducted BOOLEAN DEFAULT FALSE,
+    billed BOOLEAN DEFAULT FALSE,
     sequence_no INTEGER,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
-    -- Consistency: Prevent duplicate deliveries for same customer/shift/day
     UNIQUE(customer_id, delivery_date, shift)
 );
 CREATE INDEX IF NOT EXISTS idx_deliveries_customer_id ON deliveries(customer_id);
 CREATE INDEX IF NOT EXISTS idx_deliveries_date ON deliveries(delivery_date);
 CREATE INDEX IF NOT EXISTS idx_deliveries_composite_lookup ON deliveries(delivery_date, shift);
-
--- Delivery Items: Normalized items for each delivery (Atomicity & Integrity)
-CREATE TABLE IF NOT EXISTS delivery_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    delivery_id UUID NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
-    quantity INTEGER NOT NULL CHECK (quantity > 0),
-    unit_price DECIMAL(10, 2) NOT NULL, -- Snapshot price at time of delivery
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_delivery_items_delivery_id ON delivery_items(delivery_id);
-CREATE INDEX IF NOT EXISTS idx_delivery_items_product_id ON delivery_items(product_id);
 
 -- Bills: Aggregated charges for customers
 CREATE TABLE IF NOT EXISTS bills (
@@ -123,13 +118,6 @@ CREATE TABLE IF NOT EXISTS bills (
 CREATE INDEX IF NOT EXISTS idx_bills_customer_id ON bills(customer_id);
 CREATE INDEX IF NOT EXISTS idx_bills_status ON bills(status);
 
--- Bill Deliveries: Linking table to track which deliveries are covered by which bill
-CREATE TABLE IF NOT EXISTS bill_deliveries (
-    bill_id UUID NOT NULL REFERENCES bills(id) ON DELETE CASCADE,
-    delivery_id UUID NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
-    PRIMARY KEY (bill_id, delivery_id)
-);
-
 -- System Settings: Global configurations
 CREATE TABLE IF NOT EXISTS system_settings (
     key TEXT PRIMARY KEY,
@@ -137,7 +125,7 @@ CREATE TABLE IF NOT EXISTS system_settings (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. UPDATED_AT TRIGGERS
+-- 4. UPDATED_AT TRIGGERS
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -156,18 +144,16 @@ BEGIN
     END LOOP;
 END $$;
 
--- 4. ROW LEVEL SECURITY (RLS)
+-- 5. ROW LEVEL SECURITY (RLS)
 ALTER TABLE areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deliveries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE delivery_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bills ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bill_deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
--- ALLOW ALL FOR AUTHENTICATED USERS
+-- ALLOW ALL FOR AUTHENTICATED USERS (Simple internal app policy)
 DO $$ 
 DECLARE 
     t text;

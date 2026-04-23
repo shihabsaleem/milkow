@@ -22,7 +22,22 @@ export default function BillingPage() {
    useEffect(() => {
       const fetchData = async () => {
          const { data: billsData } = await supabase.from('bills').select('*, customer:customers(*)').order('created_at', { ascending: false });
-         if (billsData) setBills(billsData as (T.Bill & { customer: T.Customer })[]);
+         let allBills = (billsData || []) as (T.Bill & { customer: T.Customer })[];
+
+         const { data: customersWithOutstanding } = await supabase.from('customers').select('*').gt('past_outstanding', 0);
+         customersWithOutstanding?.forEach(c => {
+            allBills.push({
+               id: `OP-${c.id.slice(0, 8)}`,
+               customer_id: c.id,
+               amount: c.past_outstanding,
+               type: 'Opening Balance' as any,
+               status: 'Pending',
+               created_at: c.created_at || new Date().toISOString(),
+               customer: c as any
+            });
+         });
+
+         setBills(allBills);
 
          const { data: settingsData } = await supabase.from('system_settings').select('value').eq('key', 'general').single();
          if (settingsData) {
@@ -35,6 +50,7 @@ export default function BillingPage() {
 
       const sub = supabase.channel('bills_page')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
          .subscribe();
 
       return () => { sub.unsubscribe(); };
@@ -52,7 +68,12 @@ export default function BillingPage() {
 
    const handleMarkAsPaid = async (id: string) => {
       try {
-         await supabase.from('bills').update({ status: 'Paid' }).eq('id', id);
+         if (id.startsWith('OP-')) {
+            const customerId = bills.find(b => b.id === id)?.customer_id;
+            if (customerId) await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
+         } else {
+            await supabase.from('bills').update({ status: 'Paid' }).eq('id', id);
+         }
          setShowToast(true);
          setTimeout(() => setShowToast(false), 3000);
       } catch (err) {

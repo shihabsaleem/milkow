@@ -40,7 +40,8 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
     const { data: customers } = await supabase
       .from('customers')
       .select('*, default_product_id, default_qty')
-      .eq('status', 'Active');
+      .eq('status', 'Active')
+      .order('delivery_order', { ascending: true });
 
     if (!customers || customers.length === 0) {
       return { ran: false, message: "No active customers found." };

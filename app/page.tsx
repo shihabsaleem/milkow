@@ -67,37 +67,47 @@ export default function Dashboard() {
 
     // Delivery Status (Aggregated from deliveries)
     const fetchDelivered = async () => {
-      const { data } = await supabase
+      const { data: deliveriesData } = await supabase
         .from('deliveries')
         .select('*')
         .eq('delivered', true)
         .eq('delivery_date', new Date().toISOString().split('T')[0]);
 
-      if (!data) return;
+      if (!deliveriesData) return;
 
-      const summary: Record<string, { count: number; unit: string }> = {};
-      data.forEach((d: any) => {
-        // Milk
-        const milkQty = Number(d.milk_qty) || 0;
-        if (milkQty > 0) {
-          summary['Cow Milk'] = { 
-            count: (summary['Cow Milk']?.count || 0) + milkQty,
-            unit: 'Bottles'
-          };
+      const { data: productsData } = await supabase.from('products').select('*');
+      const productsMap = new Map(productsData?.map(p => [p.id, p]) || []);
+
+      const summary: Record<string, { count: number; unit: string; vol: string }> = {};
+      
+      deliveriesData.forEach((d: any) => {
+        // 1. Handle Main Product (Daily Milk)
+        const qty = Number(d.milk_qty) || 0;
+        if (qty > 0) {
+          const prod = productsMap.get(d.product_id);
+          const name = prod?.name || 'Cow Milk';
+          const unit = prod?.unit || 'Bottles';
+          const vol = prod?.size || 'Daily';
+
+          if (!summary[name]) {
+            summary[name] = { count: 0, unit, vol };
+          }
+          summary[name].count += qty;
         }
-        // Extras
+
+        // 2. Handle Extras (Misc Items)
         const extras = d.misc_items || [];
         extras.forEach((item: any) => {
-          summary[item.name] = {
-            count: (summary[item.name]?.count || 0) + (item.qty || 0),
-            unit: 'Items'
-          };
+          if (!summary[item.name]) {
+            summary[item.name] = { count: 0, unit: 'Items', vol: 'Extra' };
+          }
+          summary[item.name].count += (item.qty || 0);
         });
       });
 
       const list = Object.entries(summary).map(([name, val]) => ({
         name,
-        vol: "Today Total",
+        vol: val.vol,
         count: val.count,
         unit: val.unit
       }));

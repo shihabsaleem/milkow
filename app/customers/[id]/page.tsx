@@ -11,7 +11,7 @@ import * as T from "@/types/database";
 export default function CustomerProfilePage() {
    const params = useParams();
    const router = useRouter();
-   const phoneId = typeof params?.phone === 'string' ? params.phone : Array.isArray(params?.phone) ? params.phone[0] : '';
+   const customerIdParam = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : '';
 
    const [customer, setCustomer] = useState<(T.Customer & { area: T.Area }) | null>(null);
    const [bills, setBills] = useState<T.Bill[]>([]);
@@ -25,13 +25,13 @@ export default function CustomerProfilePage() {
    const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
 
    useEffect(() => {
-      if (!phoneId) return;
+      if (!customerIdParam) return;
       const fetchData = async () => {
          // 1. Fetch Customer with Area Join
          const { data: custData } = await supabase
             .from('customers')
             .select('*, area:areas(*)')
-            .eq('phone', phoneId)
+            .eq('id', customerIdParam)
             .single();
 
          // Fetch Areas for Edit Modal
@@ -87,7 +87,7 @@ export default function CustomerProfilePage() {
          .subscribe();
 
       return () => { sub.unsubscribe(); };
-   }, [phoneId, viewDate]);
+   }, [customerIdParam, viewDate]);
 
    const prices: Record<string, number> = {};
    products.forEach(p => prices[p.name] = Number(p.price));
@@ -103,7 +103,7 @@ export default function CustomerProfilePage() {
       return total;
    };
 
-   const pendingAmount = bills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+   const pendingAmount = (bills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + (Number(b.amount) || 0), 0)) + (Number(customer?.past_outstanding) || 0);
    const unbilledDeliveries = deliveries.filter(d => d.delivered && !d.billed);
    const currentDeliveriesAmount = unbilledDeliveries.reduce((acc, d) => acc + calculateDeliveryTotal(d), 0);
    const grandTotalAmount = pendingAmount + currentDeliveriesAmount;
@@ -139,7 +139,7 @@ export default function CustomerProfilePage() {
          }).eq('id', customer.id);
          setIsEditModalOpen(false);
          if (editForm.phone !== customer.phone) {
-            router.push(`/customers/${editForm.phone}`);
+            setIsLoading(false);
          } else {
             setIsLoading(false);
          }
@@ -213,13 +213,16 @@ export default function CustomerProfilePage() {
                   <div className="flex items-start justify-between mb-6">
                      <div className="flex items-center gap-4">
                         <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl font-black text-primary border border-primary/20">{customer.name.charAt(0)}</div>
-                        <div className="flex flex-col gap-1"><div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><MapPin size={14} className="text-zinc-400" /> {customer.area?.name || 'No Area'}</div><div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><Phone size={14} className="text-zinc-400" /> {customer.phone}</div></div>
+                        <div className="flex flex-col gap-1">
+                           <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><MapPin size={14} className="text-zinc-400" /> {customer.area?.name || 'No Area'}</div>
+                           <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><Phone size={14} className="text-zinc-400" /> {customer.phone}</div>
+                        </div>
                      </div>
                      <button onClick={toggleStatus} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                      <div className="bg-slate-50 rounded-2xl p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-2"><Clock size={12} /> Frequency</div><p className="text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
-                     <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 cursor-pointer" onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}><div className="flex items-center gap-1.5 text-primary text-[10px] uppercase font-bold tracking-wider mb-2 opacity-80"><Receipt size={12} /> Pending Bills</div><p className="text-sm font-black text-primary">{bills.length > 0 ? `₹${pendingAmount.toFixed(2)}` : 'None'}</p></div>
+                     <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 cursor-pointer" onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}><div className="flex items-center gap-1.5 text-primary text-[10px] uppercase font-bold tracking-wider mb-2 opacity-80"><Receipt size={12} /> Pending Bills</div><p className="text-sm font-black text-primary">{pendingAmount > 0 ? `₹${pendingAmount.toFixed(2)}` : 'None'}</p></div>
                   </div>
                </div>
             </div>
@@ -282,8 +285,9 @@ export default function CustomerProfilePage() {
                <div className="bg-zinc-900 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden">
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Grand Total Ledger</h3>
                   <div className="flex flex-col gap-2">
-                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Pending Invoices</span><span>₹{pendingAmount.toFixed(2)}</span></div>
+                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Generated Bills</span><span>₹{(pendingAmount - (Number(customer?.past_outstanding) || 0)).toFixed(2)}</span></div>
                      <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Unbilled Deliveries</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div>
+                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Past Outstanding</span><span>₹{(Number(customer?.past_outstanding) || 0).toFixed(2)}</span></div>
                      <div className="flex justify-between items-end mt-2"><span className="text-xs font-black text-zinc-300">CALCULATED TOTAL</span><span className="text-3xl font-black text-primary">₹{grandTotalAmount.toFixed(2)}</span></div>
                   </div>
                   

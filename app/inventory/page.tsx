@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import { Plus, ChevronRight, X, Calendar as CalendarIcon, Droplet, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import Modal from "@/components/Modal";
 import * as T from "@/types/database";
 
-type PipelineStage = { label: string; value: number; unit: string; id: number };
+type PipelineStage = { label: string; value: number; unit: string; id: number; productId?: string | number };
 
 export default function InventoryPage() {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -16,6 +17,22 @@ export default function InventoryPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: 0 });
   const dateInputRef = useRef<HTMLInputElement>(null);
+
+  // Modal States
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'danger' | 'info' | 'success';
+    confirmText?: string;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    type: 'info'
+  });
 
   const fmtDate = (s: string) => {
     const d = new Date(s);
@@ -35,7 +52,7 @@ export default function InventoryPage() {
 
       const { data: pipes } = await supabase.from('inventory').select('*').not('product_id', 'is', null); 
       // Note: mapping 'inventory' to pipeline for this view
-      if (pipes) setPipeline((pipes as T.InventoryItem[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id })));
+      if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
     };
 
     fetchData();
@@ -61,8 +78,20 @@ export default function InventoryPage() {
        
        if (editingIndex !== null && products[editingIndex].id) {
           await supabase.from('products').update(productToSave).eq('id', products[editingIndex].id);
+          // Also update inventory name if it exists
+          await supabase.from('inventory').update({ name: productToSave.name, unit: newProduct.size }).eq('product_id', products[editingIndex].id);
        } else {
-          await supabase.from('products').insert(productToSave);
+          const { data: insertedProduct, error: insertError } = await supabase.from('products').insert(productToSave).select().single();
+          if (!insertError && insertedProduct) {
+             await supabase.from('inventory').insert({
+                product_id: insertedProduct.id,
+                name: insertedProduct.name,
+                unit: insertedProduct.size, // using size as unit for consistency in this view
+                count: productToSave.stock,
+                loaded: Math.floor(productToSave.stock / 2),
+                vol: insertedProduct.size
+             });
+          }
        }
        setIsModalOpen(false);
        setNewProduct({ name: "", size: "", stock: "", price: 0 });
@@ -72,19 +101,39 @@ export default function InventoryPage() {
 
   const handleDeleteProduct = async () => {
     if (editingIndex === null || !products[editingIndex].id) return;
-    if (!confirm("Are you sure you want to delete this product?")) return;
-    try {
-       await supabase.from('products').delete().eq('id', products[editingIndex].id);
-       setIsModalOpen(false);
-       setEditingIndex(null);
-    } catch (err) { console.error(err); }
+    
+    setModalConfig({
+      isOpen: true,
+      title: "Delete Product",
+      message: `Are you sure you want to delete ${products[editingIndex].name}? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+           await supabase.from('products').delete().eq('id', products[editingIndex].id);
+           setIsModalOpen(false);
+           setEditingIndex(null);
+           setModalConfig(prev => ({ ...prev, isOpen: false }));
+        } catch (err) { console.error(err); }
+      }
+    });
   };
 
   const deletePipelineItem = async (id: number) => {
-    if (!confirm("Are you sure you want to remove this stage from the pipeline?")) return;
-    try {
-       await supabase.from('inventory').delete().eq('id', id);
-    } catch (err) { console.error(err); }
+    const item = pipeline.find(p => p.id === id);
+    setModalConfig({
+      isOpen: true,
+      title: "Remove Stage",
+      message: `Remove ${item?.label} from the supply pipeline?`,
+      type: 'danger',
+      confirmText: "Remove",
+      onConfirm: async () => {
+        try {
+           await supabase.from('inventory').delete().eq('id', id);
+           setModalConfig(prev => ({ ...prev, isOpen: false }));
+        } catch (err) { console.error(err); }
+      }
+    });
   };
 
   const updatePipelineValue = async (id: number, newValue: string) => {
@@ -97,41 +146,71 @@ export default function InventoryPage() {
        // 2. Sync to Supabase
        const { error } = await supabase.from('inventory').update({ count: numValue }).eq('id', id);
        if (error) throw error;
+
+       // 3. Update linked Product stock
+       const stage = pipeline.find(p => p.id === id);
+       if (stage?.productId) {
+          await supabase.from('products').update({ stock: numValue }).eq('id', stage.productId);
+       }
     } catch (err) { 
-      console.error(err);
+       console.error(err);
       // Revert if failed (fetch data again)
       const { data } = await supabase.from('inventory').select('*').not('product_id', 'is', null);
-      if (data) setPipeline((data as T.InventoryItem[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id })));
+      if (data) setPipeline((data as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
     }
   };
 
   const handleCloseDay = async () => {
-    if (!confirm("Are you sure you want to close the day? This will reset all stock to zero and record today's prices.")) return;
+    setModalConfig({
+      isOpen: true,
+      title: "Close Day",
+      message: "This will reset all stock to zero and record today's prices. This action is final.",
+      type: 'danger',
+      confirmText: "Close Day",
+      onConfirm: async () => {
+        try {
+          // 1. Store Daily Prices
+          const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
+          const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
+          const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
+          
+          await supabase.from('system_settings').upsert({
+            key: 'daily_prices',
+            value: { ...dailyPrices, [date]: currentPrices }
+          });
 
-    try {
-      // 1. Store Daily Prices
-      const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
-      const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
-      const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
-      
-      await supabase.from('system_settings').upsert({
-        key: 'daily_prices',
-        value: { ...dailyPrices, [date]: currentPrices }
-      });
+          // 2. Reset Inventory Stock to Zero
+          const { data: invData } = await supabase.from('inventory').select('id, product_id');
+          if (invData) {
+            for (const item of invData) {
+               await supabase.from('inventory').update({ count: 0, loaded: 0 }).eq('id', item.id);
+               if (item.product_id) {
+                  await supabase.from('products').update({ stock: 0 }).eq('id', item.product_id);
+               }
+            }
+          }
 
-      // 2. Reset Inventory Stock to Zero
-      const { data: invData } = await supabase.from('inventory').select('id');
-      if (invData) {
-        for (const item of invData) {
-           await supabase.from('inventory').update({ count: 0, loaded: 0 }).eq('id', item.id);
+          setModalConfig({
+            isOpen: true,
+            title: "Success",
+            message: "Day closed and stock reset successfully!",
+            type: 'success',
+            confirmText: "Done",
+            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+          });
+        } catch (err) {
+          console.error(err);
+          setModalConfig({
+            isOpen: true,
+            title: "Error",
+            message: "Failed to close day. Please try again.",
+            type: 'danger',
+            confirmText: "Retry",
+            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+          });
         }
       }
-
-      alert("Day closed and stock reset successfully!");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to close day.");
-    }
+    });
   };
 
   return (
@@ -206,6 +285,16 @@ export default function InventoryPage() {
           </div>
         )}
       </AnimatePresence>
+
+      <Modal 
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+      />
     </div>
   );
 }

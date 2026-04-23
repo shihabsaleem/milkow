@@ -1,0 +1,52 @@
+
+# MILKOW PROJECT DOCUMENTATION
+==============================
+
+## 1. PROJECT OVERVIEW
+Milkow is a smart milk operations management system built with Next.js, Tailwind CSS, Framer Motion, and Supabase. It manages daily delivery routes, customer ledgers, inventory pipelines, and automated billing.
+
+## 2. DATA ARCHITECTURE & RELATIONSHIPS
+The system uses a relational PostgreSQL database (Supabase).
+
+### Core Tables:
+- **Areas**: Physical delivery zones/routes.
+- **Products**: Master catalog of items (Milk, Ghee, etc.) with price and stock.
+- **Customers**: Linked to an Area. Tracks frequency (Morning/Evening), status, and past outstanding.
+- **Inventory**: Serves as the "Supply Pipeline". Linked 1:1 with Products. Used for daily stock updates.
+- **Deliveries**: Daily records per customer/shift. Tracks milk quantity and misc items.
+- **Bills**: Invoices generated for customers. Linked to Customers.
+- **System Settings**: JSONB storage for app configuration (Payment UPI, Automation states, Daily price history).
+
+### Relationships:
+- `Customer` belongs to `Area`.
+- `Delivery` belongs to `Customer`.
+- `Bill` belongs to `Customer`.
+- `Inventory` item links to a `Product`.
+- `Deliveries` track which products/quantities were consumed via `misc_items` (JSONB).
+
+## 3. PAGE DIRECTORY (app/)
+- **/login**: Authentication page using Supabase Auth.
+- **/** (Dashboard): Overview of current date, shift toggle, inventory cards, delivery totals, and financials.
+- **/inventory**: Management of Products and the "Supply Pipeline". Syncs pipeline edits directly to product stock. Includes "Close Day" to reset stock and archive prices.
+- **/customers**: Searchable list of all customers with status indicators.
+- **/customers/[phone]**: Detailed profile, Monthly Ledger (calendar view), and Grand Total (Billed vs. Unbilled). Includes "Generate Bill" feature.
+- **/delivery**: Interactive route for the current shift. Allows marking deliveries as complete and adding misc items.
+- **/billing**: Collection center. Shows pending bills with QR code generation (UPI) and WhatsApp sharing.
+- **/profile**: Admin settings and logout.
+
+## 4. CORE FUNCTIONS & LOGIC
+### Automation (lib/automation.ts)
+- `resetDailyRoute()`: Runs every morning to create empty delivery records for all active customers based on their frequency.
+- `generateDailyBills()`: Runs every evening to convert successful deliveries into "Monthly" bill records.
+- `deductInventoryOnDelivery()`: Deducts stock from inventory/products when a delivery is marked as successful.
+
+### Client-Side Features
+- **Pipeline Sync**: Editing a value in the Inventory Pipeline updates both the `inventory` table and the `products.stock` automatically.
+- **Manual Billing**: In the Customer Profile, users can manually bundle unbilled deliveries into a Bill record for immediate QR collection.
+- **LCP Optimization**: Critical assets (logos) use Next.js `priority` for faster initial loads.
+
+## 5. UI/UX COMPONENTS
+- **BottomNav**: Sticky navigation for mobile-first experience.
+- **Modal**: Universal confirmation and entry modal.
+- **Preloader**: Branded loading state while checking Auth session.
+- **Framer Motion**: Integrated for smooth transitions and gesture-based interactions.

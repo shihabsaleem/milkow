@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/Modal";
 import * as T from "@/types/database";
+import CustomSelect from "@/components/CustomSelect";
 
 export default function CustomerProfilePage() {
    const params = useParams();
@@ -316,20 +317,24 @@ export default function CustomerProfilePage() {
                         <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                         <div className="grid grid-cols-2 gap-3">
                            <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</label><input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                           <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Route</label>
-                              <select value={editForm.area_id} onChange={e => setEditForm({ ...editForm, area_id: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all">
-                                 <option value="">Select Route</option>
-                                 {areas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                              </select>
-                           </div>
+                           <CustomSelect 
+                              label="Route"
+                              options={areas.map(a => ({ value: a.id.toString(), label: a.name }))}
+                              value={editForm.area_id}
+                              onChange={val => setEditForm({ ...editForm, area_id: val })}
+                              placeholder="Select Route"
+                           />
                         </div>
-                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Delivery Frequency</label>
-                           <select value={editForm.frequency} onChange={e => setEditForm({ ...editForm, frequency: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all">
-                              <option value="Morning Only">Morning Only</option>
-                              <option value="Evening Only">Evening Only</option>
-                              <option value="Morning & Evening">Morning & Evening</option>
-                           </select>
-                        </div>
+                        <CustomSelect 
+                           label="Delivery Frequency"
+                           options={[
+                              { value: "Morning Only", label: "Morning Only" },
+                              { value: "Evening Only", label: "Evening Only" },
+                              { value: "Morning & Evening", label: "Morning & Evening" }
+                           ]}
+                           value={editForm.frequency}
+                           onChange={val => setEditForm({ ...editForm, frequency: val })}
+                        />
                         <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Outstanding (₹)</label><input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                         <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Save Changes</button>
                      </form>

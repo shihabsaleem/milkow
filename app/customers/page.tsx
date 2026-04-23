@@ -8,6 +8,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
 import { checkAndRunAutomations } from "@/lib/automation";
+import CustomSelect from "@/components/CustomSelect";
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -123,10 +124,16 @@ export default function CustomersPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
               <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
             </div>
-            <select value={selectedAreaId} onChange={(e) => setSelectedAreaId(e.target.value)} className="bg-white border border-zinc-200 rounded-2xl px-4 py-3.5 text-sm font-bold text-zinc-700 focus:ring-2 transition-all shadow-sm min-w-[140px]">
-              <option value="all">All Routes</option>
-              {areas.map(a => <option key={a.id} value={a.id.toString()}>{a.name}</option>)}
-            </select>
+            <CustomSelect 
+              fullWidth={false}
+              className="min-w-[160px]"
+              options={[
+                { value: "all", label: "All Routes" },
+                ...areas.map(a => ({ value: a.id.toString(), label: a.name }))
+              ]}
+              value={selectedAreaId}
+              onChange={(val) => setSelectedAreaId(val)}
+            />
           </div>
         </div>
       </div>
@@ -175,39 +182,32 @@ export default function CustomersPage() {
                 <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus placeholder="e.g. Sayas Rahman" value={newCustomer.name} onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</label><input placeholder="9876543210" value={newCustomer.phone} onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Route</label>
-                    <select value={newCustomer.area_id} onChange={e => setNewCustomer({ ...newCustomer, area_id: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all">
-                      <option value="">Select Route</option>
-                      {areas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
-                  </div>
+                  <CustomSelect 
+                    label="Route"
+                    options={areas.map(a => ({ value: a.id.toString(), label: a.name }))}
+                    value={newCustomer.area_id}
+                    onChange={val => setNewCustomer({ ...newCustomer, area_id: val })}
+                    placeholder="Select Route"
+                  />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Delivery Frequency</label>
-                  <select
-                    value={newCustomer.frequency}
-                    onChange={e => setNewCustomer({ ...newCustomer, frequency: e.target.value })}
-                    className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
-                  >
-                    <option value="Morning Only">Morning Only</option>
-                    <option value="Evening Only">Evening Only</option>
-                    <option value="Morning & Evening">Morning & Evening</option>
-                  </select>
-                </div>
+                <CustomSelect 
+                  label="Delivery Frequency"
+                  options={[
+                    { value: "Morning Only", label: "Morning Only" },
+                    { value: "Evening Only", label: "Evening Only" },
+                    { value: "Morning & Evening", label: "Morning & Evening" }
+                  ]}
+                  value={newCustomer.frequency}
+                  onChange={val => setNewCustomer({ ...newCustomer, frequency: val })}
+                />
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Daily Product</label>
-                    <select
-                      value={newCustomer.default_product_id}
-                      onChange={e => setNewCustomer({ ...newCustomer, default_product_id: e.target.value })}
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
-                    >
-                      <option value="">Select Product</option>
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.size})</option>
-                      ))}
-                    </select>
-                  </div>
+                  <CustomSelect 
+                    label="Daily Product"
+                    options={products.map(p => ({ value: p.id, label: `${p.name} (${p.size})` }))}
+                    value={newCustomer.default_product_id}
+                    onChange={val => setNewCustomer({ ...newCustomer, default_product_id: val })}
+                    placeholder="Select Product"
+                  />
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Daily Qty</label>
                     <input

@@ -170,10 +170,34 @@ export default function DeliveryPage() {
                         {isRouteMenuOpen && (
                            <>
                               <div className="fixed inset-0 z-40" onClick={() => setIsRouteMenuOpen(false)} />
-                              <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute left-0 mt-2 w-56 bg-white border border-zinc-200 shadow-2xl rounded-2xl overflow-hidden py-2 z-50">
-                                 {routesList.map((route) => (
-                                    <button key={route.id} onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }} className={`w-full text-left px-4 py-3 text-sm font-bold ${selectedRoute === route.id ? 'bg-primary/10 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}>{route.name}</button>
-                                 ))}
+                              <motion.div 
+                                 initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                                 animate={{ opacity: 1, y: 0, scale: 1 }} 
+                                 exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                                 className="absolute left-0 mt-3 w-64 bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-2xl overflow-hidden z-50"
+                              >
+                                 <div className="px-4 py-2 border-b border-zinc-100/50 bg-zinc-50/50">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Select Route</span>
+                                 </div>
+                                 <div className="py-1 max-h-80 overflow-y-auto no-scrollbar">
+                                    <button 
+                                       onClick={() => { setSelectedRoute(""); setIsRouteMenuOpen(false); }} 
+                                       className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === "" ? 'bg-primary/5 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}
+                                    >
+                                       <span>All Deliveries</span>
+                                       {selectedRoute === "" && <Check size={16} strokeWidth={3} />}
+                                    </button>
+                                    {routesList.map((route) => (
+                                       <button 
+                                          key={route.id} 
+                                          onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }} 
+                                          className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === route.id ? 'bg-primary/5 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}
+                                       >
+                                          <span>{route.name}</span>
+                                          {selectedRoute === route.id && <Check size={16} strokeWidth={3} />}
+                                       </button>
+                                    ))}
+                                 </div>
                               </motion.div>
                            </>
                         )}

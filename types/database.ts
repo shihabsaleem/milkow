@@ -55,6 +55,8 @@ export interface Customer {
   default_qty: number;
   default_product_id?: string | null;
   past_outstanding: number;
+  address?: string;
+  notes?: string;
   created_at?: string;
 }
 
@@ -79,6 +81,8 @@ export interface Bill {
   type: 'Weekly' | 'Monthly' | 'Spot';
   amount: number;
   status: 'Pending' | 'Paid';
+  transaction_id?: string;
+  notes?: string;
   created_at: string;
   paid_at?: string;
 }
@@ -86,4 +90,18 @@ export interface Bill {
 export interface Area {
   id: number;
   name: string;
+}
+
+export type PaymentMethod = 'Cash' | 'UPI' | 'Bank Transfer' | 'Other';
+
+export interface Payment {
+  id: string;
+  customer_id: string;
+  bill_id?: string | null;
+  amount: number;
+  method: PaymentMethod;
+  transaction_ref?: string;
+  payment_date: string;
+  notes?: string;
+  created_at: string;
 }

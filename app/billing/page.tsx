@@ -14,13 +14,13 @@ export default function BillingPage() {
 
    const [searchTerm, setSearchTerm] = useState("");
    const [selectedInvoice, setSelectedInvoice] = useState<(T.Bill & { customer: T.Customer }) | null>(null);
-    const [bills, setBills] = useState<(T.Bill & { customer: T.Customer })[]>([]);
-    const [products, setProducts] = useState<T.Product[]>([]);
-    const [routesList, setRoutesList] = useState<T.Area[]>([]);
-    const [selectedRoute, setSelectedRoute] = useState<number | "">("");
-    const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
-    const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
-    const [showToast, setShowToast] = useState(false);
+   const [bills, setBills] = useState<(T.Bill & { customer: T.Customer })[]>([]);
+   const [products, setProducts] = useState<T.Product[]>([]);
+   const [routesList, setRoutesList] = useState<T.Area[]>([]);
+   const [selectedRoute, setSelectedRoute] = useState<number | "">("");
+   const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
+   const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
+   const [showToast, setShowToast] = useState(false);
 
    // 1. DATA LOAD & SYNC
    useEffect(() => {
@@ -29,8 +29,8 @@ export default function BillingPage() {
          const { data: routeSets } = await supabase.from('areas').select('*').order('name', { ascending: true });
          if (routeSets) setRoutesList(routeSets as T.Area[]);
 
-         const { data: billsData } = await supabase.from('bills').select('*, customer:customers(*)').order('created_at', { ascending: false });
-         let allBills = (billsData || []) as (T.Bill & { customer: T.Customer })[];
+         const { data: billsData } = await supabase.from('bills').select('*, customers(*)').order('created_at', { ascending: false });
+         let allBills = (billsData || []).map((b: any) => ({ ...b, customer: b.customers })) as (T.Bill & { customer: T.Customer })[];
 
          // Fetch Products for calculation
          const { data: productList } = await supabase.from('products').select('*');
@@ -41,8 +41,8 @@ export default function BillingPage() {
          prods.forEach(p => { prices[p.id] = p.price; prices[p.name] = p.price; });
 
          // Fetch Unbilled Deliveries
-         const { data: delData } = await supabase.from('deliveries').select('*, customer:customers(*)').eq('delivered', true).eq('billed', false);
-         const unbilled = (delData || []) as (T.Delivery & { customer: T.Customer })[];
+         const { data: delData } = await supabase.from('deliveries').select('*, customers(*)').eq('delivered', true).eq('billed', false);
+         const unbilled = (delData || []).map((d: any) => ({ ...d, customer: d.customers })) as (T.Delivery & { customer: T.Customer })[];
 
          unbilled.forEach((d: T.Delivery & { customer: T.Customer }) => {
             const milkPrice = prices[d.product_id || ""] || prices[prods.find(p => p.id === d.product_id)?.name || ""] || 0;
@@ -172,7 +172,7 @@ export default function BillingPage() {
       if (!paymentSettings) return;
       const amount = Number(invoice.amount).toFixed(2);
       const message = `Hi ${invoice.customer?.name}, your bill for ${invoice.type} is ₹${amount}. upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
-      const url = `https://wa.me/?text=${encodeURIComponent(message)}`; window.open(url, "_blank");
+      const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`; window.open(url, "_blank");
    };
 
    return (
@@ -187,32 +187,32 @@ export default function BillingPage() {
                         </h1>
                         <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
                      </button>
-                     
+
                      <AnimatePresence>
                         {isRouteMenuOpen && (
                            <>
                               <div className="fixed inset-0 z-40" onClick={() => setIsRouteMenuOpen(false)} />
-                              <motion.div 
-                                 initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                                 animate={{ opacity: 1, y: 0, scale: 1 }} 
-                                 exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                              <motion.div
+                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                  className="absolute left-0 mt-3 w-64 bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-2xl overflow-hidden z-50"
                               >
                                  <div className="px-4 py-2 border-b border-zinc-100/50 bg-zinc-50/50">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Select Route</span>
                                  </div>
                                  <div className="py-1 max-h-80 overflow-y-auto no-scrollbar">
-                                    <button 
-                                       onClick={() => { setSelectedRoute(""); setIsRouteMenuOpen(false); }} 
+                                    <button
+                                       onClick={() => { setSelectedRoute(""); setIsRouteMenuOpen(false); }}
                                        className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === "" ? 'bg-primary/5 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}
                                     >
                                        <span>All Routes</span>
                                        {selectedRoute === "" && <Check size={16} strokeWidth={3} />}
                                     </button>
                                     {routesList.map((route) => (
-                                       <button 
-                                          key={route.id} 
-                                          onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }} 
+                                       <button
+                                          key={route.id}
+                                          onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }}
                                           className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === route.id ? 'bg-primary/5 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}
                                        >
                                           <span>{route.name}</span>
@@ -265,11 +265,11 @@ export default function BillingPage() {
                      <div className="mb-4 mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Payment Request</p><h2 className="text-3xl font-black text-zinc-900">₹{Number(selectedInvoice.amount).toFixed(2)}</h2></div>
                      <div ref={qrRef} className="bg-gradient-to-br from-primary to-primary-dim p-6 rounded-[2.5rem] shadow-2xl my-4 relative overflow-hidden">
                         <div className="bg-white p-4 rounded-[2rem] shadow-inner relative z-10">
-                           <QRCodeCanvas 
-                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${selectedInvoice.amount}&cu=${paymentSettings.currency_code}`} 
-                              size={200} 
-                              includeMargin={false} 
-                              level="H" 
+                           <QRCodeCanvas
+                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${selectedInvoice.amount}&cu=${paymentSettings.currency_code}`}
+                              size={200}
+                              includeMargin={false}
+                              level="H"
                               imageSettings={{
                                  src: "/assets/icon.svg",
                                  x: undefined,

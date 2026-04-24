@@ -13,7 +13,7 @@ export default function DeliveryPage() {
    const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [products, setProducts] = useState<T.Product[]>([]);
    const [routesList, setRoutesList] = useState<T.Area[]>([]);
-   
+
    const [searchQuery, setSearchQuery] = useState("");
    const [selectedRoute, setSelectedRoute] = useState<number | "">("");
    const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function DeliveryPage() {
    const toggleDelivery = async (id: string) => {
       const stop = deliveries.find(d => d.id === id);
       if (!stop) return;
-      
+
       const nowDelivered = !stop.delivered;
 
       // Optimistic UI update
@@ -110,7 +110,7 @@ export default function DeliveryPage() {
 
       // Optimistic update
       setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, misc_items: updatedExtras } : d));
-      
+
       try {
          await supabase.from('deliveries').update({ misc_items: updatedExtras }).eq('id', stopId);
       } catch (err) {
@@ -147,7 +147,7 @@ export default function DeliveryPage() {
       if (shift === 'evening' && freq === 'Morning Only') return false;
       // Also filter by delivery shift column
       if (d.shift !== shift) return false;
-      
+
       const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSearch;
    });
@@ -165,32 +165,32 @@ export default function DeliveryPage() {
                         <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
                      </button>
                      <p className="text-xs font-bold text-primary tracking-wider uppercase mt-0.5">{remainingStops} Stops Remaining</p>
-                     
+
                      <AnimatePresence>
                         {isRouteMenuOpen && (
                            <>
                               <div className="fixed inset-0 z-40" onClick={() => setIsRouteMenuOpen(false)} />
-                              <motion.div 
-                                 initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                                 animate={{ opacity: 1, y: 0, scale: 1 }} 
-                                 exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                              <motion.div
+                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                  className="absolute left-0 mt-3 w-64 bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-2xl overflow-hidden z-50"
                               >
                                  <div className="px-4 py-2 border-b border-zinc-100/50 bg-zinc-50/50">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Select Route</span>
                                  </div>
                                  <div className="py-1 max-h-80 overflow-y-auto no-scrollbar">
-                                    <button 
-                                       onClick={() => { setSelectedRoute(""); setIsRouteMenuOpen(false); }} 
+                                    <button
+                                       onClick={() => { setSelectedRoute(""); setIsRouteMenuOpen(false); }}
                                        className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === "" ? 'bg-primary/5 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}
                                     >
                                        <span>All Deliveries</span>
                                        {selectedRoute === "" && <Check size={16} strokeWidth={3} />}
                                     </button>
                                     {routesList.map((route) => (
-                                       <button 
-                                          key={route.id} 
-                                          onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }} 
+                                       <button
+                                          key={route.id}
+                                          onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }}
                                           className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === route.id ? 'bg-primary/5 text-primary' : 'text-zinc-600 hover:bg-zinc-50'}`}
                                        >
                                           <span>{route.name}</span>
@@ -203,6 +203,7 @@ export default function DeliveryPage() {
                         )}
                      </AnimatePresence>
                   </div>
+
 
                </div>
 

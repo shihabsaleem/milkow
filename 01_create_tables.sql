@@ -1,6 +1,6 @@
 -- ==========================================
 -- MILKOW FULL SYSTEM SCHEMA (SUPABASE)
--- V5 (Production Ready - Product Specifics & Decimal Indexing)
+-- V6 (Production Ready - Payments Tracking & Customer Details)
 -- ==========================================
 
 -- 1. SETUP EXTENSIONS & TYPES
@@ -21,6 +21,9 @@ DO $$ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bill_type') THEN
         CREATE TYPE bill_type AS ENUM ('Weekly', 'Monthly', 'Spot', 'Opening Balance');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_method') THEN
+        CREATE TYPE payment_method AS ENUM ('Cash', 'UPI', 'Bank Transfer', 'Other');
     END IF;
 END $$;
 
@@ -61,6 +64,8 @@ CREATE TABLE IF NOT EXISTS customers (
     default_product_id UUID REFERENCES products(id) ON DELETE SET NULL,
     default_qty INTEGER DEFAULT 1,
     past_outstanding DECIMAL(12, 2) DEFAULT 0.00,
+    address TEXT,
+    notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -111,12 +116,30 @@ CREATE TABLE IF NOT EXISTS bills (
     status bill_status DEFAULT 'Pending',
     start_date DATE,
     end_date DATE,
+    transaction_id TEXT,
+    notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     paid_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_bills_customer_id ON bills(customer_id);
 CREATE INDEX IF NOT EXISTS idx_bills_status ON bills(status);
+
+-- Payments: Tracking individual collection events
+CREATE TABLE IF NOT EXISTS payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    bill_id UUID REFERENCES bills(id) ON DELETE SET NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    method payment_method DEFAULT 'Cash',
+    transaction_ref TEXT,
+    payment_date TIMESTAMPTZ DEFAULT now(),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON payments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_payments_bill_id ON payments(bill_id);
 
 -- System Settings: Global configurations
 CREATE TABLE IF NOT EXISTS system_settings (
@@ -151,6 +174,7 @@ ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
 -- ALLOW ALL FOR AUTHENTICATED USERS (Simple internal app policy)

@@ -41,6 +41,7 @@ export interface Product {
   size: string;
   stock: number;
   price: number;
+  unit?: string;
 }
 
 export interface Customer {

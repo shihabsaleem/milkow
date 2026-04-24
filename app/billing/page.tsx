@@ -21,69 +21,93 @@ export default function BillingPage() {
    const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
    const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
    const [showToast, setShowToast] = useState(false);
+   const [isLoading, setIsLoading] = useState(true);
+
+   const fetchData = async () => {
+      setIsLoading(true);
+      const [
+         { data: routeSets },
+         { data: billsData },
+         { data: productList },
+         { data: delData },
+         { data: customersWithOutstanding },
+         { data: settingsData }
+      ] = await Promise.all([
+         supabase.from('areas').select('*').order('name', { ascending: true }),
+         supabase.from('bills').select('*, customers(*)').order('created_at', { ascending: false }),
+         supabase.from('products').select('*'),
+         supabase.from('deliveries').select('*, customers(*)').eq('delivered', true).eq('billed', false),
+         supabase.from('customers').select('*').gt('past_outstanding', 0),
+         supabase.from('system_settings').select('value').eq('key', 'general').single()
+      ]);
+
+      if (routeSets) setRoutesList(routeSets as T.Area[]);
+
+      let allBills = (billsData || []).map((b: any) => ({ ...b, customer: b.customers })) as (T.Bill & { customer: T.Customer })[];
+
+      const prods = (productList || []) as T.Product[];
+      setProducts(prods);
+
+      const prices: Record<string, number> = {};
+      prods.forEach(p => { prices[p.id] = p.price; prices[p.name] = p.price; });
+
+      const unbilled = (delData || []).map((d: any) => ({ ...d, customer: d.customers })) as (T.Delivery & { customer: T.Customer })[];
+
+      const unbilledByCustomer: Record<string, { total: number, customer: T.Customer, earliestDate: string }> = {};
+
+      unbilled.forEach((d: T.Delivery & { customer: T.Customer }) => {
+         const milkPrice = prices[d.product_id || ""] || prices[prods.find(p => p.id === d.product_id)?.name || ""] || 0;
+         let total = (d.milk_qty || 0) * milkPrice;
+         (d.misc_items || []).forEach((item: { name: string; qty: number }) => {
+            total += (item.qty || 0) * (prices[item.name] || 0);
+         });
+
+         if (!unbilledByCustomer[d.customer_id]) {
+            unbilledByCustomer[d.customer_id] = { total: 0, customer: d.customer, earliestDate: d.delivery_date || new Date().toISOString() };
+         }
+         unbilledByCustomer[d.customer_id].total += total;
+         
+         // Keep the earliest date for the generated bill
+         if ((d.delivery_date || "") < unbilledByCustomer[d.customer_id].earliestDate) {
+             unbilledByCustomer[d.customer_id].earliestDate = d.delivery_date || new Date().toISOString();
+         }
+      });
+
+      Object.entries(unbilledByCustomer).forEach(([customerId, data]) => {
+         allBills.push({
+            id: `UNBILLED-${customerId.slice(0, 8)}`,
+            customer_id: customerId,
+            amount: data.total,
+            type: 'Spot' as any,
+            status: 'Pending',
+            created_at: data.earliestDate,
+            customer: data.customer as any
+         });
+      });
+
+      customersWithOutstanding?.forEach((c: T.Customer) => {
+         allBills.push({
+            id: `OP-${c.id.slice(0, 8)}`,
+            customer_id: c.id,
+            amount: c.past_outstanding,
+            type: 'Opening Balance' as any,
+            status: 'Pending',
+            created_at: c.created_at || new Date().toISOString(),
+            customer: c as any
+         });
+      });
+
+      setBills(allBills);
+
+      if (settingsData) {
+         const general = settingsData.value as { payment?: T.PaymentSetup };
+         if (general?.payment) setPaymentSettings(general.payment);
+      }
+      setIsLoading(false);
+   };
 
    // 1. DATA LOAD & SYNC
    useEffect(() => {
-      const fetchData = async () => {
-         // Routes (Areas)
-         const { data: routeSets } = await supabase.from('areas').select('*').order('name', { ascending: true });
-         if (routeSets) setRoutesList(routeSets as T.Area[]);
-
-         const { data: billsData } = await supabase.from('bills').select('*, customers(*)').order('created_at', { ascending: false });
-         let allBills = (billsData || []).map((b: any) => ({ ...b, customer: b.customers })) as (T.Bill & { customer: T.Customer })[];
-
-         // Fetch Products for calculation
-         const { data: productList } = await supabase.from('products').select('*');
-         const prods = (productList || []) as T.Product[];
-         setProducts(prods);
-
-         const prices: Record<string, number> = {};
-         prods.forEach(p => { prices[p.id] = p.price; prices[p.name] = p.price; });
-
-         // Fetch Unbilled Deliveries
-         const { data: delData } = await supabase.from('deliveries').select('*, customers(*)').eq('delivered', true).eq('billed', false);
-         const unbilled = (delData || []).map((d: any) => ({ ...d, customer: d.customers })) as (T.Delivery & { customer: T.Customer })[];
-
-         unbilled.forEach((d: T.Delivery & { customer: T.Customer }) => {
-            const milkPrice = prices[d.product_id || ""] || prices[prods.find(p => p.id === d.product_id)?.name || ""] || 0;
-            let total = (d.milk_qty || 0) * milkPrice;
-            (d.misc_items || []).forEach((item: { name: string; qty: number }) => {
-               total += (item.qty || 0) * (prices[item.name] || 0);
-            });
-
-            allBills.push({
-               id: `DEL-${d.id}`,
-               customer_id: d.customer_id,
-               amount: total,
-               type: 'Spot' as any,
-               status: 'Pending',
-               created_at: d.delivery_date || new Date().toISOString(),
-               customer: d.customer as any
-            });
-         });
-
-         const { data: customersWithOutstanding } = await supabase.from('customers').select('*').gt('past_outstanding', 0);
-         customersWithOutstanding?.forEach((c: T.Customer) => {
-            allBills.push({
-               id: `OP-${c.id.slice(0, 8)}`,
-               customer_id: c.id,
-               amount: c.past_outstanding,
-               type: 'Opening Balance' as any,
-               status: 'Pending',
-               created_at: c.created_at || new Date().toISOString(),
-               customer: c as any
-            });
-         });
-
-         setBills(allBills);
-
-         const { data: settingsData } = await supabase.from('system_settings').select('value').eq('key', 'general').single();
-         if (settingsData) {
-            const general = settingsData.value as { payment?: T.PaymentSetup };
-            if (general?.payment) setPaymentSettings(general.payment);
-         }
-      };
-
       fetchData();
 
       const sub = supabase.channel('bills_page')
@@ -112,10 +136,9 @@ export default function BillingPage() {
          if (id.startsWith('OP-')) {
             const customerId = bills.find(b => b.id === id)?.customer_id;
             if (customerId) await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
-         } else if (id.startsWith('DEL-')) {
+         } else if (id.startsWith('UNBILLED-')) {
             const bill = bills.find(b => b.id === id);
             if (bill) {
-               const deliveryId = id.replace('DEL-', '');
                await supabase.from('bills').insert({
                   customer_id: bill.customer_id,
                   amount: bill.amount,
@@ -123,13 +146,14 @@ export default function BillingPage() {
                   status: 'Paid',
                   paid_at: new Date().toISOString()
                });
-               await supabase.from('deliveries').update({ billed: true }).eq('id', deliveryId);
+               await supabase.from('deliveries').update({ billed: true }).eq('customer_id', bill.customer_id).eq('delivered', true).eq('billed', false);
             }
          } else {
             await supabase.from('bills').update({ status: 'Paid' }).eq('id', id);
          }
          setShowToast(true);
          setTimeout(() => setShowToast(false), 3000);
+         await fetchData();
       } catch (err) {
          console.error("Failed to mark as paid:", err);
       }
@@ -237,7 +261,27 @@ export default function BillingPage() {
                {searchTerm && (<button onClick={() => setSearchTerm("")} className="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-400"><X size={16} /></button>)}
             </div>
 
-            {filteredBills.length > 0 ? (
+            {isLoading ? (
+               <>
+                  {[1, 2, 3, 4].map(i => (
+                     <div key={i} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between animate-pulse">
+                        <div className="flex justify-between items-start">
+                           <div className="w-1/2">
+                              <div className="h-5 bg-zinc-200 rounded-md w-3/4 mb-2"></div>
+                              <div className="h-3 bg-zinc-100 rounded-md w-1/2"></div>
+                           </div>
+                           <div className="w-1/4 flex flex-col items-end">
+                              <div className="h-6 bg-zinc-200 rounded-md w-full"></div>
+                           </div>
+                        </div>
+                        <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">
+                           <div className="flex-1 h-10 bg-zinc-200 rounded-xl"></div>
+                           <div className="flex-1 h-10 bg-zinc-200 rounded-xl"></div>
+                        </div>
+                     </div>
+                  ))}
+               </>
+            ) : filteredBills.length > 0 ? (
                filteredBills.map((bill) => {
                   const isPaid = bill.status === 'Paid';
                   return (

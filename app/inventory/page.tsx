@@ -15,6 +15,7 @@ export default function InventoryPage() {
   const [pipeline, setPipeline] = useState<PipelineStage[]>([]);
   const [products, setProducts] = useState<T.Product[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: 0 });
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,16 +46,19 @@ export default function InventoryPage() {
     setIsModalOpen(true);
   };
 
+  const fetchData = async () => {
+    setIsLoading(true);
+    const [{ data: prods }, { data: pipes }] = await Promise.all([
+      supabase.from('products').select('*'),
+      supabase.from('inventory').select('*').not('product_id', 'is', null)
+    ]);
+    if (prods) setProducts(prods as T.Product[]);
+    // Note: mapping 'inventory' to pipeline for this view
+    if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: prods } = await supabase.from('products').select('*');
-      if (prods) setProducts(prods as T.Product[]);
-
-      const { data: pipes } = await supabase.from('inventory').select('*').not('product_id', 'is', null); 
-      // Note: mapping 'inventory' to pipeline for this view
-      if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
-    };
-
     fetchData();
 
     const sub = supabase.channel('inv_page')
@@ -78,8 +82,12 @@ export default function InventoryPage() {
        
        if (editingIndex !== null && products[editingIndex].id) {
           await supabase.from('products').update(productToSave).eq('id', products[editingIndex].id);
-          // Also update inventory name if it exists
-          await supabase.from('inventory').update({ name: productToSave.name, unit: newProduct.size }).eq('product_id', products[editingIndex].id);
+          // Also update inventory name and count if it exists
+          await supabase.from('inventory').update({ 
+             name: productToSave.name, 
+             unit: newProduct.size,
+             count: productToSave.stock 
+          }).eq('product_id', products[editingIndex].id);
        } else {
           const { data: insertedProduct, error: insertError } = await supabase.from('products').insert(productToSave).select().single();
           if (!insertError && insertedProduct) {
@@ -96,6 +104,7 @@ export default function InventoryPage() {
        setIsModalOpen(false);
        setNewProduct({ name: "", size: "", stock: "", price: 0 });
        setEditingIndex(null);
+       await fetchData();
     } catch (err) { console.error(err); }
   };
 
@@ -114,6 +123,7 @@ export default function InventoryPage() {
            setIsModalOpen(false);
            setEditingIndex(null);
            setModalConfig(prev => ({ ...prev, isOpen: false }));
+           await fetchData();
         } catch (err) { console.error(err); }
       }
     });
@@ -131,6 +141,7 @@ export default function InventoryPage() {
         try {
            await supabase.from('inventory').delete().eq('id', id);
            setModalConfig(prev => ({ ...prev, isOpen: false }));
+           await fetchData();
         } catch (err) { console.error(err); }
       }
     });
@@ -234,25 +245,33 @@ export default function InventoryPage() {
         <div>
           <p className="text-[12px] font-bold uppercase tracking-widest mb-3 text-zinc-400">Supply Pipeline</p>
           <div className="grid grid-cols-2 gap-3">
-            {pipeline.map((stage, i) => (
-              <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5 group relative">
-                <button onClick={() => deletePipelineItem(stage.id)} className="absolute top-3 right-3 p-1.5 text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-rose-600"><Trash2 size={14} /></button>
-                <div className="text-primary"><Droplet size={20} /></div>
-                <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none" /><span className="text-[13px] font-medium ml-2 flex-shrink-0 text-zinc-400">{stage.unit}</span></div></div>
-              </div>
-            ))}
+            {isLoading ? (
+              [1, 2].map(i => <div key={i} className="h-32 bg-primary/5 border-2 border-primary/5 rounded-2xl animate-pulse" />)
+            ) : (
+              pipeline.map((stage, i) => (
+                <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5 group relative">
+                  <button onClick={() => deletePipelineItem(stage.id)} className="absolute top-3 right-3 p-1.5 text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-rose-600"><Trash2 size={14} /></button>
+                  <div className="text-primary"><Droplet size={20} /></div>
+                  <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none" /><span className="text-[13px] font-medium ml-2 flex-shrink-0 text-zinc-400">{stage.unit}</span></div></div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-3"><p className="text-[12px] font-bold uppercase tracking-widest text-zinc-400">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0 }); setIsModalOpen(true); }} className="text-[12px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all text-primary bg-primary/10"><Plus size={13} /> Add</button></div>
           <div className="flex flex-col gap-2.5">
-            {products.map((p, i) => (
-              <div key={i} onClick={() => openEditModal(i)} className="flex items-center justify-between p-4 rounded-2xl border transition-colors cursor-pointer bg-white border-black/5">
-                <div><p className="text-[15px] font-bold text-zinc-900">{p.name}</p><p className="text-[12px] font-medium mt-0.5 text-zinc-400">{p.size} · {p.stock} in stock</p></div>
-                <div className="flex flex-col items-end"><p className="text-[16px] font-black text-primary">₹{p.price}</p><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Selling Price</p></div>
-              </div>
-            ))}
+            {isLoading ? (
+               [1, 2, 3].map(i => <div key={i} className="h-20 bg-white border border-black/5 rounded-2xl animate-pulse" />)
+            ) : (
+               products.map((p, i) => (
+                  <div key={i} onClick={() => openEditModal(i)} className="flex items-center justify-between p-4 rounded-2xl border transition-colors cursor-pointer bg-white border-black/5">
+                     <div><p className="text-[15px] font-bold text-zinc-900">{p.name}</p><p className="text-[12px] font-medium mt-0.5 text-zinc-400">{p.size} · {p.stock} in stock</p></div>
+                     <div className="flex flex-col items-end"><p className="text-[16px] font-black text-primary">₹{p.price}</p><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Selling Price</p></div>
+                  </div>
+               ))
+            )}
           </div>
         </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, PackagePlus, Search, Minus, Plus, ChevronDown, X, Sunrise, Sunset } from "lucide-react";
+import { Check, PackagePlus, PackageSearch, Search, Minus, Plus, ChevronDown, X, Sunrise, Sunset } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { deductInventoryOnDelivery } from "@/lib/automation";
 import * as T from "@/types/database";
@@ -21,39 +21,42 @@ export default function DeliveryPage() {
    const [editingSeqId, setEditingSeqId] = useState<string | null>(null);
    const [editSeqVal, setEditSeqVal] = useState("");
    const [manualShift, setManualShift] = useState<'morning' | 'evening' | null>(null);
+   const [isLoading, setIsLoading] = useState(true);
 
    // Auto-detect shift from time of day
    const shift = useMemo<'morning' | 'evening'>(() => {
       if (manualShift) return manualShift;
       return new Date().getHours() < 14 ? 'morning' : 'evening';
    }, [manualShift]);
+
+   const fetchData = async () => {
+      setIsLoading(true);
+      const today = new Date().toLocaleDateString('en-CA'); // Robust YYYY-MM-DD
+
+      const [
+         { data: routeSets },
+         { data: prodData },
+         { data: routeData }
+      ] = await Promise.all([
+         supabase.from('areas').select('*').order('name', { ascending: true }),
+         supabase.from('products').select('*'),
+         supabase.from('deliveries').select('*, customer:customers(*)').eq('delivery_date', today).order('delivery_order', { foreignTable: 'customers', ascending: true })
+      ]);
+
+      if (routeSets) {
+         const areas = routeSets as T.Area[];
+         setRoutesList(areas);
+         // Only set default if not already set manually
+         setSelectedRoute(current => current || (areas.length > 0 ? areas[0].id : ""));
+      }
+
+      if (prodData) setProducts(prodData as T.Product[]);
+      if (routeData) setDeliveries(routeData as (T.Delivery & { customer: T.Customer })[]);
+      setIsLoading(false);
+   };
+
    // 1. DATA LOAD & SYNC
    useEffect(() => {
-      const fetchData = async () => {
-         const today = new Date().toLocaleDateString('en-CA'); // Robust YYYY-MM-DD
-
-         // Routes (Areas)
-         const { data: routeSets } = await supabase.from('areas').select('*').order('name', { ascending: true });
-         if (routeSets) {
-            const areas = routeSets as T.Area[];
-            setRoutesList(areas);
-            // Only set default if not already set manually
-            setSelectedRoute(current => current || (areas.length > 0 ? areas[0].id : ""));
-         }
-
-         // Products
-         const { data: prodData } = await supabase.from('products').select('*');
-         if (prodData) setProducts(prodData as T.Product[]);
-
-         // Deliveries (with customer join, ordered by the new delivery_order)
-         const { data: routeData } = await supabase
-            .from('deliveries')
-            .select('*, customer:customers(*)')
-            .eq('delivery_date', today)
-            .order('delivery_order', { foreignTable: 'customers', ascending: true });
-         if (routeData) setDeliveries(routeData as (T.Delivery & { customer: T.Customer })[]);
-      };
-
       fetchData();
 
       const sub = supabase.channel('route_page')
@@ -82,6 +85,7 @@ export default function DeliveryPage() {
             miscProducts.forEach((item: any) => extrasRecord[item.name] = item.qty);
             await deductInventoryOnDelivery(id, stop.milk_qty, extrasRecord);
          }
+         await fetchData();
       } catch (err) {
          console.error("Failed to toggle delivery:", err);
          // Revert on error
@@ -113,6 +117,7 @@ export default function DeliveryPage() {
 
       try {
          await supabase.from('deliveries').update({ misc_items: updatedExtras }).eq('id', stopId);
+         await fetchData();
       } catch (err) {
          console.error("Failed to update extra product qty:", err);
          // Revert
@@ -128,6 +133,7 @@ export default function DeliveryPage() {
       setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, milk_qty: newQty } : d));
       try {
          await supabase.from('deliveries').update({ milk_qty: newQty }).eq('id', stopId);
+         await fetchData();
       } catch (err) {
          console.error("Failed to update milk qty:", err);
          setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, milk_qty: stop.milk_qty } : d));
@@ -203,8 +209,6 @@ export default function DeliveryPage() {
                         )}
                      </AnimatePresence>
                   </div>
-
-
                </div>
 
                {/* Morning / Evening Toggle */}
@@ -226,43 +230,63 @@ export default function DeliveryPage() {
                <input type="text" placeholder="Search customers..." className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
 
-            {filteredDeliveries.map((delivery, index) => {
-               const isExpanded = expandedStopId === delivery.id;
-               const activeItems = delivery.misc_items || [];
-               return (
-                  <motion.div key={delivery.id} layout className={`border rounded-2xl transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-primary/20 shadow-sm'}`}>
-                     <div className="p-4">
-                        <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedStopId(isExpanded ? null : delivery.id)}>
-                           <div className="flex items-start gap-3">
-                              <div className={`mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs text-center transition-all ${delivery.delivered ? 'bg-zinc-200 text-zinc-500' : 'bg-primary text-white shadow-md'}`}>
-                                 {index + 1}
-                              </div>
-                              <div>
-                                 <h3 className={`font-bold text-lg ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
-                                 {(() => {
-                                    const prod = products.find(p => p.id === delivery.product_id);
-                                    return (
-                                       <p className="font-semibold text-primary text-sm mt-0.5">
-                                          {delivery.milk_qty} {prod ? `${prod.name} (${prod.size})` : 'Milk'}
-                                       </p>
-                                    );
-                                 })()}
-                              </div>
-                           </div>
-                           <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'}`}><Check size={20} strokeWidth={3} /></button>
+            {isLoading ? (
+               [1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 animate-pulse">
+                     <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 bg-zinc-200 rounded-full flex-shrink-0" />
+                        <div className="flex-1">
+                           <div className="h-4 bg-zinc-200 rounded w-1/2 mb-2" />
+                           <div className="h-3 bg-zinc-100 rounded w-1/3" />
                         </div>
-                        {!isExpanded && activeItems.length > 0 && (
-                           <div className="mt-3 flex flex-wrap gap-2 mb-2">
-                              {activeItems.map((item: any) => (<span key={item.name} className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-md">{item.qty}x {item.name}</span>))}
-                           </div>
-                        )}
-                        <div className="mt-4 pt-3 border-t border-zinc-100">
-                           <button onClick={() => setExpandedStopId(delivery.id)} className={`flex items-center gap-1.5 text-xs font-bold transition-colors py-1 rounded-lg ${isExpanded ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extra Items' : 'Add Additional Products'}</button>
-                        </div>
+                        <div className="h-12 w-12 bg-zinc-200 rounded-full" />
                      </div>
-                  </motion.div>
-               );
-            })}
+                  </div>
+               ))
+            ) : filteredDeliveries.length > 0 ? (
+               filteredDeliveries.map((delivery, index) => {
+                  const isExpanded = expandedStopId === delivery.id;
+                  const activeItems = delivery.misc_items || [];
+                  return (
+                     <motion.div key={delivery.id} layout className={`border rounded-2xl transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-primary/20 shadow-sm'}`}>
+                        <div className="p-4">
+                           <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedStopId(isExpanded ? null : delivery.id)}>
+                              <div className="flex items-start gap-3">
+                                 <div className={`mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs text-center transition-all ${delivery.delivered ? 'bg-zinc-200 text-zinc-500' : 'bg-primary text-white shadow-md'}`}>
+                                    {index + 1}
+                                 </div>
+                                 <div>
+                                    <h3 className={`font-bold text-lg ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
+                                    {(() => {
+                                       const prod = products.find(p => p.id === delivery.product_id);
+                                       return (
+                                          <p className="font-semibold text-primary text-sm mt-0.5">
+                                             {delivery.milk_qty} {prod ? `${prod.name} (${prod.size})` : 'Milk'}
+                                          </p>
+                                       );
+                                    })()}
+                                 </div>
+                              </div>
+                              <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'}`}><Check size={20} strokeWidth={3} /></button>
+                           </div>
+                           {!isExpanded && activeItems.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-2 mb-2">
+                                 {activeItems.map((item: any) => (<span key={item.name} className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-md">{item.qty}x {item.name}</span>))}
+                              </div>
+                           )}
+                           <div className="mt-4 pt-3 border-t border-zinc-100">
+                              <button onClick={() => setExpandedStopId(delivery.id)} className={`flex items-center gap-1.5 text-xs font-bold transition-colors py-1 rounded-lg ${isExpanded ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extra Items' : 'Add Additional Products'}</button>
+                           </div>
+                        </div>
+                     </motion.div>
+                  );
+               })
+            ) : (
+               <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+                  <PackageSearch size={48} className="mb-4" />
+                  <p className="font-bold">No deliveries scheduled</p>
+               </div>
+            )}
          </main>
 
          <AnimatePresence>

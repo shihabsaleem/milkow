@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [adminName, setAdminName] = useState("Sayas R.");
   const [toCollectAmount, setToCollectAmount] = useState(0);
   const [customerCount, setCustomerCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const dayName = useMemo(() => {
@@ -55,93 +56,76 @@ export default function Dashboard() {
     router.refresh();
   };
 
-  // 1. DATA INITIAL LOAD & SUBSCRIPTIONS
-  useEffect(() => {
-    // Inventory
-    const fetchInventory = async () => {
-      const { data } = await supabase.from('inventory').select('*');
-      if (data) setInventory(data as T.InventoryItem[]);
-    };
-    fetchInventory();
-    const invSub = supabase.channel('inv').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, fetchInventory).subscribe();
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    const today = new Date().toISOString().split('T')[0];
 
-    // Delivery Status (Aggregated from deliveries)
-    const fetchDelivered = async () => {
-      const { data: deliveriesData } = await supabase
-        .from('deliveries')
-        .select('*')
-        .eq('delivered', true)
-        .eq('delivery_date', new Date().toISOString().split('T')[0]);
+    const [
+      { data: invData },
+      { data: delData },
+      { data: prodsData },
+      { data: billsData },
+      { count: custCount },
+      { data: setsData }
+    ] = await Promise.all([
+      supabase.from('inventory').select('*'),
+      supabase.from('deliveries').select('*').eq('delivered', true).eq('delivery_date', today),
+      supabase.from('products').select('*'),
+      supabase.from('bills').select('amount').eq('status', 'Pending'),
+      supabase.from('customers').select('*', { count: 'exact', head: true }),
+      supabase.from('system_settings').select('value').eq('key', 'general').single()
+    ]);
 
-      if (!deliveriesData) return;
+    if (invData) setInventory(invData as T.InventoryItem[]);
+    if (custCount !== null) setCustomerCount(custCount);
+    
+    if (setsData) {
+      const val = setsData.value as T.Settings | null;
+      if (val) setAdminName(val.system_user?.name || "Sayas R.");
+    }
 
-      const { data: productsData } = await supabase.from('products').select('*');
-      const productsMap = new Map(productsData?.map(p => [p.id, p]) || []);
+    if (billsData) {
+      const total = billsData.reduce((sum: number, b: any) => sum + (b.amount || 0), 0) || 0;
+      setToCollectAmount(total);
+    }
 
+    if (delData && prodsData) {
+      const productsMap = new Map<string, T.Product>(prodsData.map((p: any) => [p.id, p as T.Product]));
       const summary: Record<string, { count: number; unit: string; vol: string }> = {};
       
-      deliveriesData.forEach((d: any) => {
-        // 1. Handle Main Product (Daily Milk)
+      delData.forEach((d: any) => {
         const qty = Number(d.milk_qty) || 0;
         if (qty > 0) {
           const prod = productsMap.get(d.product_id);
           const name = prod?.name || 'Cow Milk';
           const unit = prod?.unit || 'Bottles';
           const vol = prod?.size || 'Daily';
-
-          if (!summary[name]) {
-            summary[name] = { count: 0, unit, vol };
-          }
+          if (!summary[name]) summary[name] = { count: 0, unit, vol };
           summary[name].count += qty;
         }
 
-        // 2. Handle Extras (Misc Items)
         const extras = d.misc_items || [];
         extras.forEach((item: any) => {
-          if (!summary[item.name]) {
-            summary[item.name] = { count: 0, unit: 'Items', vol: 'Extra' };
-          }
+          if (!summary[item.name]) summary[item.name] = { count: 0, unit: 'Items', vol: 'Extra' };
           summary[item.name].count += (item.qty || 0);
         });
       });
 
-      const list = Object.entries(summary).map(([name, val]) => ({
-        name,
-        vol: val.vol,
-        count: val.count,
-        unit: val.unit
-      }));
+      setDelivered(Object.entries(summary).map(([name, val]) => ({
+        name, vol: val.vol, count: val.count, unit: val.unit
+      })));
+    }
+    setIsLoading(false);
+  };
 
-      setDelivered(list);
-    };
-    fetchDelivered();
-    const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchDelivered).subscribe();
+  useEffect(() => {
+    fetchDashboardData();
 
-    // Bills (Financials)
-    const fetchBills = async () => {
-      const { data } = await supabase.from('bills').select('amount').eq('status', 'Pending');
-      const total = data?.reduce((sum: number, b: any) => sum + (b.amount || 0), 0) || 0;
-      setToCollectAmount(total);
-    };
-    fetchBills();
-    const billsSub = supabase.channel('bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchBills).subscribe();
-
-    // Customers
-    const fetchCustomers = async () => {
-      const { count } = await supabase.from('customers').select('*', { count: 'exact', head: true });
-      setCustomerCount(count || 0);
-    };
-    fetchCustomers();
-    const custSub = supabase.channel('cust').on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchCustomers).subscribe();
-
-    // Admin Settings
-    const fetchSettings = async () => {
-      const { data } = await supabase.from('system_settings').select('value').eq('key', 'general').single();
-      const val = data?.value as T.Settings | null;
-      if (val) setAdminName(val.system_user?.name || "Sayas R.");
-    };
-    fetchSettings();
-    const setSub = supabase.channel('sets').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchSettings).subscribe();
+    const invSub = supabase.channel('inv').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, fetchDashboardData).subscribe();
+    const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchDashboardData).subscribe();
+    const billsSub = supabase.channel('bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchDashboardData).subscribe();
+    const custSub = supabase.channel('cust').on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchDashboardData).subscribe();
+    const setSub = supabase.channel('sets').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchDashboardData).subscribe();
 
     return () => {
       invSub.unsubscribe();
@@ -218,26 +202,47 @@ export default function Dashboard() {
         <section>
            <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-4 mt-2 text-zinc-400 px-7">Inventory</p>
            <div className="sm:hidden flex gap-4 overflow-x-auto no-scrollbar pb-1 snap-x snap-mandatory pl-7">
-              {inventory.map((item, i) => <InventoryCard key={i} item={item} />)}
+              {isLoading ? (
+                [1, 2].map(i => <div key={i} className="min-w-[210px] h-[180px] rounded-2xl bg-zinc-200 animate-pulse" />)
+              ) : (
+                inventory.map((item, i) => <InventoryCard key={i} item={item} />)
+              )}
               <div className="min-w-[28px] flex-shrink-0" />
            </div>
            <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-3 px-7">
-              {inventory.map((item, i) => <InventoryCard key={i} item={item} />)}
+              {isLoading ? (
+                [1, 2, 3].map(i => <div key={i} className="h-[180px] rounded-2xl bg-zinc-200 animate-pulse" />)
+              ) : (
+                inventory.map((item, i) => <InventoryCard key={i} item={item} />)
+              )}
            </div>
         </section>
 
         <section>
            <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-4 mt-2 text-zinc-400 px-7">Delivered</p>
            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-7">
-              {delivered.map((item, i) => <DeliveredCard key={i} item={item} />)}
+              {isLoading ? (
+                [1, 2, 3, 4].map(i => <div key={i} className="h-[140px] rounded-2xl bg-zinc-200 animate-pulse" />)
+              ) : (
+                delivered.map((item, i) => <DeliveredCard key={i} item={item} />)
+              )}
            </div>
         </section>
 
         <section className="px-7">
            <p className="text-[12px] font-bold uppercase tracking-widest mb-3 text-zinc-400">Financials</p>
            <div className="grid grid-cols-2 gap-3">
-              <FinanceCard amount={`₹${toCollectAmount.toLocaleString()}`} label="To Collect" badge={`${customerCount} Customers`} type="green" />
-              <FinanceCard amount="₹15,000" label="To Pay" badge="2 Vendors" type="red" />
+              {isLoading ? (
+                <>
+                  <div className="h-[120px] rounded-2xl bg-zinc-200 animate-pulse" />
+                  <div className="h-[120px] rounded-2xl bg-zinc-200 animate-pulse" />
+                </>
+              ) : (
+                <>
+                  <FinanceCard amount={`₹${toCollectAmount.toLocaleString()}`} label="To Collect" badge={`${customerCount} Customers`} type="green" />
+                  <FinanceCard amount="₹15,000" label="To Pay" badge="2 Vendors" type="red" />
+                </>
+              )}
            </div>
         </section>
       </div>

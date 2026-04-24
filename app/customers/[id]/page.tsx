@@ -25,60 +25,45 @@ export default function CustomerProfilePage() {
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
 
+  const fetchData = async () => {
+    if (!customerIdParam) return;
+    setIsLoading(true);
+    const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).toISOString().split('T')[0];
+    const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).toISOString().split('T')[0];
+
+    const [
+      { data: custData },
+      { data: areaList },
+      { data: billsData },
+      { data: deliveryData },
+      { data: productData }
+    ] = await Promise.all([
+      supabase.from('customers').select('*, area:areas(*)').eq('id', customerIdParam).single(),
+      supabase.from('areas').select('*').order('name', { ascending: true }),
+      supabase.from('bills').select('*').eq('customer_id', customerIdParam).order('created_at', { ascending: false }),
+      supabase.from('deliveries').select('*').eq('customer_id', customerIdParam).gte('delivery_date', monthStart).lte('delivery_date', monthEnd).order('delivery_date', { ascending: true }),
+      supabase.from('products').select('*')
+    ]);
+
+    if (areaList) setAreas(areaList as T.Area[]);
+    if (billsData) setBills(billsData as T.Bill[]);
+    if (deliveryData) setDeliveries(deliveryData as T.Delivery[]);
+    if (productData) setProducts(productData as T.Product[]);
+
+    if (custData) {
+      setCustomer(custData as (T.Customer & { area: T.Area }));
+      setEditForm({
+        name: custData.name,
+        phone: custData.phone,
+        area_id: custData.area_id?.toString() || "",
+        frequency: custData.frequency,
+        outstanding: custData.past_outstanding?.toString() || "0"
+      });
+    }
+    setIsLoading(false);
+  };
+
    useEffect(() => {
-      if (!customerIdParam) return;
-      const fetchData = async () => {
-         // 1. Fetch Customer with Area Join
-         const { data: custData } = await supabase
-            .from('customers')
-            .select('*, area:areas(*)')
-            .eq('id', customerIdParam)
-            .single();
-
-         // Fetch Areas for Edit Modal
-         const { data: areaList } = await supabase.from('areas').select('*').order('name', { ascending: true });
-         if (areaList) setAreas(areaList as T.Area[]);
-
-         if (custData) {
-            setCustomer(custData as (T.Customer & { area: T.Area }));
-            setEditForm({
-               name: custData.name,
-               phone: custData.phone,
-               area_id: custData.area_id?.toString() || "",
-               frequency: custData.frequency,
-               outstanding: custData.past_outstanding?.toString() || "0"
-            });
-            const customerId = custData.id;
-
-            // 2. Fetch Bills
-            const { data: billsData } = await supabase
-               .from('bills')
-               .select('*')
-               .eq('customer_id', customerId)
-               .order('created_at', { ascending: false });
-            if (billsData) setBills(billsData as T.Bill[]);
-
-            // 3. Fetch Deliveries for the current month
-            const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).toISOString().split('T')[0];
-            const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).toISOString().split('T')[0];
-
-            const { data: deliveryData } = await supabase
-               .from('deliveries')
-               .select('*')
-               .eq('customer_id', customerId)
-               .gte('delivery_date', monthStart)
-               .lte('delivery_date', monthEnd)
-               .order('delivery_date', { ascending: true });
-            if (deliveryData) setDeliveries(deliveryData as T.Delivery[]);
-
-            // 4. Fetch Products for pricing
-            const { data: productData } = await supabase.from('products').select('*');
-            if (productData) setProducts(productData as T.Product[]);
-         }
-
-         setIsLoading(false);
-      };
-
       fetchData();
 
       const sub = supabase.channel('cust_profile')
@@ -114,6 +99,7 @@ export default function CustomerProfilePage() {
       const newStatus = customer.status === 'Active' ? 'Inactive' : 'Active';
       try { 
          await supabase.from('customers').update({ status: newStatus }).eq('id', customer.id); 
+         await fetchData();
       } catch (err) { console.error(err); }
    };
 
@@ -139,6 +125,7 @@ export default function CustomerProfilePage() {
             past_outstanding: parseFloat(editForm.outstanding) || 0
          }).eq('id', customer.id);
          setIsEditModalOpen(false);
+         await fetchData();
          if (editForm.phone !== customer.phone) {
             setIsLoading(false);
          } else {
@@ -169,6 +156,7 @@ export default function CustomerProfilePage() {
          const ids = unbilledDeliveries.map(d => d.id);
          await supabase.from('deliveries').update({ billed: true }).in('id', ids);
 
+         await fetchData();
          // 3. Go to billing page to show QR
          router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
       } catch (err) {
@@ -196,9 +184,9 @@ export default function CustomerProfilePage() {
       <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between gap-4">
-               <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-lg font-bold">{customer.name}</h1><p className="text-xs text-zinc-500">Customer Profile</p></div></div>
+               <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-lg font-bold">{customer?.name || 'Customer'}</h1><p className="text-xs text-zinc-500">Customer Profile</p></div></div>
                <div className="flex items-center gap-2">
-                  <button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
+                  <button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer?.name || '')}`)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
                      <Receipt size={16} />
                      <span className="hidden sm:inline">QR Bill</span>
                   </button>
@@ -209,69 +197,75 @@ export default function CustomerProfilePage() {
          </header>
 
          <main className="flex flex-col">
-            <div className="bg-white rounded-b-3xl shadow-sm border-b border-zinc-200/50 relative overflow-hidden">
-               <div className="max-w-2xl mx-auto w-full px-6 pb-8 pt-4">
-                  <div className="flex items-start justify-between mb-6">
-                     <div className="flex items-center gap-4">
-                        <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl font-black text-primary border border-primary/20">{customer.name.charAt(0)}</div>
-                        <div className="flex flex-col gap-1">
-                           <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><MapPin size={14} className="text-zinc-400" /> {customer.area?.name || 'No Area'}</div>
-                           <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><Phone size={14} className="text-zinc-400" /> {customer.phone}</div>
-                        </div>
-                     </div>
-                     <button onClick={toggleStatus} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                     <div className="bg-slate-50 rounded-2xl p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-2"><Clock size={12} /> Frequency</div><p className="text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
-                     <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 cursor-pointer" onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}><div className="flex items-center gap-1.5 text-primary text-[10px] uppercase font-bold tracking-wider mb-2 opacity-80"><Receipt size={12} /> Pending Bills</div><p className="text-sm font-black text-primary">{pendingAmount > 0 ? `₹${pendingAmount.toFixed(2)}` : 'None'}</p></div>
-                  </div>
+            {isLoading ? (
+               <div className="max-w-2xl mx-auto w-full px-5 py-8 flex flex-col gap-6">
+                  <div className="h-48 bg-white border border-zinc-100 rounded-3xl animate-pulse" />
+                  <div className="h-96 bg-white border border-zinc-100 rounded-3xl animate-pulse" />
                </div>
-            </div>
-
-            <div className="max-w-2xl mx-auto w-full px-5 py-2">
-               <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-100">
-                  <div className="flex items-center justify-between mb-8">
-                     <div><h3 className="text-xl font-black text-zinc-900">Monthly Ledger</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400"><ArrowLeft size={14} /></button><p className="text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
-                     <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Days Delivered</span></div>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                     {Array.from({ length: daysCount }).map((_, i) => {
-                        const day = i + 1;
-                        const dateStr = `${yearName}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        const delivery = deliveries.find(d => d.delivery_date === dateStr);
-                        
-                        // ONLY list delivery success or if it has misc items and marked delivered
-                        if (!delivery || !delivery.delivered) return null;
-
-                        const dailyTotal = calculateDeliveryTotal(delivery);
-                        const hasMisc = (delivery.misc_items || []).length > 0;
-                        
-                        return (
-                           <div key={i} className="flex items-center justify-between p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
-                              <div className="flex items-center gap-4">
-                                 <div className="h-12 w-12 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
-                                    <span className="text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
-                                    <span className="text-lg leading-none">{day}</span>
-                                 </div>
-                                 <div>
-                                    <p className="font-black text-[15px] text-zinc-900">
-                                       {delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : ''} 
-                                       {delivery.milk_qty > 0 && hasMisc ? ' + ' : ''}
-                                       {hasMisc ? 'Extras' : (delivery.milk_qty === 0 ? 'Misc Purchase' : '')}
-                                    </p>
-                                    <p className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-2">
-                                       <span className="text-emerald-600">Delivery Success</span>
-                                       {delivery.billed && <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded text-[8px] border border-zinc-200">BILLED</span>}
-                                    </p>
-                                 </div>
-                              </div>
-                              <div className="text-right">
-                                 <p className="font-black text-sm text-zinc-900">₹{dailyTotal.toFixed(0)}</p>
-                                 <p className="text-[10px] font-bold text-zinc-400">DAILY TOTAL</p>
+            ) : customer ? (
+               <>
+                  <div className="bg-white rounded-b-3xl shadow-sm border-b border-zinc-200/50 relative overflow-hidden">
+                     <div className="max-w-2xl mx-auto w-full px-6 pb-8 pt-4">
+                        <div className="flex items-start justify-between mb-6">
+                           <div className="flex items-center gap-4">
+                              <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl font-black text-primary border border-primary/20">{customer.name.charAt(0)}</div>
+                              <div className="flex flex-col gap-1">
+                                 <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><MapPin size={14} className="text-zinc-400" /> {customer.area?.name || 'No Area'}</div>
+                                 <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><Phone size={14} className="text-zinc-400" /> {customer.phone}</div>
                               </div>
                            </div>
-                        );
-                     })}
+                           <button onClick={toggleStatus} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div className="bg-slate-50 rounded-2xl p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-2"><Clock size={12} /> Frequency</div><p className="text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
+                           <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 cursor-pointer" onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}><div className="flex items-center gap-1.5 text-primary text-[10px] uppercase font-bold tracking-wider mb-2 opacity-80"><Receipt size={12} /> Pending Bills</div><p className="text-sm font-black text-primary">{pendingAmount > 0 ? `₹${pendingAmount.toFixed(2)}` : 'None'}</p></div>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="max-w-2xl mx-auto w-full px-5 py-2">
+                     <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-100">
+                        <div className="flex items-center justify-between mb-8">
+                           <div><h3 className="text-xl font-black text-zinc-900">Monthly Ledger</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400"><ArrowLeft size={14} /></button><p className="text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
+                           <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Days Delivered</span></div>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                           {Array.from({ length: daysCount }).map((_, i) => {
+                              const day = i + 1;
+                              const dateStr = `${yearName}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                              const delivery = deliveries.find(d => d.delivery_date === dateStr);
+                              
+                              if (!delivery || !delivery.delivered) return null;
+
+                              const dailyTotal = calculateDeliveryTotal(delivery);
+                              const hasMisc = (delivery.misc_items || []).length > 0;
+                              
+                              return (
+                                 <div key={i} className="flex items-center justify-between p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
+                                    <div className="flex items-center gap-4">
+                                       <div className="h-12 w-12 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
+                                          <span className="text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
+                                          <span className="text-lg leading-none">{day}</span>
+                                       </div>
+                                       <div>
+                                          <p className="font-black text-[15px] text-zinc-900">
+                                             {delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : ''} 
+                                             {delivery.milk_qty > 0 && hasMisc ? ' + ' : ''}
+                                             {hasMisc ? 'Extras' : (delivery.milk_qty === 0 ? 'Misc Purchase' : '')}
+                                          </p>
+                                          <p className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-2 mt-1">
+                                             <span className="text-emerald-600">Delivery Success</span>
+                                             {delivery.billed && <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded text-[8px] border border-zinc-200">BILLED</span>}
+                                          </p>
+                                       </div>
+                                    </div>
+                                    <div className="text-right">
+                                       <p className="font-black text-sm text-zinc-900">₹{dailyTotal.toFixed(0)}</p>
+                                       <p className="text-[10px] font-bold text-zinc-400">DAILY TOTAL</p>
+                                    </div>
+                                 </div>
+                              );
+                           })}
                      {deliveries.filter(d => d.delivered).length === 0 && (
                         <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
                            <p className="font-bold">No successful deliveries yet</p>
@@ -281,6 +275,13 @@ export default function CustomerProfilePage() {
                   </div>
                </div>
             </div>
+         </>
+      ) : (
+         <div className="flex flex-col items-center justify-center py-20 opacity-40">
+            <X size={48} className="mb-4" />
+            <p className="font-bold">Customer not found</p>
+         </div>
+      )}
 
             <div className="max-w-2xl mx-auto w-full px-5 py-6">
                <div className="bg-zinc-900 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden">

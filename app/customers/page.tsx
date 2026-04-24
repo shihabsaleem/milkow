@@ -27,21 +27,24 @@ export default function CustomersPage() {
     default_product_id: ""
   });
   const [products, setProducts] = useState<T.Product[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    const [{ data: custs }, { data: areaList }, { data: productList }] = await Promise.all([
+      supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true }),
+      supabase.from('areas').select('*').order('name', { ascending: true }),
+      supabase.from('products').select('*').order('name', { ascending: true })
+    ]);
+    if (custs) setCustomers(custs as (T.Customer & { area: T.Area })[]);
+    if (areaList) setAreas(areaList as T.Area[]);
+    if (productList) setProducts(productList as T.Product[]);
+    setIsLoading(false);
+  };
 
   // 1. DATA LOAD & SYNC
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: custs } = await supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true });
-      if (custs) setCustomers(custs as (T.Customer & { area: T.Area })[]);
-
-      const { data: areaList } = await supabase.from('areas').select('*').order('name', { ascending: true });
-      if (areaList) setAreas(areaList as T.Area[]);
-
-      const { data: productList } = await supabase.from('products').select('*').order('name', { ascending: true });
-      if (productList) setProducts(productList as T.Product[]);
-    };
-
     fetchData();
 
     const sub = supabase.channel('cust_list')
@@ -56,7 +59,7 @@ export default function CustomersPage() {
     e.preventDefault();
     if (!newCustomer.name || !newCustomer.phone || !newCustomer.area_id) return;
     try {
-      setIsLoading(true);
+      setIsSubmitting(true);
 
       // 1. Calculate the new delivery_order using Decimal Midpoint Indexing
       const { data: lastCustomer } = await supabase
@@ -98,10 +101,11 @@ export default function CustomersPage() {
         default_qty: "1",
         default_product_id: ""
       });
+      await fetchData();
     } catch (err) {
       console.error("Failed to add customer:", err);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -139,37 +143,50 @@ export default function CustomersPage() {
       </div>
 
       <main className="max-w-2xl mx-auto px-5 py-6 flex flex-col gap-3">
-        {filteredCustomers.map((customer, i) => (
-          <motion.div
-            key={i}
-            layout
-            onClick={() => {
-              if (customer.id) router.push(`/customers/${customer.id}`);
-            }}
-            className="bg-white border border-zinc-100 p-4 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
-          >
-            <div className="flex items-center gap-4">
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg font-black ${customer.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>{customer.name.charAt(0)}</div>
-              <div>
-                <h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors">{customer.name}</h3>
-                <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5"><MapPin size={12} /> {customer.area?.name || 'No Area'}</p>
+        {isLoading ? (
+          [1, 2, 3, 4, 5].map(i => <div key={i} className="h-24 bg-white border border-black/5 rounded-2xl animate-pulse" />)
+        ) : filteredCustomers.length > 0 ? (
+          filteredCustomers.map((customer, i) => (
+            <motion.div
+              key={i}
+              layout
+              onClick={() => {
+                if (customer.id) router.push(`/customers/${customer.id}`);
+              }}
+              className="bg-white border border-black/5 p-5 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
+            >
+              <div className="flex items-center gap-4">
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg font-black ${customer.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>{customer.name.charAt(0)}</div>
+                <div>
+                  <h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors">{customer.name}</h3>
+                  <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5"><MapPin size={12} /> {customer.area?.name || 'No Area'}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
-                }}
-                className="p-2.5 bg-primary/5 text-primary rounded-xl hover:bg-primary/10 transition-colors border border-primary/10 flex items-center gap-2"
-              >
-                <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">QR Bill</span>
-                <ChevronRight size={18} className="text-primary/50 group-hover:text-primary transition-all translate-x-0 group-hover:translate-x-1" />
-              </button>
-            </div>
-          </motion.div>
-        ))}
+              <div className="flex items-center gap-3">
+                <div className="text-right mr-2">
+                   <p className="text-[14px] font-black text-zinc-900">₹{(customer.past_outstanding || 0).toLocaleString()}</p>
+                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Due</p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
+                  }}
+                  className="p-2.5 bg-primary/5 text-primary rounded-xl hover:bg-primary/10 transition-colors border border-primary/10 flex items-center gap-2"
+                >
+                  <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">QR Bill</span>
+                  <ChevronRight size={18} className="text-primary/50 group-hover:text-primary transition-all translate-x-0 group-hover:translate-x-1" />
+                </button>
+              </div>
+            </motion.div>
+          ))
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+             <Search size={48} className="mb-4" />
+             <p className="font-bold text-zinc-500">No customers found</p>
+          </div>
+        )}
       </main>
 
       <AnimatePresence>

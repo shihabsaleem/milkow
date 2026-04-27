@@ -18,6 +18,10 @@ export default function InventoryPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
+  
+  // Close Shift States
+  const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
+  const [closingShift, setClosingShift] = useState("Morning Only");
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Modal States
@@ -165,57 +169,46 @@ export default function InventoryPage() {
     }
   };
 
-  const handleCloseDay = async () => {
-    setModalConfig({
-      isOpen: true,
-      title: "Close Day",
-      message: "This will reset all stock to zero and record today's prices. This action is final.",
-      type: 'danger',
-      confirmText: "Close Day",
-      onConfirm: async () => {
-        try {
-          // 1. Store Daily Prices
-          const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
-          const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
-          const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
-          
-          await supabase.from('system_settings').upsert({
-            key: 'daily_prices',
-            value: { ...dailyPrices, [date]: currentPrices }
-          });
+  const handleCloseShiftSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // 1. Store Prices & Shift Log
+      const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
+      const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
+      const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
+      
+      // Save it grouped by Date -> Shift
+      const todayData = dailyPrices[date] || {};
+      todayData[closingShift] = {
+        prices: currentPrices,
+        closed_at: new Date().toISOString()
+      };
 
-          // 2. Reset Inventory Stock to Zero
-          const { data: invData } = await supabase.from('inventory').select('id, product_id');
-          if (invData) {
-            for (const item of invData) {
-               await supabase.from('inventory').update({ count: 0, loaded: 0 }).eq('id', item.id);
-               if (item.product_id) {
-                  await supabase.from('products').update({ stock: 0 }).eq('id', item.product_id);
-               }
-            }
-          }
+      await supabase.from('system_settings').upsert({
+        key: 'daily_prices',
+        value: { ...dailyPrices, [date]: todayData }
+      });
 
-          setModalConfig({
-            isOpen: true,
-            title: "Success",
-            message: "Day closed and stock reset successfully!",
-            type: 'success',
-            confirmText: "Done",
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
-          });
-        } catch (err) {
-          console.error(err);
-          setModalConfig({
-            isOpen: true,
-            title: "Error",
-            message: "Failed to close day. Please try again.",
-            type: 'danger',
-            confirmText: "Retry",
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
-          });
-        }
-      }
-    });
+      setIsCloseShiftModalOpen(false);
+      setModalConfig({
+        isOpen: true,
+        title: "Shift Closed",
+        message: `${closingShift} has been closed successfully. Stock levels were preserved for the next shift.`,
+        type: 'success',
+        confirmText: "Done",
+        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    } catch (err) {
+      console.error(err);
+      setModalConfig({
+        isOpen: true,
+        title: "Error",
+        message: "Failed to close shift. Please try again.",
+        type: 'danger',
+        confirmText: "Close",
+        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    }
   };
 
   return (
@@ -268,8 +261,8 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        <button onClick={handleCloseDay} className="w-full bg-rose-50 border border-rose-100 text-rose-600 font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm">
-           Close Day & Reset Stock
+        <button onClick={() => setIsCloseShiftModalOpen(true)} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">
+           Close Shift
         </button>
       </div>
 
@@ -306,6 +299,84 @@ export default function InventoryPage() {
                   )}
                   <button type="submit" className="flex-grow bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">{editingIndex !== null ? "Save Changes" : "Create Product"}</button>
                 </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isCloseShiftModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-5">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCloseShiftModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
+              <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Close Shift</p><button onClick={() => setIsCloseShiftModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+              <form onSubmit={handleCloseShiftSubmit} className="flex flex-col gap-5">
+                <CustomSelect
+                  label="Which shift are you closing?"
+                  options={[
+                    { value: "Morning Only", label: "Morning Shift" },
+                    { value: "Evening Only", label: "Evening Shift" }
+                  ]}
+                  value={closingShift}
+                  onChange={setClosingShift}
+                />
+                <div className="bg-primary/5 border border-primary/10 p-4 rounded-xl">
+                  <p className="text-xs font-medium text-primary">This will record the end of the shift and archive current prices for the ledger. Your stock levels will remain unchanged for the next shift.</p>
+                </div>
+                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Confirm Close Shift</button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isCloseShiftModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-5">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCloseShiftModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
+              <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Close Shift</p><button onClick={() => setIsCloseShiftModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+              <form onSubmit={handleCloseShiftSubmit} className="flex flex-col gap-5">
+                <CustomSelect
+                  label="Which shift are you closing?"
+                  options={[
+                    { value: "Morning Only", label: "Morning Shift" },
+                    { value: "Evening Only", label: "Evening Shift" }
+                  ]}
+                  value={closingShift}
+                  onChange={setClosingShift}
+                />
+                <div className="bg-primary/5 border border-primary/10 p-4 rounded-xl">
+                  <p className="text-xs font-medium text-primary">This will record the end of the shift and archive current prices for the ledger. Your stock levels will remain unchanged for the next shift.</p>
+                </div>
+                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Confirm Close Shift</button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isCloseShiftModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-5">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCloseShiftModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
+              <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Close Shift</p><button onClick={() => setIsCloseShiftModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+              <form onSubmit={handleCloseShiftSubmit} className="flex flex-col gap-5">
+                <CustomSelect
+                  label="Which shift are you closing?"
+                  options={[
+                    { value: "Morning Only", label: "Morning Shift" },
+                    { value: "Evening Only", label: "Evening Shift" }
+                  ]}
+                  value={closingShift}
+                  onChange={setClosingShift}
+                />
+                <div className="bg-primary/5 border border-primary/10 p-4 rounded-xl">
+                  <p className="text-xs font-medium text-primary">This will record the end of the shift and archive current prices for the ledger. Your stock levels will remain unchanged for the next shift.</p>
+                </div>
+                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Confirm Close Shift</button>
               </form>
             </motion.div>
           </div>

@@ -14,7 +14,7 @@ DO $$ BEGIN
         CREATE TYPE delivery_frequency AS ENUM ('Morning Only', 'Evening Only', 'Morning & Evening');
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'shift_type') THEN
-        CREATE TYPE shift_type AS ENUM ('morning', 'evening');
+        CREATE TYPE shift_type AS ENUM ('Morning Only', 'Evening Only');
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bill_status') THEN
         CREATE TYPE bill_status AS ENUM ('Pending', 'Paid');

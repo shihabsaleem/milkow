@@ -312,9 +312,10 @@ export default function CustomerProfilePage() {
                                        </div>
                                        <div>
                                           <p className="font-black text-[15px] text-zinc-900">
-                                             {delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : ''}
-                                             {delivery.milk_qty > 0 && hasMisc ? ' + ' : ''}
-                                             {hasMisc ? 'Extras' : (delivery.milk_qty === 0 ? 'Misc Purchase' : '')}
+                                             {[
+                                               delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
+                                               ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
+                                             ].filter(Boolean).join(' + ')}
                                           </p>
                                           <p className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-2 mt-1">
                                              <span className="text-emerald-600">Delivery Success</span>

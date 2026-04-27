@@ -15,6 +15,7 @@ export default function CustomerProfilePage() {
    const customerIdParam = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : '';
 
    const [customer, setCustomer] = useState<(T.Customer & { area: T.Area }) | null>(null);
+   const [financials, setFinancials] = useState<T.CustomerFinancials | null>(null);
    const [bills, setBills] = useState<T.Bill[]>([]);
    const [deliveries, setDeliveries] = useState<T.Delivery[]>([]);
    const [products, setProducts] = useState<T.Product[]>([]);
@@ -24,44 +25,47 @@ export default function CustomerProfilePage() {
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
-
-  const fetchData = async () => {
-    if (!customerIdParam) return;
-    setIsLoading(true);
-    const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).toISOString().split('T')[0];
-    const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).toISOString().split('T')[0];
-
-    const [
-      { data: custData },
-      { data: areaList },
-      { data: billsData },
-      { data: deliveryData },
-      { data: productData }
-    ] = await Promise.all([
-      supabase.from('customers').select('*, area:areas(*)').eq('id', customerIdParam).single(),
-      supabase.from('areas').select('*').order('name', { ascending: true }),
-      supabase.from('bills').select('*').eq('customer_id', customerIdParam).order('created_at', { ascending: false }),
-      supabase.from('deliveries').select('*').eq('customer_id', customerIdParam).gte('delivery_date', monthStart).lte('delivery_date', monthEnd).order('delivery_date', { ascending: true }),
-      supabase.from('products').select('*')
-    ]);
-
-    if (areaList) setAreas(areaList as T.Area[]);
-    if (billsData) setBills(billsData as T.Bill[]);
-    if (deliveryData) setDeliveries(deliveryData as T.Delivery[]);
-    if (productData) setProducts(productData as T.Product[]);
-
-    if (custData) {
-      setCustomer(custData as (T.Customer & { area: T.Area }));
-      setEditForm({
-        name: custData.name,
-        phone: custData.phone,
-        area_id: custData.area_id?.toString() || "",
-        frequency: custData.frequency,
-        outstanding: custData.past_outstanding?.toString() || "0"
-      });
-    }
-    setIsLoading(false);
-  };
+ 
+   const fetchData = async () => {
+     if (!customerIdParam) return;
+     setIsLoading(true);
+     const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).toISOString().split('T')[0];
+     const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).toISOString().split('T')[0];
+ 
+     const [
+       { data: custData },
+       { data: areaList },
+       { data: billsData },
+       { data: deliveryData },
+       { data: productData },
+       { data: finData }
+     ] = await Promise.all([
+       supabase.from('customers').select('*, area:areas(*)').eq('id', customerIdParam).single(),
+       supabase.from('areas').select('*').order('name', { ascending: true }),
+       supabase.from('bills').select('*').eq('customer_id', customerIdParam).order('created_at', { ascending: false }),
+       supabase.from('deliveries').select('*').eq('customer_id', customerIdParam).gte('delivery_date', monthStart).lte('delivery_date', monthEnd).order('delivery_date', { ascending: true }),
+       supabase.from('products').select('*'),
+       supabase.from('customer_financials').select('*').eq('id', customerIdParam).single()
+     ]);
+ 
+     if (areaList) setAreas(areaList as T.Area[]);
+     if (billsData) setBills(billsData as T.Bill[]);
+     if (deliveryData) setDeliveries(deliveryData as T.Delivery[]);
+     if (productData) setProducts(productData as T.Product[]);
+     if (finData) setFinancials(finData as T.CustomerFinancials);
+ 
+     if (custData) {
+       setCustomer(custData as (T.Customer & { area: T.Area }));
+       setEditForm({
+         name: custData.name,
+         phone: custData.phone,
+         area_id: custData.area_id?.toString() || "",
+         frequency: custData.frequency,
+         outstanding: custData.past_outstanding?.toString() || "0"
+       });
+     }
+     setIsLoading(false);
+   };
 
    useEffect(() => {
       fetchData();
@@ -217,9 +221,19 @@ export default function CustomerProfilePage() {
                            <button onClick={toggleStatus} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
-                           <div className="bg-slate-50 rounded-2xl p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-2"><Clock size={12} /> Frequency</div><p className="text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
-                           <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 cursor-pointer" onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}><div className="flex items-center gap-1.5 text-primary text-[10px] uppercase font-bold tracking-wider mb-2 opacity-80"><Receipt size={12} /> Pending Bills</div><p className="text-sm font-black text-primary">{pendingAmount > 0 ? `₹${pendingAmount.toFixed(2)}` : 'None'}</p></div>
-                        </div>
+                            <div className="bg-slate-50 rounded-2xl p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-2"><Clock size={12} /> Frequency</div><p className="text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
+                            <div 
+                               className={`rounded-2xl p-4 border cursor-pointer transition-all ${financials?.account_status === 'Credit/Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`} 
+                               onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
+                            >
+                               <div className={`flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider mb-2 opacity-80 ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                                  <Receipt size={12} /> {financials?.account_status === 'Credit/Advance' ? 'Advance Credit' : 'Pending Balance'}
+                               </div>
+                               <p className={`text-sm font-black ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                                  {financials ? `₹${Math.abs(financials.current_balance).toFixed(2)}` : '₹0.00'}
+                               </p>
+                            </div>
+                         </div>
                      </div>
                   </div>
 

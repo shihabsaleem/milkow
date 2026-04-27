@@ -106,3 +106,22 @@ export interface Payment {
   notes?: string;
   created_at: string;
 }
+
+export interface DeliveryItem {
+  id: string;
+  delivery_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  created_at?: string;
+}
+
+export interface CustomerFinancials {
+  id: string;
+  name: string;
+  past_outstanding: number;
+  total_billed: number;
+  total_paid: number;
+  current_balance: number;
+  account_status: 'Credit/Advance' | 'Debt';
+}

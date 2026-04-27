@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [delivered, setDelivered] = useState<DeliveredItem[]>([]);
   const [adminName, setAdminName] = useState("Sayas R.");
   const [toCollectAmount, setToCollectAmount] = useState(0);
+  const [advanceAmount, setAdvanceAmount] = useState(0);
   const [customerCount, setCustomerCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,14 +65,14 @@ export default function Dashboard() {
       { data: invData },
       { data: delData },
       { data: prodsData },
-      { data: billsData },
+      { data: financialsData },
       { count: custCount },
       { data: setsData }
     ] = await Promise.all([
       supabase.from('inventory').select('*'),
       supabase.from('deliveries').select('*').eq('delivered', true).eq('delivery_date', today),
       supabase.from('products').select('*'),
-      supabase.from('bills').select('amount').eq('status', 'Pending'),
+      supabase.from('customer_financials').select('*'),
       supabase.from('customers').select('*', { count: 'exact', head: true }),
       supabase.from('system_settings').select('value').eq('key', 'general').single()
     ]);
@@ -84,9 +85,12 @@ export default function Dashboard() {
       if (val) setAdminName(val.system_user?.name || "Sayas R.");
     }
 
-    if (billsData) {
-      const total = billsData.reduce((sum: number, b: any) => sum + (b.amount || 0), 0) || 0;
-      setToCollectAmount(total);
+    if (financialsData) {
+      const financials = financialsData as T.CustomerFinancials[];
+      const debt = financials.reduce((sum, f) => sum + (f.current_balance > 0 ? f.current_balance : 0), 0);
+      const credit = financials.reduce((sum, f) => sum + (f.current_balance < 0 ? Math.abs(f.current_balance) : 0), 0);
+      setToCollectAmount(debt);
+      setAdvanceAmount(credit);
     }
 
     if (delData && prodsData) {
@@ -240,7 +244,7 @@ export default function Dashboard() {
               ) : (
                 <>
                   <FinanceCard amount={`₹${toCollectAmount.toLocaleString()}`} label="To Collect" badge={`${customerCount} Customers`} type="green" />
-                  <FinanceCard amount="₹15,000" label="To Pay" badge="2 Vendors" type="red" />
+                  <FinanceCard amount={`₹${advanceAmount.toLocaleString()}`} label="Customer Advances" badge="Total Credit" type="green" />
                 </>
               )}
            </div>

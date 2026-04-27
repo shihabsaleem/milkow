@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, MapPin, ChevronRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

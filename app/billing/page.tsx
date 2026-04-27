@@ -109,6 +109,12 @@ export default function BillingPage() {
    // 1. DATA LOAD & SYNC
    useEffect(() => {
       fetchData();
+      
+      const savedRoute = localStorage.getItem('milkow_selected_route');
+      if (savedRoute !== null) {
+         const routeId = savedRoute === "" ? "" : parseInt(savedRoute);
+         setSelectedRoute(routeId);
+      }
 
       const sub = supabase.channel('bills_page')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
@@ -118,6 +124,10 @@ export default function BillingPage() {
 
       return () => { sub.unsubscribe(); };
    }, []);
+
+   useEffect(() => {
+      localStorage.setItem('milkow_selected_route', selectedRoute.toString());
+   }, [selectedRoute]);
 
    useEffect(() => {
       const search = searchParams.get("search");

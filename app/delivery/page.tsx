@@ -29,8 +29,8 @@ export default function DeliveryPage() {
       return new Date().getHours() < 14 ? 'morning' : 'evening';
    }, [manualShift]);
 
-   const fetchData = async () => {
-      setIsLoading(true);
+   const fetchData = async (isSilent = false) => {
+      if (!isSilent) setIsLoading(true);
       const today = new Date().toLocaleDateString('en-CA'); // Robust YYYY-MM-DD
 
       const [
@@ -46,8 +46,15 @@ export default function DeliveryPage() {
       if (routeSets) {
          const areas = routeSets as T.Area[];
          setRoutesList(areas);
-         // Only set default if not already set manually
-         setSelectedRoute(current => current || (areas.length > 0 ? areas[0].id : ""));
+         // If no route selected yet, default to first available
+         if (selectedRoute === "") {
+             const savedRoute = localStorage.getItem('milkow_selected_route');
+             if (savedRoute && savedRoute !== "") {
+                setSelectedRoute(parseInt(savedRoute));
+             } else if (areas.length > 0) {
+                setSelectedRoute(areas[0].id);
+             }
+         }
       }
 
       if (prodData) setProducts(prodData as T.Product[]);
@@ -59,13 +66,25 @@ export default function DeliveryPage() {
    useEffect(() => {
       fetchData();
 
+      // Load persisted route
+      const savedRoute = localStorage.getItem('milkow_selected_route');
+      if (savedRoute !== null) {
+         const routeId = savedRoute === "" ? "" : parseInt(savedRoute);
+         setSelectedRoute(routeId);
+      }
+
       const sub = supabase.channel('route_page')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData(true))
          .subscribe();
 
       return () => { sub.unsubscribe(); };
    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+   // Persist selectedRoute
+   useEffect(() => {
+      localStorage.setItem('milkow_selected_route', selectedRoute.toString());
+   }, [selectedRoute]);
 
    const toggleDelivery = async (id: string) => {
       const stop = deliveries.find(d => d.id === id);
@@ -85,7 +104,6 @@ export default function DeliveryPage() {
             miscProducts.forEach((item: any) => extrasRecord[item.name] = item.qty);
             await deductInventoryOnDelivery(id, stop.milk_qty, extrasRecord);
          }
-         await fetchData();
       } catch (err) {
          console.error("Failed to toggle delivery:", err);
          // Revert on error
@@ -117,7 +135,6 @@ export default function DeliveryPage() {
 
       try {
          await supabase.from('deliveries').update({ misc_items: updatedExtras }).eq('id', stopId);
-         await fetchData();
       } catch (err) {
          console.error("Failed to update extra product qty:", err);
          // Revert
@@ -133,7 +150,6 @@ export default function DeliveryPage() {
       setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, milk_qty: newQty } : d));
       try {
          await supabase.from('deliveries').update({ milk_qty: newQty }).eq('id', stopId);
-         await fetchData();
       } catch (err) {
          console.error("Failed to update milk qty:", err);
          setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, milk_qty: stop.milk_qty } : d));

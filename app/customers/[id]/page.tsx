@@ -26,7 +26,7 @@ export default function CustomerProfilePage() {
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
 
-   const fetchData = async () => {
+   const fetchData = useCallback(async () => {
       if (!customerIdParam) return;
       setIsLoading(true);
       const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).toISOString().split('T')[0];
@@ -65,7 +65,7 @@ export default function CustomerProfilePage() {
          });
       }
       setIsLoading(false);
-   };
+   }, [customerIdParam, viewDate]);
 
    useEffect(() => {
       fetchData();
@@ -77,7 +77,7 @@ export default function CustomerProfilePage() {
          .subscribe();
 
       return () => { sub.unsubscribe(); };
-   }, [customerIdParam, viewDate]);
+   }, [fetchData]);
 
    const prices: Record<string, number> = {};
    products.forEach(p => prices[p.name] = Number(p.price));

@@ -20,9 +20,9 @@ export default function CustomersPage() {
   const [selectedAreaId, setSelectedAreaId] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem('milkow_selected_route');
-      return saved === "" || saved === null ? "all" : saved;
+      return saved === null ? "" : saved;
     }
-    return "all";
+    return "";
   });
   const [newCustomer, setNewCustomer] = useState({
     name: "",
@@ -37,7 +37,7 @@ export default function CustomersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     const [
       { data: custs }, 
@@ -61,7 +61,7 @@ export default function CustomersPage() {
     if (areaList) setAreas(areaList as T.Area[]);
     if (productList) setProducts(productList as T.Product[]);
     setIsLoading(false);
-  };
+  }, []);
 
   // 1. DATA LOAD & SYNC
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function CustomersPage() {
       .subscribe();
 
     return () => { sub.unsubscribe(); };
-  }, []);
+  }, [fetchData]);
 
   useEffect(() => {
     localStorage.setItem('milkow_selected_route', selectedAreaId);
@@ -177,7 +177,7 @@ export default function CustomersPage() {
 
   const filteredCustomers = customers.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone.includes(searchTerm);
-    const matchesArea = selectedAreaId === "all" || c.area_id?.toString() === selectedAreaId;
+    const matchesArea = selectedAreaId === "" || c.area_id?.toString() === selectedAreaId;
     return matchesSearch && matchesArea;
   });
 
@@ -198,7 +198,7 @@ export default function CustomersPage() {
               fullWidth={false}
               className="min-w-[160px]"
               options={[
-                { value: "all", label: "All Routes" },
+                { value: "", label: "All Routes" },
                 ...areas.map(a => ({ value: a.id.toString(), label: a.name }))
               ]}
               value={selectedAreaId}

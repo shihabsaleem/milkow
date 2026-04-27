@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Plus, ChevronRight, X, Calendar as CalendarIcon, Droplet, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -52,7 +52,7 @@ export default function InventoryPage() {
     setIsModalOpen(true);
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     const [{ data: prods }, { data: pipes }] = await Promise.all([
       supabase.from('products').select('*'),
@@ -62,7 +62,7 @@ export default function InventoryPage() {
     // Note: mapping 'inventory' to pipeline for this view
     if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
     setIsLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -73,7 +73,7 @@ export default function InventoryPage() {
       .subscribe();
 
     return () => { sub.unsubscribe(); };
-  }, []);
+  }, [fetchData]);
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();

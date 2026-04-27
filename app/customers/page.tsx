@@ -62,19 +62,24 @@ export default function CustomersPage() {
       setIsSubmitting(true);
 
       // 1. Calculate the new delivery_order using Decimal Midpoint Indexing
-      const { data: lastCustomer } = await supabase
+      const { data: lastCustomer, error: fetchError } = await supabase
         .from('customers')
         .select('delivery_order')
         .eq('area_id', parseInt(newCustomer.area_id))
         .order('delivery_order', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Fetch error:", fetchError);
+        throw fetchError;
+      }
 
       const prevOrder = lastCustomer ? Number(lastCustomer.delivery_order) : 0;
       const newOrder = prevOrder + 1000;
 
       // 2. Insert with the new delivery_order
-      const { error } = await supabase.from('customers').insert({
+      const { error: insertError } = await supabase.from('customers').insert({
         name: newCustomer.name,
         phone: newCustomer.phone,
         area_id: parseInt(newCustomer.area_id),
@@ -86,7 +91,10 @@ export default function CustomersPage() {
         delivery_order: newOrder
       });
 
-      if (error) throw error;
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        throw insertError;
+      }
 
       // 🚀 Sync route immediately
       await checkAndRunAutomations();
@@ -102,8 +110,9 @@ export default function CustomersPage() {
         default_product_id: ""
       });
       await fetchData();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to add customer:", err);
+      if (err.message) alert(`Error: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }

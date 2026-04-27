@@ -207,8 +207,8 @@ SELECT
     COALESCE(ps.total_paid, 0) AS total_paid,
     (c.past_outstanding + COALESCE(bs.total_billed, 0) - COALESCE(ps.total_paid, 0)) AS current_balance,
     CASE 
-        WHEN (c.past_outstanding + COALESCE(bs.total_billed, 0) - COALESCE(ps.total_paid, 0)) < 0 THEN 'Credit/Advance'
-        ELSE 'Debt'
+        WHEN (c.past_outstanding + COALESCE(bs.total_billed, 0) - COALESCE(ps.total_paid, 0)) < 0 THEN 'Advance'
+        ELSE 'Credit'
     END AS account_status
 FROM customers c
 LEFT JOIN bill_summary bs ON bs.customer_id = c.id

@@ -17,7 +17,13 @@ export default function BillingPage() {
    const [bills, setBills] = useState<(T.Bill & { customer: T.Customer })[]>([]);
    const [products, setProducts] = useState<T.Product[]>([]);
    const [routesList, setRoutesList] = useState<T.Area[]>([]);
-   const [selectedRoute, setSelectedRoute] = useState<number | "">("");
+   const [selectedRoute, setSelectedRoute] = useState<number | "">(() => {
+      if (typeof window !== "undefined") {
+         const saved = localStorage.getItem('milkow_selected_route');
+         if (saved !== null) return saved === "" ? "" : parseInt(saved);
+      }
+      return "";
+   });
    const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
    const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
    const [showToast, setShowToast] = useState(false);
@@ -27,77 +33,60 @@ export default function BillingPage() {
       setIsLoading(true);
       const [
          { data: routeSets },
-         { data: billsData },
+         { data: financialsData },
          { data: productList },
-         { data: delData },
-         { data: customersWithOutstanding },
+         { data: unbilledData },
          { data: settingsData }
       ] = await Promise.all([
          supabase.from('areas').select('*').order('name', { ascending: true }),
-         supabase.from('bills').select('*, customers(*)').order('created_at', { ascending: false }),
+         supabase.from('customer_financials').select('*'),
          supabase.from('products').select('*'),
          supabase.from('deliveries').select('*, customers(*)').eq('delivered', true).eq('billed', false),
-         supabase.from('customers').select('*').gt('past_outstanding', 0),
          supabase.from('system_settings').select('value').eq('key', 'general').single()
       ]);
 
       if (routeSets) setRoutesList(routeSets as T.Area[]);
-
-      let allBills = (billsData || []).map((b: any) => ({ ...b, customer: b.customers })) as (T.Bill & { customer: T.Customer })[];
-
+      
       const prods = (productList || []) as T.Product[];
       setProducts(prods);
-
       const prices: Record<string, number> = {};
       prods.forEach(p => { prices[p.id] = p.price; prices[p.name] = p.price; });
 
-      const unbilled = (delData || []).map((d: any) => ({ ...d, customer: d.customers })) as (T.Delivery & { customer: T.Customer })[];
-
-      const unbilledByCustomer: Record<string, { total: number, customer: T.Customer, earliestDate: string }> = {};
-
-      unbilled.forEach((d: T.Delivery & { customer: T.Customer }) => {
-         const milkPrice = prices[d.product_id || ""] || prices[prods.find(p => p.id === d.product_id)?.name || ""] || 0;
+      // Group unbilled by customer
+      const unbilledTotals: Record<string, number> = {};
+      (unbilledData || []).forEach((d: any) => {
+         const milkPrice = prices[d.product_id || ""] || 0;
          let total = (d.milk_qty || 0) * milkPrice;
          (d.misc_items || []).forEach((item: { name: string; qty: number }) => {
             total += (item.qty || 0) * (prices[item.name] || 0);
          });
+         unbilledTotals[d.customer_id] = (unbilledTotals[d.customer_id] || 0) + total;
+      });
 
-         if (!unbilledByCustomer[d.customer_id]) {
-            unbilledByCustomer[d.customer_id] = { total: 0, customer: d.customer, earliestDate: d.delivery_date || new Date().toISOString() };
+      // Combine with financials
+      const combinedBills: (T.Bill & { customer: T.Customer })[] = [];
+      (financialsData || []).forEach((fin: T.CustomerFinancials) => {
+         const unbilled = unbilledTotals[fin.id] || 0;
+         const grandTotal = fin.current_balance + unbilled;
+
+         if (grandTotal > 0) {
+            combinedBills.push({
+               id: `TOTAL-${fin.id.slice(0, 8)}`,
+               customer_id: fin.id,
+               amount: grandTotal,
+               type: 'Ledger' as any,
+               status: 'Pending',
+               created_at: new Date().toISOString(),
+               customer: { 
+                  id: fin.id, 
+                  name: fin.name, 
+                  area_id: (financialsData as any[]).find(f => f.id === fin.id)?.area_id || null 
+               } as any
+            });
          }
-         unbilledByCustomer[d.customer_id].total += total;
-         
-         // Keep the earliest date for the generated bill
-         if ((d.delivery_date || "") < unbilledByCustomer[d.customer_id].earliestDate) {
-             unbilledByCustomer[d.customer_id].earliestDate = d.delivery_date || new Date().toISOString();
-         }
       });
 
-      Object.entries(unbilledByCustomer).forEach(([customerId, data]) => {
-         allBills.push({
-            id: `UNBILLED-${customerId.slice(0, 8)}`,
-            customer_id: customerId,
-            amount: data.total,
-            type: 'Spot' as any,
-            status: 'Pending',
-            created_at: data.earliestDate,
-            customer: data.customer as any
-         });
-      });
-
-      customersWithOutstanding?.forEach((c: T.Customer) => {
-         allBills.push({
-            id: `OP-${c.id.slice(0, 8)}`,
-            customer_id: c.id,
-            amount: c.past_outstanding,
-            type: 'Opening Balance' as any,
-            status: 'Pending',
-            created_at: c.created_at || new Date().toISOString(),
-            customer: c as any
-         });
-      });
-
-      setBills(allBills);
+      setBills(combinedBills);
 
       if (settingsData) {
          const general = settingsData.value as { payment?: T.PaymentSetup };
@@ -105,17 +94,10 @@ export default function BillingPage() {
       }
       setIsLoading(false);
    };
-
    // 1. DATA LOAD & SYNC
    useEffect(() => {
       fetchData();
       
-      const savedRoute = localStorage.getItem('milkow_selected_route');
-      if (savedRoute !== null) {
-         const routeId = savedRoute === "" ? "" : parseInt(savedRoute);
-         setSelectedRoute(routeId);
-      }
-
       const sub = supabase.channel('bills_page')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
@@ -138,29 +120,40 @@ export default function BillingPage() {
       const matchesSearch = bill.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
          bill.id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRoute = selectedRoute === "" || bill.customer?.area_id === selectedRoute;
-      return matchesSearch && matchesRoute;
+      return matchesSearch && matchesRoute && bill.status !== 'Paid';
    });
 
    const handleMarkAsPaid = async (id: string) => {
       try {
-         if (id.startsWith('OP-')) {
-            const customerId = bills.find(b => b.id === id)?.customer_id;
-            if (customerId) await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
-         } else if (id.startsWith('UNBILLED-')) {
-            const bill = bills.find(b => b.id === id);
-            if (bill) {
-               await supabase.from('bills').insert({
-                  customer_id: bill.customer_id,
-                  amount: bill.amount,
-                  type: 'Spot',
-                  status: 'Paid',
-                  paid_at: new Date().toISOString()
-               });
-               await supabase.from('deliveries').update({ billed: true }).eq('customer_id', bill.customer_id).eq('delivered', true).eq('billed', false);
-            }
-         } else {
-            await supabase.from('bills').update({ status: 'Paid' }).eq('id', id);
-         }
+         const entry = bills.find(b => b.id === id);
+         if (!entry) return;
+
+         const customerId = entry.customer_id;
+
+         // 1. Reset legacy outstanding to 0
+         await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
+
+         // 2. Mark unbilled deliveries as billed to prevent double-billing
+         await supabase.from('deliveries')
+            .update({ billed: true })
+            .eq('customer_id', customerId)
+            .eq('delivered', true)
+            .eq('billed', false);
+
+         // 3. Mark existing pending bills as Paid
+         await supabase.from('bills')
+            .update({ status: 'Paid' })
+            .eq('customer_id', customerId)
+            .eq('status', 'Pending');
+
+         // 4. Record a payment for the amount to keep the ledger history
+         await supabase.from('payments').insert({
+            customer_id: customerId,
+            amount: entry.amount,
+            method: 'Cash',
+            payment_date: new Date().toISOString()
+         });
+
          setShowToast(true);
          setTimeout(() => setShowToast(false), 3000);
          await fetchData();
@@ -182,10 +175,12 @@ export default function BillingPage() {
       ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
       ctx.fillStyle = "#FFFFFF";
       ctx.beginPath(); ctx.roundRect(50, 50, width - 100, height - 100, 60); ctx.fill();
-      ctx.fillStyle = "#111827"; ctx.font = "bold 50px Geist Sans"; ctx.textAlign = "center"; ctx.fillText("MILKOW", width / 2, 160);
-      ctx.fillStyle = "#6B7280"; ctx.font = "medium 30px Geist Sans"; ctx.fillText("Smart Milk Distribution", width / 2, 210);
+      const logo = new Image();
+      logo.src = "/assets/logo.svg";
+      await new Promise((resolve) => { logo.onload = resolve; });
+      ctx.drawImage(logo, (width / 2) - 50, 100, 100, 100);
       ctx.fillStyle = "#111827"; ctx.font = "black 70px Geist Sans"; ctx.fillText(`₹${Number(selectedInvoice.amount).toFixed(2)}`, width / 2, 330);
-      ctx.fillStyle = "#374151"; ctx.font = "bold 35px Geist Sans"; ctx.fillText(`Payable by ${selectedInvoice.customer?.name}`, width / 2, 390);
+      ctx.fillStyle = "#374151"; ctx.font = "bold 35px Geist-Sans"; ctx.fillText(`Payable by ${selectedInvoice.customer?.name}`, width / 2, 390);
       const uiQrCanvas = qrRef.current?.querySelector("canvas");
       if (uiQrCanvas) { ctx.drawImage(uiQrCanvas, 150, 450, 500, 500); }
       ctx.fillStyle = "#111827"; ctx.font = "bold 30px Geist"; ctx.fillText("Scan with any UPI App", width / 2, 1000);
@@ -293,16 +288,15 @@ export default function BillingPage() {
                </>
             ) : filteredBills.length > 0 ? (
                filteredBills.map((bill) => {
-                  const isPaid = bill.status === 'Paid';
                   return (
                      <div key={bill.id} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
                         <div className="flex justify-between items-start">
                            <div><h3 className="font-bold text-zinc-900">{bill.customer?.name}</h3><p className="text-xs text-zinc-500 mt-1">{bill.id.slice(0, 8)} • {bill.type} Billing</p></div>
-                           <div className="flex flex-col items-end"><span className={`font-black text-lg ${isPaid ? 'text-emerald-500 line-through opacity-50' : 'text-primary'}`}>₹{Number(bill.amount).toFixed(2)}</span>{isPaid && (<span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">Collected</span>)}</div>
+                           <div className="flex flex-col items-end"><span className="font-black text-lg text-primary">₹{Number(bill.amount).toFixed(2)}</span></div>
                         </div>
                         <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">
-                           <button onClick={() => !isPaid && setSelectedInvoice(bill)} disabled={isPaid} className={`flex-1 rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all ${isPaid ? 'bg-zinc-100 text-zinc-400' : 'bg-zinc-900 text-white active:scale-95'}`}><QrCode size={16} /> Collect</button>
-                           <button onClick={() => handleMarkAsPaid(bill.id)} className={`flex-1 rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all ${isPaid ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 border active:scale-95'}`}>{isPaid ? <Check size={16} /> : <CheckCircle2 size={16} />}{isPaid ? 'Paid' : 'Mark Paid'}</button>
+                           <button onClick={() => setSelectedInvoice(bill)} className="flex-1 rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all bg-zinc-900 text-white active:scale-95"><QrCode size={16} /> Collect</button>
+                           <button onClick={() => handleMarkAsPaid(bill.id)} className="flex-1 rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all bg-emerald-50 text-emerald-600 border active:scale-95"><CheckCircle2 size={16} /> Mark Paid</button>
                         </div>
                      </div>
                   );

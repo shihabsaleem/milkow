@@ -25,46 +25,46 @@ export default function CustomerProfilePage() {
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
- 
+
    const fetchData = async () => {
-     if (!customerIdParam) return;
-     setIsLoading(true);
-     const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).toISOString().split('T')[0];
-     const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).toISOString().split('T')[0];
- 
-     const [
-       { data: custData },
-       { data: areaList },
-       { data: billsData },
-       { data: deliveryData },
-       { data: productData },
-       { data: finData }
-     ] = await Promise.all([
-       supabase.from('customers').select('*, area:areas(*)').eq('id', customerIdParam).single(),
-       supabase.from('areas').select('*').order('name', { ascending: true }),
-       supabase.from('bills').select('*').eq('customer_id', customerIdParam).order('created_at', { ascending: false }),
-       supabase.from('deliveries').select('*').eq('customer_id', customerIdParam).gte('delivery_date', monthStart).lte('delivery_date', monthEnd).order('delivery_date', { ascending: true }),
-       supabase.from('products').select('*'),
-       supabase.from('customer_financials').select('*').eq('id', customerIdParam).single()
-     ]);
- 
-     if (areaList) setAreas(areaList as T.Area[]);
-     if (billsData) setBills(billsData as T.Bill[]);
-     if (deliveryData) setDeliveries(deliveryData as T.Delivery[]);
-     if (productData) setProducts(productData as T.Product[]);
-     if (finData) setFinancials(finData as T.CustomerFinancials);
- 
-     if (custData) {
-       setCustomer(custData as (T.Customer & { area: T.Area }));
-       setEditForm({
-         name: custData.name,
-         phone: custData.phone,
-         area_id: custData.area_id?.toString() || "",
-         frequency: custData.frequency,
-         outstanding: custData.past_outstanding?.toString() || "0"
-       });
-     }
-     setIsLoading(false);
+      if (!customerIdParam) return;
+      setIsLoading(true);
+      const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).toISOString().split('T')[0];
+      const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).toISOString().split('T')[0];
+
+      const [
+         { data: custData },
+         { data: areaList },
+         { data: billsData },
+         { data: deliveryData },
+         { data: productData },
+         { data: finData }
+      ] = await Promise.all([
+         supabase.from('customers').select('*, area:areas(*)').eq('id', customerIdParam).single(),
+         supabase.from('areas').select('*').order('name', { ascending: true }),
+         supabase.from('bills').select('*').eq('customer_id', customerIdParam).order('created_at', { ascending: false }),
+         supabase.from('deliveries').select('*').eq('customer_id', customerIdParam).gte('delivery_date', monthStart).lte('delivery_date', monthEnd).order('delivery_date', { ascending: true }),
+         supabase.from('products').select('*'),
+         supabase.from('customer_financials').select('*').eq('id', customerIdParam).single()
+      ]);
+
+      if (areaList) setAreas(areaList as T.Area[]);
+      if (billsData) setBills(billsData as T.Bill[]);
+      if (deliveryData) setDeliveries(deliveryData as T.Delivery[]);
+      if (productData) setProducts(productData as T.Product[]);
+      if (finData) setFinancials(finData as T.CustomerFinancials);
+
+      if (custData) {
+         setCustomer(custData as (T.Customer & { area: T.Area }));
+         setEditForm({
+            name: custData.name,
+            phone: custData.phone,
+            area_id: custData.area_id?.toString() || "",
+            frequency: custData.frequency,
+            outstanding: custData.past_outstanding?.toString() || "0"
+         });
+      }
+      setIsLoading(false);
    };
 
    useEffect(() => {
@@ -101,8 +101,8 @@ export default function CustomerProfilePage() {
    const toggleStatus = async () => {
       if (!customer) return;
       const newStatus = customer.status === 'Active' ? 'Inactive' : 'Active';
-      try { 
-         await supabase.from('customers').update({ status: newStatus }).eq('id', customer.id); 
+      try {
+         await supabase.from('customers').update({ status: newStatus }).eq('id', customer.id);
          await fetchData();
       } catch (err) { console.error(err); }
    };
@@ -145,7 +145,6 @@ export default function CustomerProfilePage() {
       if (!customer || unbilledDeliveries.length === 0) return;
       try {
          setIsLoading(true);
-         // 1. Create the bill
          const { data: newBill, error: billError } = await supabase.from('bills').insert({
             customer_id: customer.id,
             amount: currentDeliveriesAmount,
@@ -156,12 +155,10 @@ export default function CustomerProfilePage() {
 
          if (billError) throw billError;
 
-         // 2. Mark deliveries as billed
          const ids = unbilledDeliveries.map(d => d.id);
          await supabase.from('deliveries').update({ billed: true }).in('id', ids);
 
          await fetchData();
-         // 3. Go to billing page to show QR
          router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
       } catch (err) {
          console.error("Failed to generate bill:", err);
@@ -169,9 +166,32 @@ export default function CustomerProfilePage() {
       }
    };
 
+   const handleMarkAsPaid = async () => {
+      if (!customer || grandTotalAmount <= 0) return;
+      try {
+         setIsLoading(true);
+         const { error } = await supabase.from('payments').insert({
+            customer_id: customer.id,
+            amount: grandTotalAmount,
+            method: 'Cash',
+            payment_date: new Date().toISOString(),
+            notes: 'Settled from Profile'
+         });
+
+         if (error) throw error;
+         await fetchData();
+         alert("Payment recorded and dues settled successfully!");
+      } catch (err) {
+         console.error("Failed to mark as paid:", err);
+         alert("Failed to record payment. Please try again.");
+      } finally {
+         setIsLoading(false);
+      }
+   };
+
    const changeMonth = (delta: number) => {
-      const newDate = new Date(viewDate); 
-      newDate.setMonth(newDate.getMonth() + delta); 
+      const newDate = new Date(viewDate);
+      newDate.setMonth(newDate.getMonth() + delta);
       setViewDate(newDate);
    };
 
@@ -221,19 +241,19 @@ export default function CustomerProfilePage() {
                            <button onClick={toggleStatus} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-slate-50 rounded-2xl p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-2"><Clock size={12} /> Frequency</div><p className="text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
-                            <div 
-                               className={`rounded-2xl p-4 border cursor-pointer transition-all ${financials?.account_status === 'Credit/Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`} 
-                               onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
-                            >
-                               <div className={`flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider mb-2 opacity-80 ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
-                                  <Receipt size={12} /> {financials?.account_status === 'Credit/Advance' ? 'Advance Credit' : 'Pending Balance'}
-                               </div>
-                               <p className={`text-sm font-black ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
-                                  {financials ? `₹${Math.abs(financials.current_balance).toFixed(2)}` : '₹0.00'}
-                               </p>
-                            </div>
-                         </div>
+                           <div className="bg-slate-50 rounded-2xl p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-2"><Clock size={12} /> Frequency</div><p className="text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
+                           <div
+                              className={`rounded-2xl p-4 border cursor-pointer transition-all ${financials?.account_status === 'Credit/Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`}
+                              onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
+                           >
+                              <div className={`flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider mb-2 opacity-80 ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                                 <Receipt size={12} /> {financials?.account_status === 'Credit/Advance' ? 'Advance Credit' : 'Pending Balance'}
+                              </div>
+                              <p className={`text-sm font-black ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                                 {financials ? `₹${Math.abs(financials.current_balance).toFixed(2)}` : '₹0.00'}
+                              </p>
+                           </div>
+                        </div>
                      </div>
                   </div>
 
@@ -248,12 +268,12 @@ export default function CustomerProfilePage() {
                               const day = i + 1;
                               const dateStr = `${yearName}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                               const delivery = deliveries.find(d => d.delivery_date === dateStr);
-                              
+
                               if (!delivery || !delivery.delivered) return null;
 
                               const dailyTotal = calculateDeliveryTotal(delivery);
                               const hasMisc = (delivery.misc_items || []).length > 0;
-                              
+
                               return (
                                  <div key={i} className="flex items-center justify-between p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
                                     <div className="flex items-center gap-4">
@@ -263,7 +283,7 @@ export default function CustomerProfilePage() {
                                        </div>
                                        <div>
                                           <p className="font-black text-[15px] text-zinc-900">
-                                             {delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : ''} 
+                                             {delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : ''}
                                              {delivery.milk_qty > 0 && hasMisc ? ' + ' : ''}
                                              {hasMisc ? 'Extras' : (delivery.milk_qty === 0 ? 'Misc Purchase' : '')}
                                           </p>
@@ -280,42 +300,62 @@ export default function CustomerProfilePage() {
                                  </div>
                               );
                            })}
-                     {deliveries.filter(d => d.delivered).length === 0 && (
-                        <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
-                           <p className="font-bold">No successful deliveries yet</p>
-                           <p className="text-[10px] uppercase tracking-widest">For {monthName} {yearName}</p>
+                           {deliveries.filter(d => d.delivered).length === 0 && (
+                              <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
+                                 <p className="font-bold">No successful deliveries yet</p>
+                                 <p className="text-[10px] uppercase tracking-widest">For {monthName} {yearName}</p>
+                              </div>
+                           )}
                         </div>
-                     )}
+                     </div>
                   </div>
+               </>
+            ) : (
+               <div className="flex flex-col items-center justify-center py-20 opacity-40">
+                  <X size={48} className="mb-4" />
+                  <p className="font-bold">Customer not found</p>
                </div>
-            </div>
-         </>
-      ) : (
-         <div className="flex flex-col items-center justify-center py-20 opacity-40">
-            <X size={48} className="mb-4" />
-            <p className="font-bold">Customer not found</p>
-         </div>
-      )}
+            )}
 
             <div className="max-w-2xl mx-auto w-full px-5 py-6">
                <div className="bg-zinc-900 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Grand Total Ledger</h3>
+                  <div className="flex items-center justify-between mb-4">
+                     <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Grand Total Ledger</h3>
+                     <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${grandTotalAmount < 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-primary/20 text-primary'}`}>
+                        {grandTotalAmount < 0 ? 'Advance' : 'Credit'}
+                     </span>
+                  </div>
                   <div className="flex flex-col gap-2">
                      <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Generated Bills</span><span>₹{(pendingAmount - (Number(customer?.past_outstanding) || 0)).toFixed(2)}</span></div>
                      <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Unbilled Deliveries</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div>
                      <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Past Outstanding</span><span>₹{(Number(customer?.past_outstanding) || 0).toFixed(2)}</span></div>
-                     <div className="flex justify-between items-end mt-2"><span className="text-xs font-black text-zinc-300">CALCULATED TOTAL</span><span className="text-3xl font-black text-primary">₹{grandTotalAmount.toFixed(2)}</span></div>
+                     <div className="flex justify-between items-end mt-2">
+                        <span className="text-xs font-black text-zinc-300 uppercase tracking-tighter">Total {grandTotalAmount < 0 ? 'Advance' : 'Payable'}</span>
+                        <span className="text-3xl font-black text-primary">₹{Math.abs(grandTotalAmount).toFixed(2)}</span>
+                     </div>
                   </div>
-                  
-                  {currentDeliveriesAmount > 0 && (
-                     <button 
-                        onClick={handleGenerateBill}
-                        className="w-full mt-6 bg-primary text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                     >
-                        <Receipt size={18} />
-                        Generate Bill for QR
-                     </button>
-                  )}
+
+                  <div className="flex flex-col gap-2 mt-6">
+                     {currentDeliveriesAmount > 0 && (
+                        <button
+                           onClick={handleGenerateBill}
+                           className="w-full bg-primary text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                        >
+                           <Receipt size={18} />
+                           Generate Bill for QR
+                        </button>
+                     )}
+
+                     {grandTotalAmount > 0 && (
+                        <button
+                           onClick={handleMarkAsPaid}
+                           className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+                        >
+                           <Receipt size={18} />
+                           Settle & Mark Paid
+                        </button>
+                     )}
+                  </div>
                </div>
             </div>
          </main>
@@ -332,7 +372,7 @@ export default function CustomerProfilePage() {
                         <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                         <div className="grid grid-cols-2 gap-3">
                            <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</label><input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                           <CustomSelect 
+                           <CustomSelect
                               label="Route"
                               options={areas.map(a => ({ value: a.id.toString(), label: a.name }))}
                               value={editForm.area_id}
@@ -340,7 +380,7 @@ export default function CustomerProfilePage() {
                               placeholder="Select Route"
                            />
                         </div>
-                        <CustomSelect 
+                        <CustomSelect
                            label="Delivery Frequency"
                            options={[
                               { value: "Morning Only", label: "Morning Only" },

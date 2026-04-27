@@ -15,7 +15,13 @@ export default function DeliveryPage() {
    const [routesList, setRoutesList] = useState<T.Area[]>([]);
 
    const [searchQuery, setSearchQuery] = useState("");
-   const [selectedRoute, setSelectedRoute] = useState<number | "">("");
+   const [selectedRoute, setSelectedRoute] = useState<number | "">(() => {
+      if (typeof window !== "undefined") {
+         const saved = localStorage.getItem('milkow_selected_route');
+         if (saved !== null) return saved === "" ? "" : parseInt(saved);
+      }
+      return "";
+   });
    const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
    const [expandedStopId, setExpandedStopId] = useState<string | null>(null);
    const [editingSeqId, setEditingSeqId] = useState<string | null>(null);
@@ -39,21 +45,19 @@ export default function DeliveryPage() {
          { data: routeData }
       ] = await Promise.all([
          supabase.from('areas').select('*').order('name', { ascending: true }),
-         supabase.from('products').select('*'),
-         supabase.from('deliveries').select('*, customer:customers(*)').eq('delivery_date', today).order('delivery_order', { foreignTable: 'customers', ascending: true })
+         supabase.from('products').select('*').order('name', { ascending: true }),
+         supabase.from('deliveries')
+            .select('*, customers(*)')
+            .eq('delivery_date', today)
+            .eq('shift', shift === 'morning' ? 'Morning Only' : 'Evening Only')
       ]);
 
       if (routeSets) {
          const areas = routeSets as T.Area[];
          setRoutesList(areas);
-         // If no route selected yet, default to first available
-         if (selectedRoute === "") {
-             const savedRoute = localStorage.getItem('milkow_selected_route');
-             if (savedRoute && savedRoute !== "") {
-                setSelectedRoute(parseInt(savedRoute));
-             } else if (areas.length > 0) {
-                setSelectedRoute(areas[0].id);
-             }
+         // If no route selected (and none was found in localStorage), default to first
+         if (selectedRoute === "" && areas.length > 0) {
+            setSelectedRoute(areas[0].id);
          }
       }
 
@@ -66,20 +70,13 @@ export default function DeliveryPage() {
    useEffect(() => {
       fetchData();
 
-      // Load persisted route
-      const savedRoute = localStorage.getItem('milkow_selected_route');
-      if (savedRoute !== null) {
-         const routeId = savedRoute === "" ? "" : parseInt(savedRoute);
-         setSelectedRoute(routeId);
-      }
-
       const sub = supabase.channel('route_page')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => fetchData(true))
          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData(true))
          .subscribe();
 
       return () => { sub.unsubscribe(); };
-   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+   }, [shift]); // eslint-disable-line react-hooks/exhaustive-deps
 
    // Persist selectedRoute
    useEffect(() => {

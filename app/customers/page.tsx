@@ -6,6 +6,7 @@ import { Plus, Search, MapPin, ChevronRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import Modal from "@/components/Modal";
 import * as T from "@/types/database";
 import { checkAndRunAutomations } from "@/lib/automation";
 import CustomSelect from "@/components/CustomSelect";
@@ -14,9 +15,15 @@ export default function CustomersPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [customers, setCustomers] = useState<(T.Customer & { area: T.Area })[]>([]);
+  const [customers, setCustomers] = useState<(T.Customer & { area: T.Area; financials?: T.CustomerFinancials })[]>([]);
   const [areas, setAreas] = useState<T.Area[]>([]);
-  const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
+  const [selectedAreaId, setSelectedAreaId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem('milkow_selected_route');
+      return saved === "" || saved === null ? "all" : saved;
+    }
+    return "all";
+  });
   const [newCustomer, setNewCustomer] = useState({
     name: "",
     phone: "",
@@ -32,12 +39,25 @@ export default function CustomersPage() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [{ data: custs }, { data: areaList }, { data: productList }] = await Promise.all([
+    const [
+      { data: custs }, 
+      { data: areaList }, 
+      { data: productList },
+      { data: financialData }
+    ] = await Promise.all([
       supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true }),
       supabase.from('areas').select('*').order('name', { ascending: true }),
-      supabase.from('products').select('*').order('name', { ascending: true })
+      supabase.from('products').select('*').order('name', { ascending: true }),
+      supabase.from('customer_financials').select('*')
     ]);
-    if (custs) setCustomers(custs as (T.Customer & { area: T.Area })[]);
+
+    if (custs) {
+      const merged = (custs as any[]).map(c => ({
+        ...c,
+        financials: (financialData as T.CustomerFinancials[] || []).find(f => f.id === c.id)
+      }));
+      setCustomers(merged);
+    }
     if (areaList) setAreas(areaList as T.Area[]);
     if (productList) setProducts(productList as T.Product[]);
     setIsLoading(false);
@@ -50,10 +70,31 @@ export default function CustomersPage() {
     const sub = supabase.channel('cust_list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
       .subscribe();
 
     return () => { sub.unsubscribe(); };
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('milkow_selected_route', selectedAreaId);
+  }, [selectedAreaId]);
+
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'danger' | 'info' | 'success';
+    confirmText?: string;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    type: 'info'
+  });
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,9 +151,25 @@ export default function CustomersPage() {
         default_product_id: ""
       });
       await fetchData();
+      
+      setModalConfig({
+        isOpen: true,
+        title: "Registration Success",
+        message: `${newCustomer.name} has been added to the system successfully!`,
+        type: 'success',
+        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+        confirmText: "Great"
+      });
     } catch (err: any) {
       console.error("Failed to add customer:", err);
-      if (err.message) alert(`Error: ${err.message}`);
+      setModalConfig({
+        isOpen: true,
+        title: "Registration Failed",
+        message: err.message || "Something went wrong while adding the customer. Please try again.",
+        type: 'danger',
+        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+        confirmText: "Try Again"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -173,8 +230,12 @@ export default function CustomersPage() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right mr-2">
-                   <p className="text-[14px] font-black text-zinc-900">₹{(customer.past_outstanding || 0).toLocaleString()}</p>
-                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Due</p>
+                   <p className={`text-[14px] font-black ${customer.financials && customer.financials.current_balance < 0 ? 'text-emerald-600' : 'text-zinc-900'}`}>
+                      ₹{Math.abs(customer.financials?.current_balance || 0).toLocaleString()}
+                   </p>
+                   <p className={`text-[10px] font-bold uppercase tracking-tighter ${customer.financials && customer.financials.current_balance < 0 ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                      {customer.financials && customer.financials.current_balance < 0 ? 'Advance' : 'Credit'}
+                   </p>
                 </div>
                 <button
                   onClick={(e) => {
@@ -252,6 +313,15 @@ export default function CustomersPage() {
           </div>
         )}
       </AnimatePresence>
+      <Modal 
+        isOpen={modalConfig.isOpen} 
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))} 
+        onConfirm={modalConfig.onConfirm} 
+        title={modalConfig.title} 
+        message={modalConfig.message} 
+        type={modalConfig.type} 
+        confirmText={modalConfig.confirmText} 
+      />
     </div>
   );
 }

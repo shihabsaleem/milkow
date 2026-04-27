@@ -5,6 +5,7 @@ import { Plus, ChevronRight, X, Calendar as CalendarIcon, Droplet, Trash2 } from
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/Modal";
+import CustomSelect from "@/components/CustomSelect";
 import * as T from "@/types/database";
 
 type PipelineStage = { label: string; value: number; unit: string; id: number; productId?: string | number };
@@ -16,7 +17,7 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<T.Product[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: 0 });
+  const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Modal States
@@ -42,7 +43,12 @@ export default function InventoryPage() {
 
   const openEditModal = (index: number) => {
     setEditingIndex(index);
-    setNewProduct({ ...products[index], stock: products[index].stock?.toString() || "0", price: Number(products[index].price) || 0 });
+    setNewProduct({ 
+      ...products[index], 
+      stock: products[index].stock?.toString() || "0", 
+      price: Number(products[index].price) || 0,
+      unit: products[index].unit || "Bottles"
+    });
     setIsModalOpen(true);
   };
 
@@ -77,7 +83,8 @@ export default function InventoryPage() {
          name: newProduct.name,
          size: newProduct.size,
          stock: parseInt(newProduct.stock.toString() || "0"),
-         price: Number(newProduct.price) || 0
+         price: Number(newProduct.price) || 0,
+         unit: newProduct.unit
        };
        
        if (editingIndex !== null && products[editingIndex].id) {
@@ -85,7 +92,7 @@ export default function InventoryPage() {
           // Also update inventory name and count if it exists
           await supabase.from('inventory').update({ 
              name: productToSave.name, 
-             unit: newProduct.size,
+             unit: productToSave.unit,
              count: productToSave.stock 
           }).eq('product_id', products[editingIndex].id);
        } else {
@@ -94,7 +101,7 @@ export default function InventoryPage() {
              await supabase.from('inventory').insert({
                 product_id: insertedProduct.id,
                 name: insertedProduct.name,
-                unit: insertedProduct.size, // using size as unit for consistency in this view
+                unit: insertedProduct.unit,
                 count: productToSave.stock,
                 loaded: Math.floor(productToSave.stock / 2),
                 vol: insertedProduct.size
@@ -102,7 +109,7 @@ export default function InventoryPage() {
           }
        }
        setIsModalOpen(false);
-       setNewProduct({ name: "", size: "", stock: "", price: 0 });
+       setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
        setEditingIndex(null);
        await fetchData();
     } catch (err) { console.error(err); }
@@ -119,27 +126,14 @@ export default function InventoryPage() {
       confirmText: "Delete",
       onConfirm: async () => {
         try {
-           await supabase.from('products').delete().eq('id', products[editingIndex].id);
+           const productId = products[editingIndex].id;
+           // 1. Delete from products
+           await supabase.from('products').delete().eq('id', productId);
+           // 2. Delete from inventory
+           await supabase.from('inventory').delete().eq('product_id', productId);
+           
            setIsModalOpen(false);
            setEditingIndex(null);
-           setModalConfig(prev => ({ ...prev, isOpen: false }));
-           await fetchData();
-        } catch (err) { console.error(err); }
-      }
-    });
-  };
-
-  const deletePipelineItem = async (id: number) => {
-    const item = pipeline.find(p => p.id === id);
-    setModalConfig({
-      isOpen: true,
-      title: "Remove Stage",
-      message: `Remove ${item?.label} from the supply pipeline?`,
-      type: 'danger',
-      confirmText: "Remove",
-      onConfirm: async () => {
-        try {
-           await supabase.from('inventory').delete().eq('id', id);
            setModalConfig(prev => ({ ...prev, isOpen: false }));
            await fetchData();
         } catch (err) { console.error(err); }
@@ -230,7 +224,7 @@ export default function InventoryPage() {
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div><p className="text-[20px] font-extrabold text-zinc-900">Inventory</p><p className="text-[13px] font-medium text-zinc-400">Stock & Pipeline</p></div>
-            <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0 }); setIsModalOpen(true); }} className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
+            <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
           </div>
           <div className="w-full bg-white border border-slate-200/60 rounded-2xl p-3.5 flex items-center gap-3 relative shadow-sm" onClick={() => dateInputRef.current?.showPicker()}>
             <div className="p-2 bg-primary/10 text-primary rounded-xl"><CalendarIcon size={18} /></div>
@@ -250,7 +244,6 @@ export default function InventoryPage() {
             ) : (
               pipeline.map((stage, i) => (
                 <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5 group relative">
-                  <button onClick={() => deletePipelineItem(stage.id)} className="absolute top-3 right-3 p-1.5 text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-rose-600"><Trash2 size={14} /></button>
                   <div className="text-primary"><Droplet size={20} /></div>
                   <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none" /><span className="text-[13px] font-medium ml-2 flex-shrink-0 text-zinc-400">{stage.unit}</span></div></div>
                 </div>
@@ -260,7 +253,7 @@ export default function InventoryPage() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-3"><p className="text-[12px] font-bold uppercase tracking-widest text-zinc-400">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0 }); setIsModalOpen(true); }} className="text-[12px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all text-primary bg-primary/10"><Plus size={13} /> Add</button></div>
+          <div className="flex items-center justify-between mb-3"><p className="text-[12px] font-bold uppercase tracking-widest text-zinc-400">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="text-[12px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all text-primary bg-primary/10"><Plus size={13} /> Add</button></div>
           <div className="flex flex-col gap-2.5">
             {isLoading ? (
                [1, 2, 3].map(i => <div key={i} className="h-20 bg-white border border-black/5 rounded-2xl animate-pulse" />)
@@ -292,7 +285,21 @@ export default function InventoryPage() {
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Size</label><input placeholder="e.g. 1L" value={newProduct.size} onChange={e => setNewProduct({ ...newProduct, size: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Price</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-zinc-400">₹</span><input placeholder="90" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-4 py-3 text-sm font-bold focus:ring-2 transition-all" /></div></div>
                 </div>
-                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Initial Stock</label><input type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Initial Stock</label><input type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                  <CustomSelect 
+                    label="Unit"
+                    options={[
+                      { value: "Bottles", label: "Bottles" },
+                      { value: "Packets", label: "Packets" },
+                      { value: "Kgs", label: "Kgs" },
+                      { value: "Liters", label: "Liters" },
+                      { value: "Items", label: "Items" }
+                    ]}
+                    value={newProduct.unit}
+                    onChange={val => setNewProduct({ ...newProduct, unit: val })}
+                  />
+                </div>
                 <div className="flex gap-2 mt-2">
                   {editingIndex !== null && (
                     <button type="button" onClick={handleDeleteProduct} className="flex-shrink-0 w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center hover:bg-rose-100 transition-colors"><Trash2 size={20} /></button>

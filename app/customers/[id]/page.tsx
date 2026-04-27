@@ -166,7 +166,22 @@ export default function CustomerProfilePage() {
       }
    };
 
-   const handleMarkAsPaid = async () => {
+    const [modalConfig, setModalConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type: 'danger' | 'info' | 'success';
+        confirmText?: string;
+    }>({
+        isOpen: false,
+        title: "",
+        message: "",
+        onConfirm: () => {},
+        type: 'info'
+    });
+
+    const handleMarkAsPaid = async () => {
       if (!customer || grandTotalAmount <= 0) return;
       try {
          setIsLoading(true);
@@ -180,14 +195,28 @@ export default function CustomerProfilePage() {
 
          if (error) throw error;
          await fetchData();
-         alert("Payment recorded and dues settled successfully!");
+         setModalConfig({
+            isOpen: true,
+            title: "Payment Recorded",
+            message: "Payment has been recorded and all dues have been settled successfully!",
+            type: 'success',
+            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+            confirmText: "Great"
+         });
       } catch (err) {
          console.error("Failed to mark as paid:", err);
-         alert("Failed to record payment. Please try again.");
+         setModalConfig({
+            isOpen: true,
+            title: "Payment Failed",
+            message: "Failed to record payment. Please check your connection and try again.",
+            type: 'danger',
+            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+            confirmText: "Try Again"
+         });
       } finally {
          setIsLoading(false);
       }
-   };
+    };
 
    const changeMonth = (delta: number) => {
       const newDate = new Date(viewDate);
@@ -361,6 +390,16 @@ export default function CustomerProfilePage() {
          </main>
 
          <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={deleteCustomer} title="Delete Customer" message={`Are you sure you want to delete ${customer.name}? This action cannot be undone.`} confirmText="Yes, Delete" type="danger" />
+         
+         <Modal 
+            isOpen={modalConfig.isOpen} 
+            onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))} 
+            onConfirm={modalConfig.onConfirm} 
+            title={modalConfig.title} 
+            message={modalConfig.message} 
+            type={modalConfig.type} 
+            confirmText={modalConfig.confirmText} 
+         />
 
          <AnimatePresence>
             {isEditModalOpen && (

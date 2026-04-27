@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { MoreVertical, Calendar, Sunrise, Sunset, User, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -57,9 +57,9 @@ export default function Dashboard() {
     router.refresh();
   };
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
-    const today = new Date().toISOString().split('T')[0];
+    const dbShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
 
     const [
       { data: invData },
@@ -70,7 +70,7 @@ export default function Dashboard() {
       { data: setsData }
     ] = await Promise.all([
       supabase.from('inventory').select('*'),
-      supabase.from('deliveries').select('*').eq('delivered', true).eq('delivery_date', today),
+      supabase.from('deliveries').select('*').eq('delivered', true).eq('delivery_date', date).eq('shift', dbShift),
       supabase.from('products').select('*'),
       supabase.from('customer_financials').select('*'),
       supabase.from('customers').select('*', { count: 'exact', head: true }),
@@ -120,7 +120,7 @@ export default function Dashboard() {
       })));
     }
     setIsLoading(false);
-  };
+  }, [shift, date]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -138,7 +138,7 @@ export default function Dashboard() {
       custSub.unsubscribe();
       setSub.unsubscribe();
     };
-  }, []);
+  }, [fetchDashboardData]); 
 
   const handleShiftToggle = (newShift: "morning" | "evening") => {
     setManualOverride(true);

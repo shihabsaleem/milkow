@@ -1,6 +1,6 @@
 -- ==========================================
 -- MILKOW FULL SYSTEM SETUP (SUPABASE)
--- V6 (Production Ready)
+-- V7 (Refined Billing & Multi-Shift)
 -- ==========================================
 
 -- ##########################################
@@ -240,7 +240,7 @@ END $$;
 
 
 -- ##########################################
--- 2. TRIGGER
+-- 2. TRIGGERS
 -- ##########################################
 
 -- UPDATED_AT TRIGGER FUNCTION
@@ -262,30 +262,6 @@ BEGIN
         EXECUTE format('CREATE TRIGGER tr_update_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()', t);
     END LOOP;
 END $$;
-
--- PAYMENT SETTLEMENT TRIGGER FUNCTION
-CREATE OR REPLACE FUNCTION handle_payment_settlement()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Wipe legacy past_outstanding
-    UPDATE customers SET past_outstanding = 0 WHERE id = NEW.customer_id;
-    
-    -- Mark pending bills as paid
-    UPDATE bills SET status = 'Paid' WHERE customer_id = NEW.customer_id AND status = 'Pending';
-    
-    -- Mark delivered items as billed
-    UPDATE deliveries SET billed = true WHERE customer_id = NEW.customer_id AND delivered = true AND billed = false;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- ATTACH PAYMENT SETTLEMENT TRIGGER
-DROP TRIGGER IF EXISTS trg_payment_settlement ON payments;
-CREATE TRIGGER trg_payment_settlement
-AFTER INSERT ON payments
-FOR EACH ROW
-EXECUTE FUNCTION handle_payment_settlement();
 
 
 -- ##########################################
@@ -341,8 +317,9 @@ DECLARE
     total_bill_amount DECIMAL(12, 2);
 BEGIN
     FOR cust_record IN SELECT id, name, default_product_id, default_qty FROM customers LOOP
+        -- 1. Create a Morning Delivery
         INSERT INTO deliveries (customer_id, product_id, milk_qty, shift, delivery_date, delivered, misc_items)
-        VALUES (cust_record.id, cust_record.default_product_id, cust_record.default_qty, 'Morning Only', CURRENT_DATE, TRUE, jsonb_build_array(jsonb_build_object('name', 'Farm Paneer', 'qty', 1)))
+        VALUES (cust_record.id, cust_record.default_product_id, cust_record.default_qty, 'Morning Only', CURRENT_DATE - INTERVAL '1 day', TRUE, jsonb_build_array(jsonb_build_object('name', 'Farm Paneer', 'qty', 1)))
         RETURNING id INTO del_id;
 
         INSERT INTO delivery_items (delivery_id, product_id, quantity, unit_price)
@@ -353,17 +330,32 @@ BEGIN
 
         SELECT SUM(quantity * unit_price) INTO total_bill_amount FROM delivery_items WHERE delivery_id = del_id;
 
+        -- Create a bill for this delivery
         INSERT INTO bills (customer_id, type, amount, status, start_date, end_date, notes)
-        VALUES (cust_record.id, 'Monthly', total_bill_amount, 'Pending', CURRENT_DATE, CURRENT_DATE, 'Auto-generated for delivery')
+        VALUES (cust_record.id, 'Monthly', total_bill_amount, 'Pending', CURRENT_DATE - INTERVAL '1 day', CURRENT_DATE - INTERVAL '1 day', 'Historical Bill')
         RETURNING id INTO bill_id;
 
         INSERT INTO bill_deliveries (bill_id, delivery_id) VALUES (bill_id, del_id);
         UPDATE deliveries SET billed = TRUE WHERE id = del_id;
 
-        IF cust_record.name IN ('Sayas Rahman', 'Adnan Sami') THEN
-            INSERT INTO payments (customer_id, bill_id, amount, method, notes)
-            VALUES (cust_record.id, bill_id, total_bill_amount, 'Cash', 'Paid on delivery');
-            UPDATE bills SET status = 'Paid', paid_at = now() WHERE id = bill_id;
+        -- 2. For Adnan, create another delivery for the same day (Evening)
+        IF cust_record.name = 'Adnan Sami' THEN
+            INSERT INTO deliveries (customer_id, product_id, milk_qty, shift, delivery_date, delivered)
+            VALUES (cust_record.id, cust_record.default_product_id, cust_record.default_qty, 'Evening Only', CURRENT_DATE - INTERVAL '1 day', TRUE)
+            RETURNING id INTO del_id;
+            
+            INSERT INTO delivery_items (delivery_id, product_id, quantity, unit_price)
+            VALUES (del_id, cust_record.default_product_id, cust_record.default_qty, (SELECT price FROM products WHERE id = cust_record.default_product_id));
+            
+            SELECT SUM(quantity * unit_price) INTO total_bill_amount FROM delivery_items WHERE delivery_id = del_id;
+            
+            INSERT INTO bills (customer_id, type, amount, status, start_date, end_date, notes)
+            VALUES (cust_record.id, 'Monthly', total_bill_amount, 'Pending', CURRENT_DATE - INTERVAL '1 day', CURRENT_DATE - INTERVAL '1 day', 'Evening Bill')
+            RETURNING id INTO bill_id;
+            
+            INSERT INTO bill_deliveries (bill_id, delivery_id) VALUES (bill_id, del_id);
+            UPDATE deliveries SET billed = TRUE WHERE id = del_id;
         END IF;
+
     END LOOP;
 END $$;

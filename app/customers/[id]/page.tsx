@@ -18,6 +18,8 @@ export default function CustomerProfilePage() {
    const [financials, setFinancials] = useState<T.CustomerFinancials | null>(null);
    const [bills, setBills] = useState<T.Bill[]>([]);
    const [deliveries, setDeliveries] = useState<T.Delivery[]>([]);
+   const [allUnbilledDeliveries, setAllUnbilledDeliveries] = useState<T.Delivery[]>([]);
+   const [payments, setPayments] = useState<T.Payment[]>([]);
    const [products, setProducts] = useState<T.Product[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [viewDate, setViewDate] = useState(new Date());
@@ -37,6 +39,8 @@ export default function CustomerProfilePage() {
          { data: areaList },
          { data: billsData },
          { data: deliveryData },
+         { data: unbilledData },
+         { data: paymentData },
          { data: productData },
          { data: finData }
       ] = await Promise.all([
@@ -44,6 +48,8 @@ export default function CustomerProfilePage() {
          supabase.from('areas').select('*').order('name', { ascending: true }),
          supabase.from('bills').select('*').eq('customer_id', customerIdParam).order('created_at', { ascending: false }),
          supabase.from('deliveries').select('*').eq('customer_id', customerIdParam).gte('delivery_date', monthStart).lte('delivery_date', monthEnd).order('delivery_date', { ascending: true }),
+         supabase.from('deliveries').select('*').eq('customer_id', customerIdParam).eq('delivered', true).eq('billed', false),
+         supabase.from('payments').select('*').eq('customer_id', customerIdParam).order('payment_date', { ascending: false }),
          supabase.from('products').select('*'),
          supabase.from('customer_financials').select('*').eq('id', customerIdParam).single()
       ]);
@@ -51,6 +57,8 @@ export default function CustomerProfilePage() {
       if (areaList) setAreas(areaList as T.Area[]);
       if (billsData) setBills(billsData as T.Bill[]);
       if (deliveryData) setDeliveries(deliveryData as T.Delivery[]);
+      if (unbilledData) setAllUnbilledDeliveries(unbilledData as T.Delivery[]);
+      if (paymentData) setPayments(paymentData as T.Payment[]);
       if (productData) setProducts(productData as T.Product[]);
       if (finData) setFinancials(finData as T.CustomerFinancials);
 
@@ -84,7 +92,9 @@ export default function CustomerProfilePage() {
    const milkPrice = prices[Object.keys(prices).find(n => n.toLowerCase().includes('milk')) || ''] || 50;
 
    const calculateDeliveryTotal = (d: T.Delivery) => {
-      let total = (Number(d.milk_qty) || 0) * milkPrice;
+      const product = products.find(p => p.id === d.product_id);
+      const basePrice = product ? Number(product.price) : milkPrice;
+      let total = (Number(d.milk_qty) || 0) * basePrice;
       const extras = d.misc_items || [];
       extras.forEach((item: any) => {
          const itemPrice = prices[item.name] || 0;
@@ -93,10 +103,15 @@ export default function CustomerProfilePage() {
       return total;
    };
 
-   const pendingAmount = (bills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + (Number(b.amount) || 0), 0)) + (Number(customer?.past_outstanding) || 0);
    const unbilledDeliveries = deliveries.filter(d => d.delivered && !d.billed);
-   const currentDeliveriesAmount = unbilledDeliveries.reduce((acc, d) => acc + calculateDeliveryTotal(d), 0);
-   const grandTotalAmount = pendingAmount + currentDeliveriesAmount;
+   const currentDeliveriesAmount = allUnbilledDeliveries.reduce((acc, d) => acc + calculateDeliveryTotal(d), 0);
+   
+   const totalBilled = bills.reduce((sum, b) => sum + Number(b.amount), 0);
+   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+   const pastOutstanding = Number(customer?.past_outstanding) || 0;
+   const billsBalance = pastOutstanding + totalBilled - totalPaid;
+   
+   const grandTotalAmount = billsBalance + currentDeliveriesAmount;
 
    const toggleStatus = async () => {
       if (!customer) return;
@@ -155,7 +170,7 @@ export default function CustomerProfilePage() {
 
          if (billError) throw billError;
 
-         const ids = unbilledDeliveries.map(d => d.id);
+         const ids = allUnbilledDeliveries.map(d => d.id);
          await supabase.from('deliveries').update({ billed: true }).in('id', ids);
 
          await fetchData();
@@ -296,12 +311,11 @@ export default function CustomerProfilePage() {
                            {Array.from({ length: daysCount }).map((_, i) => {
                               const day = i + 1;
                               const dateStr = `${yearName}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                              const delivery = deliveries.find(d => d.delivery_date === dateStr);
+                              const dayDeliveries = deliveries.filter(d => d.delivery_date === dateStr && d.delivered);
 
-                              if (!delivery || !delivery.delivered) return null;
+                              if (dayDeliveries.length === 0) return null;
 
-                              const dailyTotal = calculateDeliveryTotal(delivery);
-                              const hasMisc = (delivery.misc_items || []).length > 0;
+                              const dayTotal = dayDeliveries.reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 
                               return (
                                  <div key={i} className="flex items-center justify-between p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
@@ -310,22 +324,26 @@ export default function CustomerProfilePage() {
                                           <span className="text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                           <span className="text-lg leading-none">{day}</span>
                                        </div>
-                                       <div>
-                                          <p className="font-black text-[15px] text-zinc-900">
-                                             {[
-                                                delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
-                                                ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
-                                             ].filter(Boolean).join(' + ')}
-                                          </p>
-                                          <p className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-2 mt-1">
-                                             <span className="text-emerald-600">Delivery Success</span>
-                                             {delivery.billed && <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded text-[8px] border border-zinc-200">BILLED</span>}
-                                          </p>
+                                       <div className="flex flex-row flex-wrap gap-6">
+                                          {dayDeliveries.map((delivery, dIdx) => (
+                                             <div key={dIdx} className={dIdx > 0 ? "pl-6 border-l border-zinc-100" : ""}>
+                                                <p className="font-black text-[15px] text-zinc-900 leading-none">
+                                                   {[
+                                                      delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
+                                                      ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
+                                                   ].filter(Boolean).join(' + ')}
+                                                </p>
+                                                <p className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-2 mt-1">
+                                                   <span className={`px-1.5 py-0.5 rounded text-[8px] border font-black ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
+                                                   {delivery.billed && <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded text-[8px] border border-zinc-200">BILLED</span>}
+                                                </p>
+                                             </div>
+                                          ))}
                                        </div>
                                     </div>
                                     <div className="text-right">
-                                       <p className="font-black text-sm text-zinc-900">₹{dailyTotal.toFixed(0)}</p>
-                                       <p className="text-[10px] font-bold text-zinc-400">DAILY TOTAL</p>
+                                       <p className="font-black text-sm text-zinc-900">₹{dayTotal.toFixed(0)}</p>
+                                       <p className="text-[10px] font-bold text-zinc-400">DAY TOTAL</p>
                                     </div>
                                  </div>
                               );
@@ -356,9 +374,8 @@ export default function CustomerProfilePage() {
                      </span>
                   </div>
                   <div className="flex flex-col gap-2">
-                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Generated Bills</span><span>₹{(pendingAmount - (Number(customer?.past_outstanding) || 0)).toFixed(2)}</span></div>
-                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Unbilled Deliveries</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div>
-                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Past Outstanding</span><span>₹{(Number(customer?.past_outstanding) || 0).toFixed(2)}</span></div>
+                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Outstanding Balance</span><span>₹{billsBalance.toFixed(2)}</span></div>
+                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Unbilled Amount</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div>
                      <div className="flex justify-between items-end mt-2">
                         <span className="text-xs font-black text-zinc-300 uppercase tracking-tighter">Total {grandTotalAmount < 0 ? 'Advance' : 'Payable'}</span>
                         <span className="text-3xl font-black text-primary">₹{Math.abs(grandTotalAmount).toFixed(2)}</span>

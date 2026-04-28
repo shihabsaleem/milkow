@@ -255,8 +255,73 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
   }
 }
 
+
 // ─────────────────────────────────────────────
-// 4. MASTER RUNNER
+// 4. SHIFT CLOSE — AUTO BILL DELIVERED ITEMS
+// ─────────────────────────────────────────────
+
+export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promise<{ ran: boolean; count: number; message: string }> {
+  const today = todayStr();
+  const settingsKey = shift === 'Morning Only' ? 'lastMorningClose' : 'lastEveningClose';
+
+  try {
+    // Guard: only run once per day per shift
+    const { data: settingsData } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'automation')
+      .maybeSingle();
+
+    const settings = (settingsData as any)?.value || {};
+    if (settings[settingsKey] === today) {
+      return { ran: false, count: 0, message: `${shift} already closed for ${today}` };
+    }
+
+    // Find all delivered+unbilled deliveries for this shift today
+    const { data: unbilled, error } = await supabase
+      .from('deliveries')
+      .select('id')
+      .eq('delivery_date', today)
+      .eq('shift', shift)
+      .eq('delivered', true)
+      .eq('billed', false);
+
+    if (error) throw error;
+
+    if (!unbilled || unbilled.length === 0) {
+      // Still stamp the timestamp so we don't re-check repeatedly
+      await supabase.from('system_settings').upsert({
+        key: 'automation',
+        value: { ...settings, [settingsKey]: today }
+      });
+      return { ran: false, count: 0, message: `No unbilled deliveries for ${shift} on ${today}.` };
+    }
+
+    const ids = unbilled.map((d: any) => d.id);
+    const { error: updateError } = await supabase
+      .from('deliveries')
+      .update({ billed: true })
+      .in('id', ids);
+
+    if (updateError) throw updateError;
+
+    // Stamp close time
+    await supabase.from('system_settings').upsert({
+      key: 'automation',
+      value: { ...settings, [settingsKey]: today }
+    });
+
+    console.log(`[Automation] ✅ ${shift} closed — ${ids.length} deliveries marked as billed.`);
+    return { ran: true, count: ids.length, message: `${shift} closed: ${ids.length} deliveries billed.` };
+  } catch (err: any) {
+    const errorMsg = err?.message || String(err);
+    console.error(`[Automation] ❌ Shift close failed (${shift}):`, errorMsg);
+    return { ran: false, count: 0, message: `Shift close failed: ${errorMsg}` };
+  }
+}
+
+// ─────────────────────────────────────────────
+// 5. MASTER RUNNER
 // ─────────────────────────────────────────────
 
 let isRunning = false;
@@ -267,9 +332,17 @@ export async function checkAndRunAutomations(): Promise<void> {
   try {
     console.log("[Automation] 🚀 Running daily checks (Supabase)...");
     await resetDailyRoute();
+
     const hour = new Date().getHours();
-    if (hour >= 18) {
-      await generateDailyBills();
+
+    // Morning shift closes at 12pm (noon)
+    if (hour >= 12) {
+      await closeShift('Morning Only');
+    }
+
+    // Evening shift closes at 10pm
+    if (hour >= 22) {
+      await closeShift('Evening Only');
     }
   } finally {
     isRunning = false;

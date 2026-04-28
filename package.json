@@ -10,7 +10,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@ducanh2912/next-pwa": "^8.7.1",
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.0",
     "framer-motion": "^12.38.0",
@@ -38,6 +38,7 @@
     "vitest": "^4.1.5"
   },
   "overrides": {
-    "serialize-javascript": "7.0.5"
+    "serialize-javascript": "7.0.5",
+    "postcss": "^8.5.10"
   }
 }

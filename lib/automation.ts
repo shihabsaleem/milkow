@@ -14,19 +14,7 @@ function todayStr(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function todayLabel(): string {
-  return new Date().toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
 
-function parsePrice(priceStr: string | number | null | undefined): number {
-  if (!priceStr) return 0;
-  if (typeof priceStr === 'number') return priceStr;
-  return parseInt(priceStr.replace(/\D/g, ""), 10) || 0;
-}
 
 // ─────────────────────────────────────────────
 // 1. DAILY ROUTE RESET

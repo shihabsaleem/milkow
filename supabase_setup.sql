@@ -1,11 +1,16 @@
 -- ==========================================
--- MILKOW FULL SYSTEM SCHEMA (SUPABASE)
--- V6 (Production Ready - Payments Tracking & Customer Details)
+-- MILKOW FULL SYSTEM SETUP (SUPABASE)
+-- V6 (Production Ready)
 -- ==========================================
 
--- 1. SETUP EXTENSIONS & TYPES
+-- ##########################################
+-- 1. DB TABLE DESIGN
+-- ##########################################
+
+-- SETUP EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- CREATE CUSTOM TYPES
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'customer_status') THEN
         CREATE TYPE customer_status AS ENUM ('Active', 'Inactive');
@@ -27,10 +32,10 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- 2. CREATE SEQUENCES
+-- CREATE SEQUENCES
 CREATE SEQUENCE IF NOT EXISTS cust_id_seq START 1001;
 
--- 3. CREATE TABLES
+-- CREATE TABLES
 
 -- Areas: Master list of delivery regions
 CREATE TABLE IF NOT EXISTS areas (
@@ -51,7 +56,7 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Customers: Linked to areas, includes delivery preferences and fractional ordering
+-- Customers: Linked to areas, includes delivery preferences
 CREATE TABLE IF NOT EXISTS customers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cust_id TEXT UNIQUE DEFAULT 'MILKOW' || nextval('cust_id_seq'),
@@ -60,10 +65,10 @@ CREATE TABLE IF NOT EXISTS customers (
     area_id INTEGER,
     frequency delivery_frequency DEFAULT 'Morning Only',
     status customer_status DEFAULT 'Active',
-    delivery_order DECIMAL(20, 10) DEFAULT 0, -- Decimal Midpoint Indexing
+    delivery_order DECIMAL(20, 10) DEFAULT 0,
     default_product_id UUID,
     default_qty INTEGER DEFAULT 1,
-    past_outstanding DECIMAL(12, 2) DEFAULT 0.00, -- Positive = Debt, Negative = Advance/Credit
+    past_outstanding DECIMAL(12, 2) DEFAULT 0.00,
     address TEXT,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -72,12 +77,8 @@ CREATE TABLE IF NOT EXISTS customers (
     CONSTRAINT customers_area_id_fkey FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE SET NULL,
     CONSTRAINT customers_default_product_id_fkey FOREIGN KEY (default_product_id) REFERENCES products(id) ON DELETE SET NULL
 );
-CREATE INDEX IF NOT EXISTS idx_customers_area_id ON customers(area_id);
-CREATE INDEX IF NOT EXISTS idx_customers_default_product_id ON customers(default_product_id);
-CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status);
-CREATE INDEX IF NOT EXISTS idx_customers_delivery_order ON customers(delivery_order);
 
--- Inventory: Tracking physical stock/loading, linked to products
+-- Inventory: Tracking physical stock/loading
 CREATE TABLE IF NOT EXISTS inventory (
     id SERIAL PRIMARY KEY,
     product_id UUID,
@@ -90,17 +91,16 @@ CREATE TABLE IF NOT EXISTS inventory (
     
     CONSTRAINT inventory_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 );
-CREATE INDEX IF NOT EXISTS idx_inventory_product_id ON inventory(product_id);
 
--- Deliveries: Core transaction table (Header)
+-- Deliveries: Core transaction header
 CREATE TABLE IF NOT EXISTS deliveries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL,
     delivery_date DATE NOT NULL DEFAULT CURRENT_DATE,
     shift shift_type NOT NULL,
-    product_id UUID, -- Legacy/Quick access to primary product
+    product_id UUID,
     milk_qty INTEGER DEFAULT 0,
-    misc_items JSONB DEFAULT '[]'::jsonb, -- Kept for migration/flexibility
+    misc_items JSONB DEFAULT '[]'::jsonb,
     delivered BOOLEAN DEFAULT FALSE,
     inventory_deducted BOOLEAN DEFAULT FALSE,
     billed BOOLEAN DEFAULT FALSE,
@@ -112,10 +112,6 @@ CREATE TABLE IF NOT EXISTS deliveries (
     CONSTRAINT deliveries_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
     CONSTRAINT unique_customer_delivery UNIQUE (customer_id, delivery_date, shift)
 );
-CREATE INDEX IF NOT EXISTS idx_deliveries_customer_id ON deliveries(customer_id);
-CREATE INDEX IF NOT EXISTS idx_deliveries_product_id ON deliveries(product_id);
-CREATE INDEX IF NOT EXISTS idx_deliveries_date ON deliveries(delivery_date);
-CREATE INDEX IF NOT EXISTS idx_deliveries_composite_lookup ON deliveries(delivery_date, shift);
 
 -- Delivery Items: Normalized items per delivery
 CREATE TABLE IF NOT EXISTS delivery_items (
@@ -129,10 +125,8 @@ CREATE TABLE IF NOT EXISTS delivery_items (
     CONSTRAINT delivery_items_delivery_id_fkey FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE,
     CONSTRAINT delivery_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
 );
-CREATE INDEX IF NOT EXISTS idx_delivery_items_delivery_id ON delivery_items(delivery_id);
-CREATE INDEX IF NOT EXISTS idx_delivery_items_product_id ON delivery_items(product_id);
 
--- Bills: Aggregated charges for customers
+-- Bills: Aggregated charges
 CREATE TABLE IF NOT EXISTS bills (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL,
@@ -149,10 +143,8 @@ CREATE TABLE IF NOT EXISTS bills (
     
     CONSTRAINT bills_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_bills_customer_id ON bills(customer_id);
-CREATE INDEX IF NOT EXISTS idx_bills_status ON bills(status);
 
--- Bill Deliveries: Junction table linking deliveries to specific bills
+-- Bill Deliveries: Junction table
 CREATE TABLE IF NOT EXISTS bill_deliveries (
     bill_id UUID NOT NULL,
     delivery_id UUID NOT NULL,
@@ -161,11 +153,11 @@ CREATE TABLE IF NOT EXISTS bill_deliveries (
     CONSTRAINT bill_deliveries_delivery_id_fkey FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE
 );
 
--- Payments: Tracking individual collection events
+-- Payments: Individual collection events
 CREATE TABLE IF NOT EXISTS payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL,
-    bill_id UUID, -- Nullable to support advance payments not yet tied to a bill
+    bill_id UUID,
     amount DECIMAL(12, 2) NOT NULL,
     method payment_method DEFAULT 'Cash',
     transaction_ref TEXT,
@@ -177,8 +169,6 @@ CREATE TABLE IF NOT EXISTS payments (
     CONSTRAINT payments_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
     CONSTRAINT payments_bill_id_fkey FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON payments(customer_id);
-CREATE INDEX IF NOT EXISTS idx_payments_bill_id ON payments(bill_id);
 
 -- System Settings: Global configurations
 CREATE TABLE IF NOT EXISTS system_settings (
@@ -187,7 +177,18 @@ CREATE TABLE IF NOT EXISTS system_settings (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. VIEWS
+-- INDEXES
+CREATE INDEX IF NOT EXISTS idx_customers_area_id ON customers(area_id);
+CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status);
+CREATE INDEX IF NOT EXISTS idx_inventory_product_id ON inventory(product_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_customer_id ON deliveries(customer_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_date ON deliveries(delivery_date);
+CREATE INDEX IF NOT EXISTS idx_delivery_items_delivery_id ON delivery_items(delivery_id);
+CREATE INDEX IF NOT EXISTS idx_bills_customer_id ON bills(customer_id);
+CREATE INDEX IF NOT EXISTS idx_bills_status ON bills(status);
+CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON payments(customer_id);
+
+-- VIEWS
 CREATE OR REPLACE VIEW customer_financials AS
 WITH bill_summary AS (
     SELECT customer_id, COALESCE(SUM(amount), 0) as total_billed
@@ -214,26 +215,7 @@ FROM customers c
 LEFT JOIN bill_summary bs ON bs.customer_id = c.id
 LEFT JOIN payment_summary ps ON ps.customer_id = c.id;
 
--- 5. UPDATED_AT TRIGGERS
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = now();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-DO $$ 
-DECLARE 
-    t text;
-BEGIN
-    FOR t IN (SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'updated_at') LOOP
-        EXECUTE format('DROP TRIGGER IF EXISTS tr_update_updated_at ON %I', t);
-        EXECUTE format('CREATE TRIGGER tr_update_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()', t);
-    END LOOP;
-END $$;
-
--- 6. ROW LEVEL SECURITY (RLS)
+-- ROW LEVEL SECURITY (RLS)
 ALTER TABLE areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
@@ -245,7 +227,7 @@ ALTER TABLE bill_deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
--- ALLOW ALL FOR AUTHENTICATED USERS (Simple internal app policy)
+-- POLICIES
 DO $$ 
 DECLARE 
     t text;
@@ -256,3 +238,132 @@ BEGIN
     END LOOP;
 END $$;
 
+
+-- ##########################################
+-- 2. TRIGGER
+-- ##########################################
+
+-- UPDATED_AT TRIGGER FUNCTION
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- ATTACH UPDATED_AT TRIGGERS
+DO $$ 
+DECLARE 
+    t text;
+BEGIN
+    FOR t IN (SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'updated_at') LOOP
+        EXECUTE format('DROP TRIGGER IF EXISTS tr_update_updated_at ON %I', t);
+        EXECUTE format('CREATE TRIGGER tr_update_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()', t);
+    END LOOP;
+END $$;
+
+-- PAYMENT SETTLEMENT TRIGGER FUNCTION
+CREATE OR REPLACE FUNCTION handle_payment_settlement()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Wipe legacy past_outstanding
+    UPDATE customers SET past_outstanding = 0 WHERE id = NEW.customer_id;
+    
+    -- Mark pending bills as paid
+    UPDATE bills SET status = 'Paid' WHERE customer_id = NEW.customer_id AND status = 'Pending';
+    
+    -- Mark delivered items as billed
+    UPDATE deliveries SET billed = true WHERE customer_id = NEW.customer_id AND delivered = true AND billed = false;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ATTACH PAYMENT SETTLEMENT TRIGGER
+DROP TRIGGER IF EXISTS trg_payment_settlement ON payments;
+CREATE TRIGGER trg_payment_settlement
+AFTER INSERT ON payments
+FOR EACH ROW
+EXECUTE FUNCTION handle_payment_settlement();
+
+
+-- ##########################################
+-- 3. DUMMY DATA
+-- ##########################################
+
+-- CLEAR DATA
+TRUNCATE bill_deliveries, delivery_items, payments, bills, deliveries, inventory, customers, products, areas CASCADE;
+
+-- INSERT AREAS
+INSERT INTO areas (name) VALUES ('North Sector'), ('Downtown Hub'), ('Green Valley'), ('South Ridge');
+
+-- INSERT PRODUCTS
+INSERT INTO products (name, size, price, stock, unit) VALUES 
+('Raw Buffalo Milk', '1L', 65.00, 100, 'Bottles'),
+('Pure Cow Milk', '1L', 55.00, 150, 'Bottles'),
+('Fresh Curd', '500g', 45.00, 50, 'Packets'),
+('Artisan Ghee', '500g', 450.00, 20, 'Items'),
+('Farm Paneer', '200g', 120.00, 30, 'Packets');
+
+-- SYNC INVENTORY
+INSERT INTO inventory (product_id, name, vol, count, loaded, unit)
+SELECT id, name, size, stock, stock / 2, unit FROM products;
+
+-- INSERT CUSTOMERS
+DO $$ 
+DECLARE 
+    north_id INTEGER := (SELECT id FROM areas WHERE name = 'North Sector' LIMIT 1);
+    green_id INTEGER := (SELECT id FROM areas WHERE name = 'Green Valley' LIMIT 1);
+    milk_id UUID := (SELECT id FROM products WHERE name = 'Raw Buffalo Milk' LIMIT 1);
+    cow_id UUID := (SELECT id FROM products WHERE name = 'Pure Cow Milk' LIMIT 1);
+BEGIN
+    INSERT INTO customers (name, phone, area_id, frequency, default_product_id, default_qty, past_outstanding, delivery_order)
+    VALUES 
+    ('Sayas Rahman', '9876543210', north_id, 'Morning Only', milk_id, 2, 0.00, 1000.00),
+    ('Adnan Sami', '9123456789', north_id, 'Morning & Evening', cow_id, 1, 150.00, 2000.00),
+    ('Fatima Begum', '9223344556', green_id, 'Morning Only', milk_id, 1, -200.00, 1000.00),
+    ('Rahul Khanna', '9988776655', north_id, 'Evening Only', cow_id, 3, 0.00, 3000.00);
+END $$;
+
+-- INSERT SYSTEM SETTINGS
+INSERT INTO system_settings (key, value) VALUES 
+('general', '{"system_user": {"name": "Milkow Admin"}, "payment": {"upi_id": "milkow@upi", "payee_name": "Milkow Distributions", "currency_code": "INR"}}'::jsonb),
+('daily_prices', jsonb_build_object(CURRENT_DATE::text, (SELECT jsonb_object_agg(name, price) FROM products)));
+
+-- INSERT TRANSACTIONS (DELIVERIES, BILLS, PAYMENTS)
+DO $$ 
+DECLARE 
+    cust_record RECORD;
+    paneer_id UUID := (SELECT id FROM products WHERE name = 'Farm Paneer' LIMIT 1);
+    del_id UUID;
+    bill_id UUID;
+    total_bill_amount DECIMAL(12, 2);
+BEGIN
+    FOR cust_record IN SELECT id, name, default_product_id, default_qty FROM customers LOOP
+        INSERT INTO deliveries (customer_id, product_id, milk_qty, shift, delivery_date, delivered, misc_items)
+        VALUES (cust_record.id, cust_record.default_product_id, cust_record.default_qty, 'Morning Only', CURRENT_DATE, TRUE, jsonb_build_array(jsonb_build_object('name', 'Farm Paneer', 'qty', 1)))
+        RETURNING id INTO del_id;
+
+        INSERT INTO delivery_items (delivery_id, product_id, quantity, unit_price)
+        VALUES (del_id, cust_record.default_product_id, cust_record.default_qty, (SELECT price FROM products WHERE id = cust_record.default_product_id));
+
+        INSERT INTO delivery_items (delivery_id, product_id, quantity, unit_price)
+        VALUES (del_id, paneer_id, 1, (SELECT price FROM products WHERE id = paneer_id));
+
+        SELECT SUM(quantity * unit_price) INTO total_bill_amount FROM delivery_items WHERE delivery_id = del_id;
+
+        INSERT INTO bills (customer_id, type, amount, status, start_date, end_date, notes)
+        VALUES (cust_record.id, 'Monthly', total_bill_amount, 'Pending', CURRENT_DATE, CURRENT_DATE, 'Auto-generated for delivery')
+        RETURNING id INTO bill_id;
+
+        INSERT INTO bill_deliveries (bill_id, delivery_id) VALUES (bill_id, del_id);
+        UPDATE deliveries SET billed = TRUE WHERE id = del_id;
+
+        IF cust_record.name IN ('Sayas Rahman', 'Adnan Sami') THEN
+            INSERT INTO payments (customer_id, bill_id, amount, method, notes)
+            VALUES (cust_record.id, bill_id, total_bill_amount, 'Cash', 'Paid on delivery');
+            UPDATE bills SET status = 'Paid', paid_at = now() WHERE id = bill_id;
+        END IF;
+    END LOOP;
+END $$;

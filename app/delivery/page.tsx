@@ -114,7 +114,7 @@ export default function DeliveryPage() {
 
       const currentExtras = stop.misc_items || [];
       const itemIndex = currentExtras.findIndex((item: any) => item.name === productName);
-      let updatedExtras = [...currentExtras];
+      const updatedExtras = [...currentExtras];
 
       if (itemIndex > -1) {
          const newQty = Math.max(0, updatedExtras[itemIndex].qty + delta);

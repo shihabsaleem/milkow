@@ -55,7 +55,14 @@ export default function UserProfilePage() {
             }
          });
 
+         // Also update the actual Supabase login password if PIN is provided
+         if (pin && pin.length >= 6) {
+            const { error: authError } = await supabase.auth.updateUser({ password: pin });
+            if (authError) throw authError;
+         }
+
          setIsSaved(true);
+         setPin("");
          setTimeout(() => setIsSaved(false), 2000);
       } catch (e: unknown) {
          const err = e as Error;

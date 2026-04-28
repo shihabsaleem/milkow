@@ -67,7 +67,7 @@ export default function LoginPage() {
                      alt="Milkow Logo"
                      width={192}
                      height={40}
-                     className="object-contain"
+                     className="object-contain min-w-[150px] w-auto"
                      priority
                   />
                </motion.div>
@@ -76,36 +76,46 @@ export default function LoginPage() {
             </div>
 
             {/* Login Card */}
-            <div className="bg-white rounded-[2rem] p-8 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] border border-zinc-100 relative group overflow-hidden">
-               {/* Accent line */}
-               <div className="absolute top-0 left-0 right-0 h-1.5 bg-primary/10" />
+            <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.04)] border border-white relative group overflow-visible">
+               {/* Subtle background glow for the card */}
+               <div className="absolute -inset-1 bg-gradient-to-br from-primary/20 to-emerald-400/20 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-70 transition-opacity -z-10" />
+               <div className="absolute inset-0 bg-white/60 rounded-[2.5rem] -z-10 backdrop-blur-3xl" />
 
-               <form onSubmit={handleLogin} className="flex flex-col gap-6">
-                  <div className="flex flex-col gap-1.5">
-                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Email</label>
-                     <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300" size={18} />
+               <div className="text-center mb-8">
+                   <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Welcome Back</h2>
+                   <p className="text-xs font-medium text-zinc-500 mt-1.5">Sign in securely to your dashboard</p>
+               </div>
+
+               <form onSubmit={handleLogin} className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-1.5 relative group/input">
+                     <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
+                     <div className="relative flex items-center">
+                        <div className="absolute left-4 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors">
+                           <Mail size={18} strokeWidth={2.5} />
+                        </div>
                         <input
                            type="email"
                            value={email}
                            onChange={(e) => setEmail(e.target.value)}
-                           className="w-full bg-slate-50 border border-zinc-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-zinc-300 placeholder:font-medium"
-                           placeholder="info@milkow.in"
+                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2 border-zinc-100 hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
+                           placeholder="Email address"
                            required
                         />
                      </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Password</label>
-                     <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300" size={18} />
+                  <div className="flex flex-col gap-1.5 relative group/input">
+                     <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
+                     <div className="relative flex items-center">
+                        <div className="absolute left-4 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors">
+                           <Lock size={18} strokeWidth={2.5} />
+                        </div>
                         <input
                            type="password"
                            value={password}
                            onChange={(e) => setPassword(e.target.value)}
-                           className="w-full bg-slate-50 border border-zinc-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-zinc-300"
-                           placeholder="••••••••"
+                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2 border-zinc-100 hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
+                           placeholder="Password"
                            required
                         />
                      </div>
@@ -114,11 +124,12 @@ export default function LoginPage() {
                   <AnimatePresence>
                      {error && (
                         <motion.div
-                           initial={{ opacity: 0, height: 0 }}
-                           animate={{ opacity: 1, height: "auto" }}
-                           exit={{ opacity: 0, height: 0 }}
-                           className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-xl text-xs font-bold"
+                           initial={{ opacity: 0, height: 0, y: -10 }}
+                           animate={{ opacity: 1, height: "auto", y: 0 }}
+                           exit={{ opacity: 0, height: 0, y: -10 }}
+                           className="bg-rose-50/80 backdrop-blur-md border border-rose-100 text-rose-600 px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2 overflow-hidden"
                         >
+                           <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
                            {error}
                         </motion.div>
                      )}
@@ -127,14 +138,15 @@ export default function LoginPage() {
                   <button
                      disabled={isLoading}
                      type="submit"
-                     className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/20 hover:shadow-primary/30 active:scale-95 transition-all flex items-center justify-center gap-3 relative overflow-hidden group/btn disabled:opacity-70"
+                     className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-4 rounded-2xl shadow-[0_8px_20px_-8px_rgba(0,0,0,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative overflow-hidden group/btn disabled:opacity-70 mt-2"
                   >
+                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
                      {isLoading ? (
                         <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                      ) : (
                         <>
-                           Login
-                           <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
+                           Sign In Securely
+                           <ArrowRight size={18} className="group-hover/btn:translate-x-1 group-hover/btn:scale-110 transition-all" />
                         </>
                      )}
                   </button>

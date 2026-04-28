@@ -192,7 +192,7 @@ export default function Dashboard() {
               <p className="text-[12px] font-medium leading-none mt-0.5 text-white/70">{dayName}</p>
             </div>
             <div className="ml-auto pointer-events-none flex items-center gap-1 text-white/50"><Calendar size={14} strokeWidth={2} /><span className="text-[11px] font-medium">Tap to change</span></div>
-            <input ref={inputRef} type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-base z-10" value={date} onChange={e => setDate(e.target.value)} />
+            <input ref={inputRef} type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-base z-10" value={date} onChange={e => setDate(e.target.value)} onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) {} }} />
           </div>
 
           <div className="grid grid-cols-2 p-1 rounded-2xl bg-[#EBEBEF] relative h-14">

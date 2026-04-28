@@ -6,10 +6,10 @@ import { Plus, Search, MapPin, ChevronRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import Modal from "@/components/Modal";
+import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
 import { checkAndRunAutomations } from "@/lib/automation";
-import CustomSelect from "@/components/CustomSelect";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -40,8 +40,8 @@ export default function CustomersPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     const [
-      { data: custs }, 
-      { data: areaList }, 
+      { data: custs },
+      { data: areaList },
       { data: productList },
       { data: financialData }
     ] = await Promise.all([
@@ -92,7 +92,7 @@ export default function CustomersPage() {
     isOpen: false,
     title: "",
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'info'
   });
 
@@ -151,7 +151,7 @@ export default function CustomersPage() {
         default_product_id: ""
       });
       await fetchData();
-      
+
       setModalConfig({
         isOpen: true,
         title: "Registration Success",
@@ -194,7 +194,7 @@ export default function CustomersPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
               <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
             </div>
-            <CustomSelect 
+            <CustomSelect
               fullWidth={false}
               className="min-w-[160px]"
               options={[
@@ -230,12 +230,12 @@ export default function CustomersPage() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right mr-2">
-                   <p className={`text-[14px] font-black ${customer.financials && customer.financials.current_balance < 0 ? 'text-emerald-600' : 'text-zinc-900'}`}>
-                      ₹{Math.abs(customer.financials?.current_balance || 0).toLocaleString()}
-                   </p>
-                   <p className={`text-[10px] font-bold uppercase tracking-tighter ${customer.financials && customer.financials.current_balance < 0 ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                      {customer.financials && customer.financials.current_balance < 0 ? 'Advance' : 'Credit'}
-                   </p>
+                  <p className={`text-[14px] font-black ${customer.financials && customer.financials.current_balance < 0 ? 'text-emerald-600' : 'text-zinc-900'}`}>
+                    ₹{Math.abs(customer.financials?.current_balance || 0).toLocaleString()}
+                  </p>
+                  <p className={`text-[10px] font-bold uppercase tracking-tighter ${customer.financials && customer.financials.current_balance < 0 ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                    {customer.financials && customer.financials.current_balance < 0 ? 'Advance' : 'Credit'}
+                  </p>
                 </div>
                 <button
                   onClick={(e) => {
@@ -253,8 +253,8 @@ export default function CustomersPage() {
           ))
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
-             <Search size={48} className="mb-4" />
-             <p className="font-bold text-zinc-500">No customers found</p>
+            <Search size={48} className="mb-4" />
+            <p className="font-bold text-zinc-500">No customers found</p>
           </div>
         )}
       </main>
@@ -269,7 +269,7 @@ export default function CustomersPage() {
                 <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus placeholder="e.g. Sayas Rahman" value={newCustomer.name} onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</label><input placeholder="9876543210" value={newCustomer.phone} onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                  <CustomSelect 
+                  <CustomSelect
                     label="Route"
                     options={areas.map(a => ({ value: a.id.toString(), label: a.name }))}
                     value={newCustomer.area_id}
@@ -277,7 +277,7 @@ export default function CustomersPage() {
                     placeholder="Select Route"
                   />
                 </div>
-                <CustomSelect 
+                <CustomSelect
                   label="Delivery Frequency"
                   options={[
                     { value: "Morning Only", label: "Morning Only" },
@@ -288,7 +288,7 @@ export default function CustomersPage() {
                   onChange={val => setNewCustomer({ ...newCustomer, frequency: val })}
                 />
                 <div className="grid grid-cols-2 gap-3">
-                  <CustomSelect 
+                  <CustomSelect
                     label="Daily Product"
                     options={products.map(p => ({ value: p.id, label: `${p.name} (${p.size})` }))}
                     value={newCustomer.default_product_id}
@@ -313,14 +313,14 @@ export default function CustomersPage() {
           </div>
         )}
       </AnimatePresence>
-      <Modal 
-        isOpen={modalConfig.isOpen} 
-        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))} 
-        onConfirm={modalConfig.onConfirm} 
-        title={modalConfig.title} 
-        message={modalConfig.message} 
-        type={modalConfig.type} 
-        confirmText={modalConfig.confirmText} 
+      <Modal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
       />
     </div>
   );

@@ -82,8 +82,8 @@ export default function LoginPage() {
                <div className="absolute inset-0 bg-white/60 rounded-[2.5rem] -z-10 backdrop-blur-3xl" />
 
                <div className="text-center mb-8">
-                   <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Welcome Back</h2>
-                   <p className="text-xs font-medium text-zinc-500 mt-1.5">Sign in securely to your dashboard</p>
+                  <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Welcome Back</h2>
+                  <p className="text-xs font-medium text-zinc-500 mt-1.5">Sign in securely to your dashboard</p>
                </div>
 
                <form onSubmit={handleLogin} className="flex flex-col gap-5">

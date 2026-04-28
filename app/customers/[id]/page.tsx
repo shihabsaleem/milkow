@@ -5,9 +5,9 @@ import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X } from "luci
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import Modal from "@/components/Modal";
+import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
-import CustomSelect from "@/components/CustomSelect";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 export default function CustomerProfilePage() {
    const params = useParams();
@@ -166,22 +166,22 @@ export default function CustomerProfilePage() {
       }
    };
 
-    const [modalConfig, setModalConfig] = useState<{
-        isOpen: boolean;
-        title: string;
-        message: string;
-        onConfirm: () => void;
-        type: 'danger' | 'info' | 'success';
-        confirmText?: string;
-    }>({
-        isOpen: false,
-        title: "",
-        message: "",
-        onConfirm: () => {},
-        type: 'info'
-    });
+   const [modalConfig, setModalConfig] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      onConfirm: () => void;
+      type: 'danger' | 'info' | 'success';
+      confirmText?: string;
+   }>({
+      isOpen: false,
+      title: "",
+      message: "",
+      onConfirm: () => { },
+      type: 'info'
+   });
 
-    const handleMarkAsPaid = async () => {
+   const handleMarkAsPaid = async () => {
       if (!customer || grandTotalAmount <= 0) return;
       try {
          setIsLoading(true);
@@ -216,7 +216,7 @@ export default function CustomerProfilePage() {
       } finally {
          setIsLoading(false);
       }
-    };
+   };
 
    const changeMonth = (delta: number) => {
       const newDate = new Date(viewDate);
@@ -313,8 +313,8 @@ export default function CustomerProfilePage() {
                                        <div>
                                           <p className="font-black text-[15px] text-zinc-900">
                                              {[
-                                               delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
-                                               ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
+                                                delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
+                                                ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
                                              ].filter(Boolean).join(' + ')}
                                           </p>
                                           <p className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-2 mt-1">
@@ -391,15 +391,15 @@ export default function CustomerProfilePage() {
          </main>
 
          <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={deleteCustomer} title="Delete Customer" message={`Are you sure you want to delete ${customer.name}? This action cannot be undone.`} confirmText="Yes, Delete" type="danger" />
-         
-         <Modal 
-            isOpen={modalConfig.isOpen} 
-            onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))} 
-            onConfirm={modalConfig.onConfirm} 
-            title={modalConfig.title} 
-            message={modalConfig.message} 
-            type={modalConfig.type} 
-            confirmText={modalConfig.confirmText} 
+
+         <Modal
+            isOpen={modalConfig.isOpen}
+            onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+            onConfirm={modalConfig.onConfirm}
+            title={modalConfig.title}
+            message={modalConfig.message}
+            type={modalConfig.type}
+            confirmText={modalConfig.confirmText}
          />
 
          <AnimatePresence>

@@ -4,8 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Plus, ChevronRight, X, Calendar as CalendarIcon, Droplet, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-import Modal from "@/components/Modal";
-import CustomSelect from "@/components/CustomSelect";
+import Modal from "@/components/ui/Modal";
+import CustomSelect from "@/components/ui/CustomSelect";
 import * as T from "@/types/database";
 
 type PipelineStage = { label: string; value: number; unit: string; id: number; productId?: string | number };
@@ -18,7 +18,7 @@ export default function InventoryPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
-  
+
   // Close Shift States
   const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
   const [closingShift, setClosingShift] = useState("Morning Only");
@@ -36,7 +36,7 @@ export default function InventoryPage() {
     isOpen: false,
     title: "",
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'info'
   });
 
@@ -47,9 +47,9 @@ export default function InventoryPage() {
 
   const openEditModal = (index: number) => {
     setEditingIndex(index);
-    setNewProduct({ 
-      ...products[index], 
-      stock: products[index].stock?.toString() || "0", 
+    setNewProduct({
+      ...products[index],
+      stock: products[index].stock?.toString() || "0",
       price: Number(products[index].price) || 0,
       unit: products[index].unit || "Bottles"
     });
@@ -83,45 +83,45 @@ export default function InventoryPage() {
     e.preventDefault();
     if (!newProduct.name || !newProduct.price) return;
     try {
-       const productToSave = {
-         name: newProduct.name,
-         size: newProduct.size,
-         stock: parseInt(newProduct.stock.toString() || "0"),
-         price: Number(newProduct.price) || 0,
-         unit: newProduct.unit
-       };
-       
-       if (editingIndex !== null && products[editingIndex].id) {
-          await supabase.from('products').update(productToSave).eq('id', products[editingIndex].id);
-          // Also update inventory name and count if it exists
-          await supabase.from('inventory').update({ 
-             name: productToSave.name, 
-             unit: productToSave.unit,
-             count: productToSave.stock 
-          }).eq('product_id', products[editingIndex].id);
-       } else {
-          const { data: insertedProduct, error: insertError } = await supabase.from('products').insert(productToSave).select().single();
-          if (!insertError && insertedProduct) {
-             await supabase.from('inventory').insert({
-                product_id: insertedProduct.id,
-                name: insertedProduct.name,
-                unit: insertedProduct.unit,
-                count: productToSave.stock,
-                loaded: Math.floor(productToSave.stock / 2),
-                vol: insertedProduct.size
-             });
-          }
-       }
-       setIsModalOpen(false);
-       setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
-       setEditingIndex(null);
-       await fetchData();
+      const productToSave = {
+        name: newProduct.name,
+        size: newProduct.size,
+        stock: parseInt(newProduct.stock.toString() || "0"),
+        price: Number(newProduct.price) || 0,
+        unit: newProduct.unit
+      };
+
+      if (editingIndex !== null && products[editingIndex].id) {
+        await supabase.from('products').update(productToSave).eq('id', products[editingIndex].id);
+        // Also update inventory name and count if it exists
+        await supabase.from('inventory').update({
+          name: productToSave.name,
+          unit: productToSave.unit,
+          count: productToSave.stock
+        }).eq('product_id', products[editingIndex].id);
+      } else {
+        const { data: insertedProduct, error: insertError } = await supabase.from('products').insert(productToSave).select().single();
+        if (!insertError && insertedProduct) {
+          await supabase.from('inventory').insert({
+            product_id: insertedProduct.id,
+            name: insertedProduct.name,
+            unit: insertedProduct.unit,
+            count: productToSave.stock,
+            loaded: Math.floor(productToSave.stock / 2),
+            vol: insertedProduct.size
+          });
+        }
+      }
+      setIsModalOpen(false);
+      setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
+      setEditingIndex(null);
+      await fetchData();
     } catch (err) { console.error(err); }
   };
 
   const handleDeleteProduct = async () => {
     if (editingIndex === null || !products[editingIndex].id) return;
-    
+
     setModalConfig({
       isOpen: true,
       title: "Delete Product",
@@ -130,16 +130,16 @@ export default function InventoryPage() {
       confirmText: "Delete",
       onConfirm: async () => {
         try {
-           const productId = products[editingIndex].id;
-           // 1. Delete from products
-           await supabase.from('products').delete().eq('id', productId);
-           // 2. Delete from inventory
-           await supabase.from('inventory').delete().eq('product_id', productId);
-           
-           setIsModalOpen(false);
-           setEditingIndex(null);
-           setModalConfig(prev => ({ ...prev, isOpen: false }));
-           await fetchData();
+          const productId = products[editingIndex].id;
+          // 1. Delete from products
+          await supabase.from('products').delete().eq('id', productId);
+          // 2. Delete from inventory
+          await supabase.from('inventory').delete().eq('product_id', productId);
+
+          setIsModalOpen(false);
+          setEditingIndex(null);
+          setModalConfig(prev => ({ ...prev, isOpen: false }));
+          await fetchData();
         } catch (err) { console.error(err); }
       }
     });
@@ -147,22 +147,22 @@ export default function InventoryPage() {
 
   const updatePipelineValue = async (id: number, newValue: string) => {
     const numValue = parseInt(newValue) || 0;
-    
+
     // 1. Optimistic UI update
     setPipeline(prev => prev.map(p => p.id === id ? { ...p, value: numValue } : p));
 
     try {
-       // 2. Sync to Supabase
-       const { error } = await supabase.from('inventory').update({ count: numValue }).eq('id', id);
-       if (error) throw error;
+      // 2. Sync to Supabase
+      const { error } = await supabase.from('inventory').update({ count: numValue }).eq('id', id);
+      if (error) throw error;
 
-       // 3. Update linked Product stock
-       const stage = pipeline.find(p => p.id === id);
-       if (stage?.productId) {
-          await supabase.from('products').update({ stock: numValue }).eq('id', stage.productId);
-       }
-    } catch (err) { 
-       console.error(err);
+      // 3. Update linked Product stock
+      const stage = pipeline.find(p => p.id === id);
+      if (stage?.productId) {
+        await supabase.from('products').update({ stock: numValue }).eq('id', stage.productId);
+      }
+    } catch (err) {
+      console.error(err);
       // Revert if failed (fetch data again)
       const { data } = await supabase.from('inventory').select('*').not('product_id', 'is', null);
       if (data) setPipeline((data as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
@@ -176,7 +176,7 @@ export default function InventoryPage() {
       const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
       const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
       const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
-      
+
       // Save it grouped by Date -> Shift
       const todayData = dailyPrices[date] || {};
       todayData[closingShift] = {
@@ -249,20 +249,20 @@ export default function InventoryPage() {
           <div className="flex items-center justify-between mb-3"><p className="text-[12px] font-bold uppercase tracking-widest text-zinc-400">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="text-[12px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all text-primary bg-primary/10"><Plus size={13} /> Add</button></div>
           <div className="flex flex-col gap-2.5">
             {isLoading ? (
-               [1, 2, 3].map(i => <div key={i} className="h-20 bg-white border border-black/5 rounded-2xl animate-pulse" />)
+              [1, 2, 3].map(i => <div key={i} className="h-20 bg-white border border-black/5 rounded-2xl animate-pulse" />)
             ) : (
-               products.map((p, i) => (
-                  <div key={i} onClick={() => openEditModal(i)} className="flex items-center justify-between p-4 rounded-2xl border transition-colors cursor-pointer bg-white border-black/5">
-                     <div><p className="text-[15px] font-bold text-zinc-900">{p.name}</p><p className="text-[12px] font-medium mt-0.5 text-zinc-400">{p.size} · {p.stock} in stock</p></div>
-                     <div className="flex flex-col items-end"><p className="text-[16px] font-black text-primary">₹{p.price}</p><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Selling Price</p></div>
-                  </div>
-               ))
+              products.map((p, i) => (
+                <div key={i} onClick={() => openEditModal(i)} className="flex items-center justify-between p-4 rounded-2xl border transition-colors cursor-pointer bg-white border-black/5">
+                  <div><p className="text-[15px] font-bold text-zinc-900">{p.name}</p><p className="text-[12px] font-medium mt-0.5 text-zinc-400">{p.size} · {p.stock} in stock</p></div>
+                  <div className="flex flex-col items-end"><p className="text-[16px] font-black text-primary">₹{p.price}</p><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Selling Price</p></div>
+                </div>
+              ))
             )}
           </div>
         </div>
 
         <button onClick={() => setIsCloseShiftModalOpen(true)} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">
-           Close Shift
+          Close Shift
         </button>
       </div>
 
@@ -280,7 +280,7 @@ export default function InventoryPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Initial Stock</label><input type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                  <CustomSelect 
+                  <CustomSelect
                     label="Unit"
                     options={[
                       { value: "Bottles", label: "Bottles" },
@@ -383,7 +383,7 @@ export default function InventoryPage() {
         )}
       </AnimatePresence>
 
-      <Modal 
+      <Modal
         isOpen={modalConfig.isOpen}
         onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
         onConfirm={modalConfig.onConfirm}

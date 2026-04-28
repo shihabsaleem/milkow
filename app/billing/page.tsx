@@ -46,7 +46,7 @@ export default function BillingPage() {
       ]);
 
       if (routeSets) setRoutesList(routeSets as T.Area[]);
-      
+
       const prods = (productList || []) as T.Product[];
       setProducts(prods);
       const prices: Record<string, number> = {};
@@ -77,10 +77,10 @@ export default function BillingPage() {
                type: 'Ledger' as any,
                status: 'Pending',
                created_at: new Date().toISOString(),
-               customer: { 
-                  id: fin.id, 
-                  name: fin.name, 
-                  area_id: (financialsData as any[]).find(f => f.id === fin.id)?.area_id || null 
+               customer: {
+                  id: fin.id,
+                  name: fin.name,
+                  area_id: (financialsData as any[]).find(f => f.id === fin.id)?.area_id || null
                } as any
             });
          }
@@ -97,7 +97,7 @@ export default function BillingPage() {
    // 1. DATA LOAD & SYNC
    useEffect(() => {
       fetchData();
-      
+
       const sub = supabase.channel('bills_page')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)

@@ -166,7 +166,7 @@ export default function DeliveryPage() {
 
       const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSearch;
-   });
+   }).sort((a, b) => (a.sequence_no || 0) - (b.sequence_no || 0));
 
    const remainingStops = filteredDeliveries.filter(d => !d.delivered).length;
 

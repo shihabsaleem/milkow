@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, MapPin, ChevronRight, X } from "lucide-react";
+import { Plus, Search, MapPin, ChevronRight, X, ListOrdered } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -102,8 +102,8 @@ export default function CustomersPage() {
     try {
       setIsSubmitting(true);
 
-      // 1. Calculate the new delivery_order using Decimal Midpoint Indexing
-      const { data: lastCustomer, error: fetchError } = await supabase
+      // 1. Auto-append at end of route: last delivery_order + 1000
+      const { data: lastCustomer } = await supabase
         .from('customers')
         .select('delivery_order')
         .eq('area_id', parseInt(newCustomer.area_id))
@@ -111,13 +111,7 @@ export default function CustomersPage() {
         .limit(1)
         .maybeSingle();
 
-      if (fetchError) {
-        console.error("Fetch error:", fetchError);
-        throw fetchError;
-      }
-
-      const prevOrder = lastCustomer ? Number(lastCustomer.delivery_order) : 0;
-      const newOrder = prevOrder + 1000;
+      const newOrder = lastCustomer ? Number(lastCustomer.delivery_order) + 1000 : 1000;
 
       // 2. Insert with the new delivery_order
       const { error: insertError } = await supabase.from('customers').insert({
@@ -186,8 +180,18 @@ export default function CustomersPage() {
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="max-w-2xl mx-auto px-5 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <div><p className="text-[20px] font-black text-zinc-900 leading-none">Customers</p><p className="text-[12px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">{customers.length} Subscribers</p></div>
-            <button onClick={() => setIsModalOpen(true)} className="h-10 w-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
+            <div>
+              <p className="text-[20px] font-black text-zinc-900 leading-none">Customers</p>
+              <p className="text-[12px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">{customers.length} Subscribers</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href="/route" className="h-10 w-10 bg-zinc-100 text-zinc-500 rounded-xl flex items-center justify-center hover:bg-zinc-200 transition-all" title="Reorder route">
+                <ListOrdered size={18} />
+              </Link>
+              <button onClick={() => setIsModalOpen(true)} className="h-10 w-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                <Plus size={20} />
+              </button>
+            </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="w-3/4">

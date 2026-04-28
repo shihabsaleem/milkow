@@ -53,6 +53,7 @@ export interface Customer {
   frequency: 'Morning Only' | 'Evening Only' | 'Morning & Evening';
   status: 'Active' | 'Inactive';
   route_sl_no: number;
+  delivery_order?: number;
   default_qty: number;
   default_product_id?: string | null;
   past_outstanding: number;

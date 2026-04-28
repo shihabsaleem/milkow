@@ -65,7 +65,7 @@ export interface Delivery {
   id: string;
   customer_id: string;
   delivery_date: string;
-  shift: 'morning' | 'evening';
+  shift: 'Morning Only' | 'Evening Only';
   product_id?: string | null;
   milk_qty: number;
   misc_items: any[];

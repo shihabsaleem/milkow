@@ -10,7 +10,13 @@ import * as T from "@/types/database";
 
 export default function UserProfilePage() {
    const router = useRouter();
-   const { logout } = useAuth();
+   const { logout, user, loading } = useAuth();
+
+   useEffect(() => {
+      if (!loading && !user) {
+         router.push("/login");
+      }
+   }, [user, loading, router]);
 
    const [adminName, setAdminName] = useState("Sayas R.");
    const [payeeName, setPayeeName] = useState("");
@@ -95,9 +101,15 @@ export default function UserProfilePage() {
       await logout();
       // Clear the session cookie
       document.cookie = "milkow_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      router.push("/login");
-      router.refresh();
    };
+
+   if (loading || !user) {
+      return (
+         <div className="min-h-screen w-full flex items-center justify-center bg-slate-50">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+         </div>
+      );
+   }
 
    return (
       <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto pb-32">

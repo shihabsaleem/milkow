@@ -51,11 +51,11 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
       const needsMorning = freq === 'Morning Only' || freq === 'Morning & Evening';
       const needsEvening = freq === 'Evening Only' || freq === 'Morning & Evening';
 
-      if (needsMorning && !existingMap.has(`${c.id}-morning`)) {
+      if (needsMorning && !existingMap.has(`${c.id}-Morning Only`)) {
         deliveriesToCreate.push({
           customer_id: c.id,
           delivery_date: today,
-          shift: 'morning',
+          shift: 'Morning Only',
           product_id: c.default_product_id,
           milk_qty: c.default_qty || 1,
           sequence_no: c.route_sl_no || 0,
@@ -65,11 +65,11 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
         });
       }
 
-      if (needsEvening && !existingMap.has(`${c.id}-evening`)) {
+      if (needsEvening && !existingMap.has(`${c.id}-Evening Only`)) {
         deliveriesToCreate.push({
           customer_id: c.id,
           delivery_date: today,
-          shift: 'evening',
+          shift: 'Evening Only',
           product_id: c.default_product_id,
           milk_qty: c.default_qty || 1,
           sequence_no: c.route_sl_no || 0,
@@ -85,7 +85,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
       if (insertError) throw insertError;
 
       // 1. Fetch current settings to merge
-      const { data: currentSettings } = await supabase.from('system_settings').select('value').eq('key', 'automation').single();
+      const { data: currentSettings } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
       const existingValue = (currentSettings as any)?.value || {};
 
       // 2. Update lastReset timestamp without losing other keys
@@ -185,7 +185,7 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
       .from('system_settings')
       .select('value')
       .eq('key', 'automation')
-      .single();
+      .maybeSingle();
 
     const settings = settingsData as { value: T.AutomationSettings } | null;
     const lastBillGen = settings?.value?.lastBillGeneration;
@@ -259,11 +259,19 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
 // 4. MASTER RUNNER
 // ─────────────────────────────────────────────
 
+let isRunning = false;
+
 export async function checkAndRunAutomations(): Promise<void> {
-  console.log("[Automation] 🚀 Running daily checks (Supabase)...");
-  await resetDailyRoute();
-  const hour = new Date().getHours();
-  if (hour >= 18) {
-    await generateDailyBills();
+  if (isRunning) return;
+  isRunning = true;
+  try {
+    console.log("[Automation] 🚀 Running daily checks (Supabase)...");
+    await resetDailyRoute();
+    const hour = new Date().getHours();
+    if (hour >= 18) {
+      await generateDailyBills();
+    }
+  } finally {
+    isRunning = false;
   }
 }

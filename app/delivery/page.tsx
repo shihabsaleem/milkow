@@ -47,7 +47,7 @@ export default function DeliveryPage() {
          supabase.from('areas').select('*').order('name', { ascending: true }),
          supabase.from('products').select('*').order('name', { ascending: true }),
          supabase.from('deliveries')
-            .select('*, customers(*)')
+            .select('*, customer:customers(*)')
             .eq('delivery_date', today)
             .eq('shift', shift === 'morning' ? 'Morning Only' : 'Evening Only')
       ]);
@@ -55,10 +55,6 @@ export default function DeliveryPage() {
       if (routeSets) {
          const areas = routeSets as T.Area[];
          setRoutesList(areas);
-         // If no route selected (and none was found in localStorage), default to first
-         if (selectedRoute === "" && areas.length > 0) {
-            setSelectedRoute(areas[0].id);
-         }
       }
 
       if (prodData) setProducts(prodData as T.Product[]);
@@ -165,7 +161,8 @@ export default function DeliveryPage() {
       if (shift === 'morning' && freq === 'Evening Only') return false;
       if (shift === 'evening' && freq === 'Morning Only') return false;
       // Also filter by delivery shift column
-      if (d.shift !== shift) return false;
+      const dbShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
+      if (d.shift !== dbShift) return false;
 
       const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSearch;
@@ -180,7 +177,7 @@ export default function DeliveryPage() {
                <div className="flex items-center justify-between">
                   <div className="relative">
                      <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-2 group">
-                        <h1 className="text-xl font-black text-zinc-900">{routesList.find(r => r.id === selectedRoute)?.name || 'Delivery'}</h1>
+                        <h1 className="text-xl font-black text-zinc-900">{routesList.find(r => r.id === selectedRoute)?.name || 'All Deliveries'}</h1>
                         <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
                      </button>
                      <p className="text-xs font-bold text-primary tracking-wider uppercase mt-0.5">{remainingStops} Stops Remaining</p>

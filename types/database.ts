@@ -46,13 +46,11 @@ export interface Product {
 
 export interface Customer {
   id: string;
-  cust_id?: string;
   name: string;
   phone: string;
   area_id: number;
   frequency: 'Morning Only' | 'Evening Only' | 'Morning & Evening';
   status: 'Active' | 'Inactive';
-  route_sl_no: number;
   delivery_order?: number;
   default_qty: number;
   default_product_id?: string | null;
@@ -80,13 +78,13 @@ export interface Delivery {
 export interface Bill {
   id: string;
   customer_id: string;
-  type: 'Weekly' | 'Monthly' | 'Spot';
+  type: 'Weekly' | 'Monthly' | 'Spot' | 'Opening Balance';
   amount: number;
   status: 'Pending' | 'Paid';
-  transaction_id?: string;
+  start_date?: string;
+  end_date?: string;
   notes?: string;
   created_at: string;
-  paid_at?: string;
 }
 
 export interface Area {
@@ -102,7 +100,6 @@ export interface Payment {
   bill_id?: string | null;
   amount: number;
   method: PaymentMethod;
-  transaction_ref?: string;
   payment_date: string;
   notes?: string;
   created_at: string;

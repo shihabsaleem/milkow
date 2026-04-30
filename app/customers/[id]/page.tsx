@@ -31,8 +31,10 @@ export default function CustomerProfilePage() {
    const fetchData = useCallback(async () => {
       if (!customerIdParam) return;
       setIsLoading(true);
-      const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).toISOString().split('T')[0];
-      const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).toISOString().split('T')[0];
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
+      const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`;
 
       const [
          { data: custData },
@@ -200,15 +202,52 @@ export default function CustomerProfilePage() {
       if (!customer || grandTotalAmount <= 0) return;
       try {
          setIsLoading(true);
-         const { error } = await supabase.from('payments').insert({
+         
+         // 1. If there is past outstanding, convert it to a bill and reset the column
+         // This ensures the "Previous Dues" card becomes zero and accounting stays correct
+         if (Number(customer.past_outstanding) > 0) {
+            const { error: obError } = await supabase.from('bills').insert({
+               customer_id: customer.id,
+               amount: Number(customer.past_outstanding),
+               type: 'Opening Balance',
+               status: 'Paid',
+               notes: 'Converted from static Past Outstanding for settlement',
+               created_at: new Date().toISOString(),
+            });
+            if (obError) throw obError;
+
+            const { error: custError } = await supabase.from('customers').update({
+               past_outstanding: 0
+            }).eq('id', customer.id);
+            if (custError) throw custError;
+         }
+
+         // 2. If there are unbilled deliveries, we must bill them first
+         if (allUnbilledDeliveries.length > 0) {
+            const { error: billError } = await supabase.from('bills').insert({
+               customer_id: customer.id,
+               amount: currentDeliveriesAmount,
+               type: 'Monthly',
+               status: 'Paid', 
+               created_at: new Date().toISOString(),
+            });
+            if (billError) throw billError;
+
+            const ids = allUnbilledDeliveries.map(d => d.id);
+            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
+         }
+
+         // 3. Record the payment for the grand total
+         const { error: paymentError } = await supabase.from('payments').insert({
             customer_id: customer.id,
             amount: grandTotalAmount,
             method: 'Cash',
             payment_date: new Date().toISOString(),
-            notes: 'Settled from Profile'
+            notes: 'Full Settlement from Profile'
          });
 
-         if (error) throw error;
+         if (paymentError) throw paymentError;
+         
          await fetchData();
          setModalConfig({
             isOpen: true,
@@ -305,17 +344,17 @@ export default function CustomerProfilePage() {
                      <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                            <div><h3 className="text-lg sm:text-xl font-black text-zinc-900">Monthly Ledger</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
-                           <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Days Delivered</span></div>
+                           <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Deliveries</span></div>
                         </div>
                         <div className="flex flex-col gap-3">
                            {Array.from({ length: daysCount }).map((_, i) => {
                               const day = i + 1;
                               const dateStr = `${yearName}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                              const dayDeliveries = deliveries.filter(d => d.delivery_date === dateStr && d.delivered);
+                              const dayDeliveries = deliveries.filter(d => d.delivery_date === dateStr);
 
                               if (dayDeliveries.length === 0) return null;
 
-                              const dayTotal = dayDeliveries.reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
+                              const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 
                               return (
                                <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
@@ -326,21 +365,35 @@ export default function CustomerProfilePage() {
                                      </div>
                                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
                                         {dayDeliveries.map((delivery, dIdx) => (
-                                           <div key={dIdx} className={`flex flex-col gap-1.5 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-zinc-100" : ""}`}>
-                                              <div className="flex items-center gap-2">
+                                           <div key={dIdx} className={`flex flex-col gap-1 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-zinc-100" : ""}`}>
+                                              <p className="font-black text-[13px] sm:text-[15px] text-zinc-900 leading-tight truncate max-w-[150px] sm:max-w-none">
+                                                 {[
+                                                    delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
+                                                    ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
+                                                 ].filter(Boolean).join(' + ')}
+                                              </p>
+                                              <div className="flex items-center gap-1.5">
                                                  <span className={`px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border font-black flex-shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
-                                                 <p className="font-black text-[13px] sm:text-[15px] text-zinc-900 leading-tight truncate max-w-[150px] sm:max-w-none">
-                                                    {[
-                                                       delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
-                                                       ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
-                                                    ].filter(Boolean).join(' + ')}
-                                                 </p>
-                                              </div>
-                                              {delivery.billed && (
-                                                 <div className="flex pl-10 sm:pl-10">
+                                                 {delivery.delivered ? (
+                                                    <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-emerald-200 font-bold uppercase tracking-tighter">Delivered</span>
+                                                 ) : (() => {
+                                                    const now = new Date();
+                                                    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                                                    const isPast = delivery.delivery_date < today;
+                                                    const isToday = delivery.delivery_date === today;
+                                                    const hour = now.getHours();
+                                                    
+                                                    const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
+                                                    
+                                                    if (isPast || (isToday && isShiftOver)) {
+                                                       return <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-rose-200 font-bold uppercase tracking-tighter">Undelivered</span>;
+                                                    }
+                                                    return <span className="bg-zinc-100 text-zinc-400 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Pending</span>;
+                                                 })()}
+                                                 {delivery.billed && (
                                                     <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Billed</span>
-                                                 </div>
-                                              )}
+                                                 )}
+                                              </div>
                                            </div>
                                         ))}
                                      </div>
@@ -370,42 +423,73 @@ export default function CustomerProfilePage() {
             )}
 
             <div className="max-w-2xl mx-auto w-full px-5 py-6">
-               <div className="bg-zinc-900 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-4">
-                     <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Grand Total Ledger</h3>
-                     <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${grandTotalAmount < 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-primary/20 text-primary'}`}>
-                        {grandTotalAmount < 0 ? 'Advance' : 'Credit'}
+               <div className="bg-zinc-900 rounded-[2rem] p-6 sm:p-8 shadow-2xl text-white relative overflow-hidden border border-zinc-800">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[80px] rounded-full -mr-16 -mt-16" />
+                  
+                  <div className="flex items-center justify-between mb-8 relative z-10">
+                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-500">Financial Summary</h3>
+                     <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg ${grandTotalAmount < 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-primary/20 text-primary border border-primary/20'}`}>
+                        {grandTotalAmount < 0 ? 'Advance Account' : 'Credit Account'}
                      </span>
                   </div>
-                  <div className="flex flex-col gap-2">
-                     <div className="flex justify-between items-center text-[13px] sm:text-sm font-medium text-zinc-400"><span>Outstanding Balance</span><span>₹{billsBalance.toFixed(2)}</span></div>
-                     <div className="flex justify-between items-center text-[13px] sm:text-sm font-medium text-zinc-400"><span>Unbilled Amount</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div>
-                     <div className="flex justify-between items-end mt-2">
-                        <span className="text-[10px] sm:text-xs font-black text-zinc-300 uppercase tracking-tighter">Total {grandTotalAmount < 0 ? 'Advance' : 'Payable'}</span>
-                        <span className="text-2xl sm:text-3xl font-black text-primary">₹{Math.abs(grandTotalAmount).toFixed(2)}</span>
+
+                  <div className="grid grid-cols-2 gap-x-8 mb-8 relative z-10">
+                     <div className="flex flex-col gap-2">
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Past Outstanding</p>
+                        <div className="flex flex-col gap-1">
+                           <p className={`text-lg font-black ${billsBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>₹{Math.abs(billsBalance).toFixed(2)}</p>
+                           <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md w-fit ${billsBalance > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                              {billsBalance > 0 ? 'Dues' : 'Advance'}
+                           </span>
+                        </div>
+                     </div>
+                     <div className="flex flex-col gap-2">
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Current Month</p>
+                        <div className="flex flex-col gap-1">
+                           <p className="text-lg font-black text-zinc-200">₹{currentDeliveriesAmount.toFixed(2)}</p>
+                           <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md w-fit bg-white/5 text-zinc-400">
+                              Unbilled
+                           </span>
+                        </div>
                      </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 mt-6">
-                     {currentDeliveriesAmount > 0 && (
-                        <button
-                           onClick={handleGenerateBill}
-                           className="w-full bg-primary text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                        >
-                           <Receipt size={18} />
-                           Generate Bill for QR
-                        </button>
-                     )}
+                  <div className="pt-6 border-t border-zinc-800/50 flex flex-col gap-6 relative z-10">
+                     <div className="flex justify-between items-end">
+                        <div className="flex flex-col gap-1">
+                           <p className={`text-[10px] font-bold uppercase tracking-widest ${grandTotalAmount < 0 ? 'text-emerald-400' : 'text-primary'}`}>
+                              {grandTotalAmount < 0 ? 'Advance Balance' : 'Grand Total Payable'}
+                           </p>
+                           <p className={`text-4xl font-black drop-shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] ${grandTotalAmount < 0 ? 'text-emerald-400' : 'text-primary'}`}>
+                              ₹{Math.abs(grandTotalAmount).toFixed(2)}
+                           </p>
+                        </div>
+                        <div className="text-right hidden sm:block">
+                           <p className="text-[9px] text-zinc-500 font-medium italic mb-2">Including all past dues and unbilled items</p>
+                        </div>
+                     </div>
 
-                     {grandTotalAmount > 0 && (
-                        <button
-                           onClick={handleMarkAsPaid}
-                           className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
-                        >
-                           <Receipt size={18} />
-                           Settle & Mark Paid
-                        </button>
-                     )}
+                     <div className="flex flex-col sm:flex-row gap-3">
+                        {currentDeliveriesAmount > 0 && (
+                           <button
+                              onClick={handleGenerateBill}
+                              className="flex-1 bg-white/5 hover:bg-white/10 text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/10"
+                           >
+                              <Receipt size={18} />
+                              Generate Monthly Bill
+                           </button>
+                        )}
+
+                        {grandTotalAmount > 0 && (
+                           <button
+                              onClick={handleMarkAsPaid}
+                              className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                           >
+                              <Receipt size={18} />
+                              Settle & Mark Paid
+                           </button>
+                        )}
+                     </div>
                   </div>
                </div>
             </div>

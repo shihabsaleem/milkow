@@ -1,17 +1,17 @@
-"use client";
-
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, X, Check } from "lucide-react";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (dontShowAgain?: boolean) => void;
   title: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
   type?: 'danger' | 'info' | 'success';
+  showDontShowAgain?: boolean;
 }
 
 export default function Modal({
@@ -22,8 +22,10 @@ export default function Modal({
   message,
   confirmText = "Confirm",
   cancelText = "Cancel",
-  type = 'info'
+  type = 'info',
+  showDontShowAgain = false
 }: ModalProps) {
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   return (
     <AnimatePresence>
       {isOpen && (
@@ -63,9 +65,26 @@ export default function Modal({
                 </div>
               </div>
 
+              {showDontShowAgain && (
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDontShowAgain(!dontShowAgain)}
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                      dontShowAgain ? 'bg-primary border-primary text-white' : 'border-zinc-200 bg-zinc-50'
+                    }`}
+                  >
+                    {dontShowAgain && <Check size={12} strokeWidth={4} />}
+                  </button>
+                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider cursor-pointer" onClick={() => setDontShowAgain(!dontShowAgain)}>
+                    Don't show this again
+                  </span>
+                </div>
+              )}
+
               <div className="flex flex-col gap-3 mt-8">
                 <button
-                  onClick={onConfirm}
+                  onClick={() => onConfirm(dontShowAgain)}
                   className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${
                     type === 'danger' ? 'bg-rose-500 text-white shadow-rose-200' : 
                     'bg-primary text-white shadow-primary/20'

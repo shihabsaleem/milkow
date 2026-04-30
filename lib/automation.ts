@@ -58,7 +58,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
           shift: 'Morning Only',
           product_id: c.default_product_id,
           milk_qty: c.default_qty || 1,
-          sequence_no: c.route_sl_no || 0,
+          sequence_no: Math.floor(Number(c.delivery_order) || 0),
           delivered: false,
           inventory_deducted: false,
           misc_items: []
@@ -72,7 +72,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
           shift: 'Evening Only',
           product_id: c.default_product_id,
           milk_qty: c.default_qty || 1,
-          sequence_no: c.route_sl_no || 0,
+          sequence_no: Math.floor(Number(c.delivery_order) || 0),
           delivered: false,
           inventory_deducted: false,
           misc_items: []

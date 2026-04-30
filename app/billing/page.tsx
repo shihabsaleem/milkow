@@ -149,28 +149,74 @@ export default function BillingPage() {
 
          const customerId = entry.customer_id;
 
-         // 1. Reset legacy outstanding to 0
-         await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
+         // Fetch fresh data
+         const [
+            { data: customer },
+            { data: unbilledDeliveries },
+            { data: freshFinancials }
+         ] = await Promise.all([
+            supabase.from('customers').select('*').eq('id', customerId).single(),
+            supabase.from('deliveries').select('*').eq('customer_id', customerId).eq('delivered', true).eq('billed', false),
+            supabase.from('customer_financials').select('*').eq('id', customerId).single()
+         ]);
 
-         // 2. Mark unbilled deliveries as billed to prevent double-billing
-         await supabase.from('deliveries')
-            .update({ billed: true })
-            .eq('customer_id', customerId)
-            .eq('delivered', true)
-            .eq('billed', false);
+         if (!customer || !freshFinancials) return;
 
-         // 3. Mark existing pending bills as Paid
+         const pastOutstanding = Number(customer.past_outstanding) || 0;
+
+         // Calculate unbilled deliveries amount
+         const priceMap: Record<string, number> = {};
+         products.forEach(p => { priceMap[p.id] = Number(p.price); priceMap[p.name] = Number(p.price); });
+         const unbilledAmount = (unbilledDeliveries || []).reduce((acc, d) => {
+            const unitPrice = priceMap[d.product_id || ""] || 0;
+            let t = (d.milk_qty || 0) * unitPrice;
+            (d.misc_items || []).forEach((item: any) => { t += (item.qty || 0) * (priceMap[item.name] || 0); });
+            return acc + t;
+         }, 0);
+
+         // The true total owed = ledger balance (from DB view) + unbilled not yet in view
+         const totalOwed = Number(freshFinancials.current_balance) + unbilledAmount;
+         if (totalOwed <= 0) return; // Nothing to settle
+
+         // 1. Convert past_outstanding to a bill so billed = paid math works
+         if (pastOutstanding > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customerId,
+               amount: pastOutstanding,
+               type: 'Opening Balance',
+               status: 'Pending',
+               notes: 'Converted for settlement',
+               created_at: new Date().toISOString()
+            });
+            await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
+         }
+
+         // 2. Bill unbilled deliveries
+         if (unbilledDeliveries && unbilledDeliveries.length > 0 && unbilledAmount > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customerId,
+               amount: unbilledAmount,
+               type: 'Spot',
+               status: 'Pending',
+               created_at: new Date().toISOString()
+            });
+            const ids = unbilledDeliveries.map(d => d.id);
+            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
+         }
+
+         // 3. Mark ALL pending bills as Paid (includes ones just created above)
          await supabase.from('bills')
             .update({ status: 'Paid' })
             .eq('customer_id', customerId)
             .eq('status', 'Pending');
 
-         // 4. Record a payment for the amount to keep the ledger history
+         // 4. Record payment for the true total owed
          await supabase.from('payments').insert({
             customer_id: customerId,
-            amount: entry.amount,
+            amount: totalOwed,
             method: 'Cash',
-            payment_date: new Date().toISOString()
+            payment_date: new Date().toISOString(),
+            notes: 'Full Settlement from Billing'
          });
 
          setShowToast(true);

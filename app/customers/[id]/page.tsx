@@ -255,6 +255,12 @@ export default function CustomerProfilePage() {
              await supabase.from('deliveries').update({ billed: true }).in('id', ids);
           }
 
+          // 3. Mark all existing pending bills as Paid to keep history clean
+          await supabase.from('bills')
+             .update({ status: 'Paid' })
+             .eq('customer_id', customer.id)
+             .eq('status', 'Pending');
+
           await supabase.from('payments').insert({
              customer_id: customer.id,
              amount: grandTotalAmount,

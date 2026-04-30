@@ -210,6 +210,7 @@ payment_summary AS (
 SELECT
     c.id,
     c.name,
+    c.area_id,
     c.past_outstanding,
     COALESCE(bs.total_billed, 0)                                                    AS total_billed,
     COALESCE(ps.total_paid, 0)                                                      AS total_paid,
@@ -254,3 +255,26 @@ BEGIN
         );
     END LOOP;
 END $$;
+
+
+-- ─── DATA INTEGRITY — ONE-TIME FIXES ──────
+-- Run this block if any customer shows a negative (Advance) balance
+-- caused by the old "Mark as Paid" bug (payment recorded without matching bills).
+-- Safe to re-run: only removes settlement payments where total_paid > total_billed + past_outstanding.
+--
+-- DELETE FROM payments
+-- WHERE id IN (
+--   SELECT p.id
+--   FROM payments p
+--   JOIN customers c ON c.id = p.customer_id
+--   LEFT JOIN (
+--     SELECT customer_id, COALESCE(SUM(amount), 0) AS total_billed
+--     FROM bills GROUP BY customer_id
+--   ) b ON b.customer_id = c.id
+--   LEFT JOIN (
+--     SELECT customer_id, COALESCE(SUM(amount), 0) AS total_paid
+--     FROM payments GROUP BY customer_id
+--   ) py ON py.customer_id = c.id
+--   WHERE (c.past_outstanding + COALESCE(b.total_billed, 0) - COALESCE(py.total_paid, 0)) < 0
+--     AND p.notes IN ('Full Settlement from Billing', 'Full Settlement from Profile')
+-- );

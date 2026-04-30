@@ -328,7 +328,10 @@ export default function DeliveryPage() {
 
                         <div className="h-px bg-zinc-100 my-1" />
 
-                        {products.filter(p => !p.name.toLowerCase().includes('milk')).map((product) => {
+                        {products.filter(p => {
+                            const stop = deliveries.find(d => d.id === expandedStopId);
+                            return p.id !== stop?.product_id;
+                         }).map((product) => {
                            const stopItems = deliveries.find(d => d.id === expandedStopId)?.misc_items || [];
                            const item = stopItems.find((i: any) => i.name === product.name);
                            const qty = item ? item.qty : 0;

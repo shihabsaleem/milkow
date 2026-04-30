@@ -2,7 +2,8 @@
 
 import { ArrowLeft, Save, LogOut, X, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +27,16 @@ export default function UserProfilePage() {
    
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [newRoute, setNewRoute] = useState("");
+   const [isAddingRoute, setIsAddingRoute] = useState(false);
+   const [routeSuccess, setRouteSuccess] = useState(false);
+   const listEndRef = useRef<HTMLDivElement>(null);
+
+   useEffect(() => {
+      if (routeSuccess) {
+         const timer = setTimeout(() => setRouteSuccess(false), 2000);
+         return () => clearTimeout(timer);
+      }
+   }, [routeSuccess]);
 
    // Load current settings from Supabase
    useEffect(() => {
@@ -78,13 +89,22 @@ export default function UserProfilePage() {
 
    const addRoute = async () => {
       const name = newRoute.trim();
-      if (!name) return;
+      if (!name || isAddingRoute) return;
+      
+      setIsAddingRoute(true);
       try {
-         await supabase.from('areas').insert({ name });
+         const { error } = await supabase.from('areas').insert({ name });
+         if (error) throw error;
+         
          setNewRoute('');
+         setRouteSuccess(true);
+         // Scroll to bottom after state update
+         setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       } catch (e: unknown) {
          const err = e as Error;
          console.error("Failed to add route:", err.message);
+      } finally {
+         setIsAddingRoute(false);
       }
    };
 
@@ -210,38 +230,60 @@ export default function UserProfilePage() {
                      Delivery Routes
                   </h3>
 
-                  <div className="flex flex-col gap-3">
-                     {areas.map((area) => (
-                        <div key={area.id} className="flex items-center justify-between bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3">
-                           <span className="text-sm font-bold text-zinc-900">{area.name}</span>
-                           <button 
-                              onClick={() => removeRoute(area.id)}
-                              className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors"
+                  <div className="flex flex-col gap-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                     <AnimatePresence initial={false}>
+                        {areas.map((area) => (
+                           <motion.div 
+                              key={area.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              className="flex items-center justify-between bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3"
                            >
-                              <X size={16} />
-                           </button>
-                        </div>
-                     ))}
+                              <span className="text-sm font-bold text-zinc-900">{area.name}</span>
+                              <button 
+                                 onClick={() => removeRoute(area.id)}
+                                 className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors"
+                              >
+                                 <X size={16} />
+                              </button>
+                           </motion.div>
+                        ))}
+                     </AnimatePresence>
+                     <div ref={listEndRef} />
+                  </div>
 
-                     <div className="flex items-center gap-2 mt-2">
-                        <input
-                           type="text"
-                           value={newRoute}
-                           onChange={(e) => setNewRoute(e.target.value)}
-                           onKeyDown={(e) => {
-                              if (e.key === 'Enter') addRoute();
-                           }}
-                           placeholder="Add new route..."
-                           className="flex-1 bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        />
-                        <button
-                           onClick={addRoute}
-                           disabled={!newRoute.trim()}
-                           className="bg-zinc-900 text-white p-3 rounded-xl hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                        >
+                  <div className="flex items-center gap-2 mt-2">
+                     <input
+                        type="text"
+                        value={newRoute}
+                        onChange={(e) => setNewRoute(e.target.value)}
+                        onKeyDown={(e) => {
+                           if (e.key === 'Enter') addRoute();
+                        }}
+                        disabled={isAddingRoute}
+                        placeholder="Add new route..."
+                        className="flex-1 bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
+                     />
+                     <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={addRoute}
+                        disabled={!newRoute.trim() || isAddingRoute}
+                        className={`p-3 rounded-xl transition-all flex items-center justify-center min-w-[48px] ${
+                           routeSuccess ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 
+                           'bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed'
+                        }`}
+                     >
+                        {isAddingRoute ? (
+                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : routeSuccess ? (
+                           <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }}>
+                              <Plus size={20} className="rotate-45" />
+                           </motion.div>
+                        ) : (
                            <Plus size={20} />
-                        </button>
-                     </div>
+                        )}
+                     </motion.button>
                   </div>
                </div>
 

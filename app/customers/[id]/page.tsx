@@ -158,98 +158,113 @@ export default function CustomerProfilePage() {
       }
    };
 
-   const handleGenerateBill = async () => {
-      if (!customer || unbilledDeliveries.length === 0) return;
-      try {
-         setIsLoading(true);
-         const { data: newBill, error: billError } = await supabase.from('bills').insert({
-            customer_id: customer.id,
-            amount: currentDeliveriesAmount,
-            type: 'Monthly',
-            status: 'Pending',
-            created_at: new Date().toISOString(),
-         }).select().single();
-
-         if (billError) throw billError;
-
-         const ids = allUnbilledDeliveries.map(d => d.id);
-         await supabase.from('deliveries').update({ billed: true }).in('id', ids);
-
-         await fetchData();
-         router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
-      } catch (err) {
-         console.error("Failed to generate bill:", err);
-         setIsLoading(false);
-      }
-   };
-
-   const [modalConfig, setModalConfig] = useState<{
+    const [modalConfig, setModalConfig] = useState<{
       isOpen: boolean;
       title: string;
       message: string;
-      onConfirm: () => void;
+      onConfirm: (dontShowAgain?: boolean) => void;
       type: 'danger' | 'info' | 'success';
       confirmText?: string;
-   }>({
+      showDontShowAgain?: boolean;
+    }>({
       isOpen: false,
       title: "",
       message: "",
       onConfirm: () => { },
-      type: 'info'
-   });
+      type: 'info',
+      showDontShowAgain: false
+    });
 
-   const handleMarkAsPaid = async () => {
-      if (!customer || grandTotalAmount <= 0) return;
-      try {
-         setIsLoading(true);
-         
-         // 1. If there is past outstanding, convert it to a bill and reset the column
-         // This ensures the "Previous Dues" card becomes zero and accounting stays correct
-         if (Number(customer.past_outstanding) > 0) {
-            const { error: obError } = await supabase.from('bills').insert({
-               customer_id: customer.id,
-               amount: Number(customer.past_outstanding),
-               type: 'Opening Balance',
-               status: 'Paid',
-               notes: 'Converted from static Past Outstanding for settlement',
-               created_at: new Date().toISOString(),
-            });
-            if (obError) throw obError;
+    const runGenerateBill = async () => {
+       if (!customer || unbilledDeliveries.length === 0) return;
+       try {
+          setIsLoading(true);
+          const { data: newBill, error: billError } = await supabase.from('bills').insert({
+             customer_id: customer.id,
+             amount: currentDeliveriesAmount,
+             type: 'Monthly',
+             status: 'Pending',
+             created_at: new Date().toISOString(),
+          }).select().single();
 
-            const { error: custError } = await supabase.from('customers').update({
-               past_outstanding: 0
-            }).eq('id', customer.id);
-            if (custError) throw custError;
-         }
+          if (billError) throw billError;
 
-         // 2. If there are unbilled deliveries, we must bill them first
-         if (allUnbilledDeliveries.length > 0) {
-            const { error: billError } = await supabase.from('bills').insert({
-               customer_id: customer.id,
-               amount: currentDeliveriesAmount,
-               type: 'Monthly',
-               status: 'Paid', 
-               created_at: new Date().toISOString(),
-            });
-            if (billError) throw billError;
+          const ids = allUnbilledDeliveries.map(d => d.id);
+          await supabase.from('deliveries').update({ billed: true }).in('id', ids);
 
-            const ids = allUnbilledDeliveries.map(d => d.id);
-            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
-         }
+          await fetchData();
+          router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
+       } catch (err) {
+          console.error("Failed to generate bill:", err);
+          setIsLoading(false);
+       }
+    };
 
-         // 3. Record the payment for the grand total
-         const { error: paymentError } = await supabase.from('payments').insert({
-            customer_id: customer.id,
-            amount: grandTotalAmount,
-            method: 'Cash',
-            payment_date: new Date().toISOString(),
-            notes: 'Full Settlement from Profile'
-         });
+    const handleGenerateBill = () => {
+      const skip = localStorage.getItem('skip_bill_confirm') === 'true';
+      if (skip) {
+        runGenerateBill();
+        return;
+      }
 
-         if (paymentError) throw paymentError;
-         
-         await fetchData();
-         setModalConfig({
+      setModalConfig({
+        isOpen: true,
+        title: "Generate Bill",
+        message: `Create a new monthly bill for ₹${currentDeliveriesAmount.toFixed(2)}?`,
+        type: 'info',
+        confirmText: "Generate",
+        showDontShowAgain: true,
+        onConfirm: (dontShow) => {
+          if (dontShow) localStorage.setItem('skip_bill_confirm', 'true');
+          setModalConfig(prev => ({ ...prev, isOpen: false }));
+          runGenerateBill();
+        }
+      });
+    };
+
+    const runMarkAsPaid = async () => {
+       if (!customer || grandTotalAmount <= 0) return;
+       try {
+          setIsLoading(true);
+          
+          if (Number(customer.past_outstanding) > 0) {
+             await supabase.from('bills').insert({
+                customer_id: customer.id,
+                amount: Number(customer.past_outstanding),
+                type: 'Opening Balance',
+                status: 'Paid',
+                notes: 'Converted from static Past Outstanding for settlement',
+                created_at: new Date().toISOString(),
+             });
+
+             await supabase.from('customers').update({
+                past_outstanding: 0
+             }).eq('id', customer.id);
+          }
+
+          if (allUnbilledDeliveries.length > 0) {
+             await supabase.from('bills').insert({
+                customer_id: customer.id,
+                amount: currentDeliveriesAmount,
+                type: 'Monthly',
+                status: 'Paid', 
+                created_at: new Date().toISOString(),
+             });
+
+             const ids = allUnbilledDeliveries.map(d => d.id);
+             await supabase.from('deliveries').update({ billed: true }).in('id', ids);
+          }
+
+          await supabase.from('payments').insert({
+             customer_id: customer.id,
+             amount: grandTotalAmount,
+             method: 'Cash',
+             payment_date: new Date().toISOString(),
+             notes: 'Full Settlement from Profile'
+          });
+
+          await fetchData();
+          setModalConfig({
             isOpen: true,
             title: "Payment Recorded",
             message: "Payment has been recorded and all dues have been settled successfully!",

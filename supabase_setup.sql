@@ -189,7 +189,8 @@ CREATE INDEX IF NOT EXISTS idx_bills_status ON bills(status);
 CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON payments(customer_id);
 
 -- VIEWS
-CREATE OR REPLACE VIEW customer_financials AS
+DROP VIEW IF EXISTS customer_financials;
+CREATE VIEW customer_financials WITH (security_invoker = on) AS
 WITH bill_summary AS (
     SELECT customer_id, COALESCE(SUM(amount), 0) as total_billed
     FROM bills

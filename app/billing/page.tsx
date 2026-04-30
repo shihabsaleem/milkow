@@ -6,6 +6,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { QrCode, MessageCircle, Wallet2, CheckCircle2, X, Check, Search, Share2, ChevronDown } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
 
 export default function BillingPage() {
@@ -123,7 +124,25 @@ export default function BillingPage() {
       return matchesSearch && matchesRoute && bill.status !== 'Paid';
    });
 
-   const handleMarkAsPaid = async (id: string) => {
+   const [modalConfig, setModalConfig] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      onConfirm: (dontShowAgain?: boolean) => void;
+      type: 'danger' | 'info' | 'success';
+      confirmText?: string;
+      showDontShowAgain?: boolean;
+   }>({
+      isOpen: false,
+      title: "",
+      message: "",
+      onConfirm: () => { },
+      type: 'info'
+   });
+
+   const [dontShowAgain, setDontShowAgain] = useState(false);
+
+   const runMarkAsPaid = async (id: string) => {
       try {
          const entry = bills.find(b => b.id === id);
          if (!entry) return;
@@ -161,6 +180,31 @@ export default function BillingPage() {
          console.error("Failed to mark as paid:", err);
       }
       setSelectedInvoice(null);
+   };
+
+   const handleMarkAsPaid = (id: string) => {
+      const skip = localStorage.getItem('skip_billing_confirm') === 'true';
+      if (skip) {
+         runMarkAsPaid(id);
+         return;
+      }
+
+      const entry = bills.find(b => b.id === id);
+      if (!entry) return;
+
+      setModalConfig({
+         isOpen: true,
+         title: "Confirm Payment",
+         message: `Mark the full balance of ₹${Number(entry.amount).toFixed(2)} for ${entry.customer?.name} as paid in cash?`,
+         type: 'success',
+         confirmText: "Yes, Mark Paid",
+         showDontShowAgain: true,
+         onConfirm: (dontShow) => {
+            if (dontShow) localStorage.setItem('skip_billing_confirm', 'true');
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
+            runMarkAsPaid(id);
+         }
+      });
    };
 
    const handleShareCard = async () => {
@@ -345,6 +389,17 @@ export default function BillingPage() {
          <AnimatePresence>
             {showToast && (<motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[110] bg-emerald-600 text-white px-6 py-3 rounded-full font-bold shadow-xl flex items-center gap-2"><CheckCircle2 size={18} />Payment Recorded Successfully</motion.div>)}
          </AnimatePresence>
+
+         <Modal
+            isOpen={modalConfig.isOpen}
+            onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+            onConfirm={modalConfig.onConfirm}
+            title={modalConfig.title}
+            message={modalConfig.message}
+            type={modalConfig.type}
+            confirmText={modalConfig.confirmText}
+            showDontShowAgain={modalConfig.showDontShowAgain}
+         />
       </div>
    );
 }

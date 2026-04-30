@@ -32,15 +32,17 @@ export default function InventoryPage() {
     isOpen: boolean;
     title: string;
     message: string;
-    onConfirm: () => void;
+    onConfirm: (dontShowAgain?: boolean) => void;
     type: 'danger' | 'info' | 'success';
     confirmText?: string;
+    showDontShowAgain?: boolean;
   }>({
     isOpen: false,
     title: "",
     message: "",
     onConfirm: () => { },
-    type: 'info'
+    type: 'info',
+    showDontShowAgain: false
   });
 
   const fmtDate = (s: string) => {
@@ -122,8 +124,30 @@ export default function InventoryPage() {
     } catch (err) { console.error(err); }
   };
 
+  const runDeleteProduct = async () => {
+    if (editingIndex === null || !products[editingIndex].id) return;
+    try {
+      const productId = products[editingIndex].id;
+      // 1. Delete from products
+      await supabase.from('products').delete().eq('id', productId);
+      // 2. Delete from inventory
+      await supabase.from('inventory').delete().eq('product_id', productId);
+
+      setIsModalOpen(false);
+      setEditingIndex(null);
+      setModalConfig(prev => ({ ...prev, isOpen: false }));
+      await fetchData();
+    } catch (err) { console.error(err); }
+  };
+
   const handleDeleteProduct = async () => {
     if (editingIndex === null || !products[editingIndex].id) return;
+
+    const skip = localStorage.getItem('skip_delete_product_confirm') === 'true';
+    if (skip) {
+      runDeleteProduct();
+      return;
+    }
 
     setModalConfig({
       isOpen: true,
@@ -131,19 +155,10 @@ export default function InventoryPage() {
       message: `Are you sure you want to delete ${products[editingIndex].name}? This action cannot be undone.`,
       type: 'danger',
       confirmText: "Delete",
-      onConfirm: async () => {
-        try {
-          const productId = products[editingIndex].id;
-          // 1. Delete from products
-          await supabase.from('products').delete().eq('id', productId);
-          // 2. Delete from inventory
-          await supabase.from('inventory').delete().eq('product_id', productId);
-
-          setIsModalOpen(false);
-          setEditingIndex(null);
-          setModalConfig(prev => ({ ...prev, isOpen: false }));
-          await fetchData();
-        } catch (err) { console.error(err); }
+      showDontShowAgain: true,
+      onConfirm: async (dontShow) => {
+        if (dontShow) localStorage.setItem('skip_delete_product_confirm', 'true');
+        await runDeleteProduct();
       }
     });
   };
@@ -342,6 +357,7 @@ export default function InventoryPage() {
         message={modalConfig.message}
         type={modalConfig.type}
         confirmText={modalConfig.confirmText}
+        showDontShowAgain={modalConfig.showDontShowAgain}
       />
     </div>
   );

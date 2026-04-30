@@ -252,7 +252,7 @@ export default function CustomerProfilePage() {
       <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between gap-4">
-               <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-lg font-bold">{customer?.name || 'Customer'}</h1><p className="text-xs text-zinc-500">Customer Profile</p></div></div>
+               <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-base sm:text-lg font-bold">{customer?.name || 'Customer'}</h1><p className="text-[10px] sm:text-xs text-zinc-500">Customer Profile</p></div></div>
                <div className="flex items-center gap-2">
                   <button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer?.name || '')}`)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
                      <Receipt size={16} />
@@ -274,38 +274,38 @@ export default function CustomerProfilePage() {
                <>
                   <div className="bg-white rounded-b-3xl shadow-sm border-b border-zinc-200/50 relative overflow-hidden">
                      <div className="max-w-2xl mx-auto w-full px-6 pb-8 pt-4">
-                        <div className="flex items-start justify-between mb-6">
-                           <div className="flex items-center gap-4">
-                              <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl font-black text-primary border border-primary/20">{customer.name.charAt(0)}</div>
-                              <div className="flex flex-col gap-1">
-                                 <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><MapPin size={14} className="text-zinc-400" /> {customer.area?.name || 'No Area'}</div>
-                                 <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium"><Phone size={14} className="text-zinc-400" /> {customer.phone}</div>
-                              </div>
-                           </div>
-                           <button onClick={toggleStatus} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                           <div className="bg-slate-50 rounded-2xl p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-2"><Clock size={12} /> Frequency</div><p className="text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
-                           <div
-                              className={`rounded-2xl p-4 border cursor-pointer transition-all ${financials?.account_status === 'Credit/Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`}
-                              onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
-                           >
-                              <div className={`flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider mb-2 opacity-80 ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
-                                 <Receipt size={12} /> {financials?.account_status === 'Credit/Advance' ? 'Advance Credit' : 'Pending Balance'}
-                              </div>
-                              <p className={`text-sm font-black ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
-                                 {financials ? `₹${Math.abs(financials.current_balance).toFixed(2)}` : '₹0.00'}
-                              </p>
-                           </div>
-                        </div>
+                         <div className="flex items-start justify-between mb-6">
+                            <div className="flex items-center gap-4">
+                               <div className="h-12 w-12 sm:h-16 sm:w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-primary border border-primary/20">{customer.name.charAt(0)}</div>
+                               <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-1.5 text-zinc-500 text-[13px] sm:text-sm font-medium"><MapPin size={14} className="text-zinc-400" /> {customer.area?.name || 'No Area'}</div>
+                                  <div className="flex items-center gap-1.5 text-zinc-500 text-[13px] sm:text-sm font-medium"><Phone size={14} className="text-zinc-400" /> {customer.phone}</div>
+                               </div>
+                            </div>
+                            <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
+                         </div>
+                         <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                            <div className="bg-slate-50 rounded-2xl p-3 sm:p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
+                            <div
+                               className={`rounded-2xl p-3 sm:p-4 border cursor-pointer transition-all ${financials?.account_status === 'Credit/Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`}
+                               onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
+                            >
+                               <div className={`flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2 opacity-80 ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                                  <Receipt size={12} /> {financials?.account_status === 'Credit/Advance' ? 'Advance' : 'Balance'}
+                               </div>
+                               <p className={`text-[13px] sm:text-sm font-black ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                                  {financials ? `₹${Math.abs(financials.current_balance).toFixed(2)}` : '₹0.00'}
+                               </p>
+                            </div>
+                         </div>
                      </div>
                   </div>
 
                   <div className="max-w-2xl mx-auto w-full px-5 py-2">
-                     <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-100">
-                        <div className="flex items-center justify-between mb-8">
-                           <div><h3 className="text-xl font-black text-zinc-900">Monthly Ledger</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400"><ArrowLeft size={14} /></button><p className="text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
-                           <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Days Delivered</span></div>
+                     <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                           <div><h3 className="text-lg sm:text-xl font-black text-zinc-900">Monthly Ledger</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
+                           <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Days Delivered</span></div>
                         </div>
                         <div className="flex flex-col gap-3">
                            {Array.from({ length: daysCount }).map((_, i) => {
@@ -318,34 +318,38 @@ export default function CustomerProfilePage() {
                               const dayTotal = dayDeliveries.reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 
                               return (
-                                 <div key={i} className="flex items-center justify-between p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
-                                    <div className="flex items-center gap-4">
-                                       <div className="h-12 w-12 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
-                                          <span className="text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
-                                          <span className="text-lg leading-none">{day}</span>
-                                       </div>
-                                       <div className="flex flex-row flex-wrap gap-6">
-                                          {dayDeliveries.map((delivery, dIdx) => (
-                                             <div key={dIdx} className={dIdx > 0 ? "pl-6 border-l border-zinc-100" : ""}>
-                                                <p className="font-black text-[15px] text-zinc-900 leading-none">
-                                                   {[
-                                                      delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
-                                                      ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
-                                                   ].filter(Boolean).join(' + ')}
-                                                </p>
-                                                <p className="text-[10px] font-bold uppercase tracking-tight flex items-center gap-2 mt-1">
-                                                   <span className={`px-1.5 py-0.5 rounded text-[8px] border font-black ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
-                                                   {delivery.billed && <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded text-[8px] border border-zinc-200">BILLED</span>}
-                                                </p>
-                                             </div>
-                                          ))}
-                                       </div>
-                                    </div>
-                                    <div className="text-right">
-                                       <p className="font-black text-sm text-zinc-900">₹{dayTotal.toFixed(0)}</p>
-                                       <p className="text-[10px] font-bold text-zinc-400">DAY TOTAL</p>
-                                    </div>
-                                 </div>
+                               <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
+                                  <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                                     <div className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
+                                        <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
+                                        <span className="text-base sm:text-lg leading-none">{day}</span>
+                                     </div>
+                                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                                        {dayDeliveries.map((delivery, dIdx) => (
+                                           <div key={dIdx} className={`flex flex-col gap-1.5 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-zinc-100" : ""}`}>
+                                              <div className="flex items-center gap-2">
+                                                 <span className={`px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border font-black flex-shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
+                                                 <p className="font-black text-[13px] sm:text-[15px] text-zinc-900 leading-tight truncate max-w-[150px] sm:max-w-none">
+                                                    {[
+                                                       delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
+                                                       ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
+                                                    ].filter(Boolean).join(' + ')}
+                                                 </p>
+                                              </div>
+                                              {delivery.billed && (
+                                                 <div className="flex pl-10 sm:pl-10">
+                                                    <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Billed</span>
+                                                 </div>
+                                              )}
+                                           </div>
+                                        ))}
+                                     </div>
+                                  </div>
+                                  <div className="text-right flex-shrink-0 ml-2">
+                                     <p className="font-black text-[13px] sm:text-sm text-zinc-900">₹{dayTotal.toFixed(0)}</p>
+                                     <p className="text-[8px] sm:text-[10px] font-bold text-zinc-400 uppercase">Total</p>
+                                  </div>
+                               </div>
                               );
                            })}
                            {deliveries.filter(d => d.delivered).length === 0 && (
@@ -374,11 +378,11 @@ export default function CustomerProfilePage() {
                      </span>
                   </div>
                   <div className="flex flex-col gap-2">
-                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Outstanding Balance</span><span>₹{billsBalance.toFixed(2)}</span></div>
-                     <div className="flex justify-between items-center text-sm font-medium text-zinc-400"><span>Unbilled Amount</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div>
+                     <div className="flex justify-between items-center text-[13px] sm:text-sm font-medium text-zinc-400"><span>Outstanding Balance</span><span>₹{billsBalance.toFixed(2)}</span></div>
+                     <div className="flex justify-between items-center text-[13px] sm:text-sm font-medium text-zinc-400"><span>Unbilled Amount</span><span>₹{currentDeliveriesAmount.toFixed(2)}</span></div>
                      <div className="flex justify-between items-end mt-2">
-                        <span className="text-xs font-black text-zinc-300 uppercase tracking-tighter">Total {grandTotalAmount < 0 ? 'Advance' : 'Payable'}</span>
-                        <span className="text-3xl font-black text-primary">₹{Math.abs(grandTotalAmount).toFixed(2)}</span>
+                        <span className="text-[10px] sm:text-xs font-black text-zinc-300 uppercase tracking-tighter">Total {grandTotalAmount < 0 ? 'Advance' : 'Payable'}</span>
+                        <span className="text-2xl sm:text-3xl font-black text-primary">₹{Math.abs(grandTotalAmount).toFixed(2)}</span>
                      </div>
                   </div>
 

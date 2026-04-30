@@ -280,12 +280,33 @@ export default function CustomerProfilePage() {
             message: "Failed to record payment. Please check your connection and try again.",
             type: 'danger',
             onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-            confirmText: "Try Again"
-         });
-      } finally {
-         setIsLoading(false);
+          });
+       } finally {
+          setIsLoading(false);
+       }
+    };
+
+    const handleMarkAsPaid = () => {
+      const skip = localStorage.getItem('skip_payment_confirm') === 'true';
+      if (skip) {
+        runMarkAsPaid();
+        return;
       }
-   };
+
+      setModalConfig({
+        isOpen: true,
+        title: "Settle Payment",
+        message: `Mark the full balance of ₹${Math.abs(grandTotalAmount).toFixed(2)} as paid in cash?`,
+        type: 'success',
+        confirmText: "Settle Now",
+        showDontShowAgain: true,
+        onConfirm: (dontShow) => {
+          if (dontShow) localStorage.setItem('skip_payment_confirm', 'true');
+          setModalConfig(prev => ({ ...prev, isOpen: false }));
+          runMarkAsPaid();
+        }
+      });
+    };
 
    const changeMonth = (delta: number) => {
       const newDate = new Date(viewDate);

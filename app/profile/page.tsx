@@ -93,8 +93,12 @@ export default function UserProfilePage() {
       
       setIsAddingRoute(true);
       try {
-         const { error } = await supabase.from('areas').insert({ name });
+         const { data, error } = await supabase.from('areas').insert({ name }).select().single();
          if (error) throw error;
+         
+         if (data) {
+            setAreas(prev => [...prev, data as T.Area].sort((a, b) => a.name.localeCompare(b.name)));
+         }
          
          setNewRoute('');
          setRouteSuccess(true);
@@ -110,7 +114,10 @@ export default function UserProfilePage() {
 
    const removeRoute = async (id: number) => {
       try {
-         await supabase.from('areas').delete().eq('id', id);
+         const { error } = await supabase.from('areas').delete().eq('id', id);
+         if (error) throw error;
+         
+         setAreas(prev => prev.filter(a => a.id !== id));
       } catch (e: unknown) {
          const err = e as Error;
          console.error("Failed to remove route:", err.message);

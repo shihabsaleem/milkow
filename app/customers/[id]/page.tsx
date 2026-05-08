@@ -323,6 +323,8 @@ export default function CustomerProfilePage() {
    const monthName = viewDate.toLocaleString('default', { month: 'long' });
    const yearName = viewDate.getFullYear();
    const daysCount = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+   const isCurrentMonth = viewDate.getMonth() === new Date().getMonth() && viewDate.getFullYear() === new Date().getFullYear();
+   const displayDays = isCurrentMonth ? new Date().getDate() : daysCount;
 
    if (!customer) {
       if (isLoading) return <div className="h-screen flex items-center justify-center font-bold">Loading Cloud Data...</div>;
@@ -389,12 +391,27 @@ export default function CustomerProfilePage() {
                            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Deliveries</span></div>
                         </div>
                         <div className="flex flex-col gap-3">
-                           {Array.from({ length: daysCount }).map((_, i) => {
+                           {Array.from({ length: displayDays }).map((_, i) => {
                               const day = i + 1;
                               const dateStr = `${yearName}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                               const dayDeliveries = deliveries.filter(d => d.delivery_date === dateStr);
 
-                              if (dayDeliveries.length === 0) return null;
+                              if (dayDeliveries.length === 0) {
+                                 return (
+                                  <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-zinc-50/50 border-zinc-100/50 opacity-40">
+                                     <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                                        <div className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-zinc-100 text-zinc-400">
+                                           <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
+                                           <span className="text-base sm:text-lg leading-none">{day}</span>
+                                        </div>
+                                        <p className="text-[11px] sm:text-xs font-bold text-zinc-400 italic tracking-tight">No delivery record scheduled</p>
+                                     </div>
+                                     <div className="text-right flex-shrink-0 ml-2">
+                                        <p className="font-black text-[13px] sm:text-sm text-zinc-300">₹0</p>
+                                     </div>
+                                  </div>
+                                 );
+                              }
 
                               const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 

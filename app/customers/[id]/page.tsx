@@ -95,7 +95,7 @@ export default function CustomerProfilePage() {
 
    const calculateDeliveryTotal = (d: T.Delivery & { total_cost?: number }) => {
       if (d.total_cost != null && d.total_cost > 0) return Number(d.total_cost);
-      
+
       const product = products.find(p => p.id === d.product_id);
       const basePrice = product ? Number(product.price) : milkPrice;
       let total = (Number(d.milk_qty) || 0) * basePrice;
@@ -109,10 +109,10 @@ export default function CustomerProfilePage() {
 
    const unbilledDeliveries = deliveries.filter(d => d.delivered && !d.billed);
    const currentDeliveriesAmount = unbilledDeliveries.reduce((acc, d) => acc + calculateDeliveryTotal(d), 0);
-   
+
    // The view now natively tracks the grand total including unbilled items
    const grandTotalAmount = financials?.current_balance || 0;
-   
+
    // Historical balance is everything minus the current unbilled amount
    const billsBalance = grandTotalAmount - currentDeliveriesAmount;
 
@@ -159,7 +159,7 @@ export default function CustomerProfilePage() {
       }
    };
 
-    const [modalConfig, setModalConfig] = useState<{
+   const [modalConfig, setModalConfig] = useState<{
       isOpen: boolean;
       title: string;
       message: string;
@@ -167,65 +167,65 @@ export default function CustomerProfilePage() {
       type: 'danger' | 'info' | 'success';
       confirmText?: string;
       showDontShowAgain?: boolean;
-    }>({
+   }>({
       isOpen: false,
       title: "",
       message: "",
       onConfirm: () => { },
       type: 'info',
       showDontShowAgain: false
-    });
+   });
 
 
-    const runMarkAsPaid = async () => {
-       if (!customer || grandTotalAmount <= 0) return;
-       try {
-          setIsLoading(true);
-          
-          if (Number(customer.past_outstanding) > 0) {
-             await supabase.from('bills').insert({
-                customer_id: customer.id,
-                amount: Number(customer.past_outstanding),
-                type: 'Opening Balance',
-                status: 'Paid',
-                notes: 'Converted from static Past Outstanding for settlement',
-                created_at: new Date().toISOString(),
-             });
+   const runMarkAsPaid = async () => {
+      if (!customer || grandTotalAmount <= 0) return;
+      try {
+         setIsLoading(true);
 
-             await supabase.from('customers').update({
-                past_outstanding: 0
-             }).eq('id', customer.id);
-          }
+         if (Number(customer.past_outstanding) > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customer.id,
+               amount: Number(customer.past_outstanding),
+               type: 'Opening Balance',
+               status: 'Paid',
+               notes: 'Converted from static Past Outstanding for settlement',
+               created_at: new Date().toISOString(),
+            });
 
-          if (unbilledDeliveries.length > 0) {
-             await supabase.from('bills').insert({
-                customer_id: customer.id,
-                amount: currentDeliveriesAmount,
-                type: 'Spot',
-                status: 'Paid', 
-                created_at: new Date().toISOString(),
-             });
+            await supabase.from('customers').update({
+               past_outstanding: 0
+            }).eq('id', customer.id);
+         }
 
-             const ids = unbilledDeliveries.map(d => d.id);
-             await supabase.from('deliveries').update({ billed: true }).in('id', ids);
-          }
+         if (unbilledDeliveries.length > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customer.id,
+               amount: currentDeliveriesAmount,
+               type: 'Spot',
+               status: 'Paid',
+               created_at: new Date().toISOString(),
+            });
 
-          // 3. Mark all existing pending bills as Paid to keep history clean
-          await supabase.from('bills')
-             .update({ status: 'Paid' })
-             .eq('customer_id', customer.id)
-             .eq('status', 'Pending');
+            const ids = unbilledDeliveries.map(d => d.id);
+            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
+         }
 
-          await supabase.from('payments').insert({
-             customer_id: customer.id,
-             amount: grandTotalAmount,
-             method: 'Cash',
-             payment_date: new Date().toISOString(),
-             notes: 'Full Settlement from Profile'
-          });
+         // 3. Mark all existing pending bills as Paid to keep history clean
+         await supabase.from('bills')
+            .update({ status: 'Paid' })
+            .eq('customer_id', customer.id)
+            .eq('status', 'Pending');
 
-          await fetchData();
-          setModalConfig({
+         await supabase.from('payments').insert({
+            customer_id: customer.id,
+            amount: grandTotalAmount,
+            method: 'Cash',
+            payment_date: new Date().toISOString(),
+            notes: 'Full Settlement from Profile'
+         });
+
+         await fetchData();
+         setModalConfig({
             isOpen: true,
             title: "Payment Recorded",
             message: "Payment has been recorded and all dues have been settled successfully!",
@@ -241,33 +241,33 @@ export default function CustomerProfilePage() {
             message: "Failed to record payment. Please check your connection and try again.",
             type: 'danger',
             onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-          });
-       } finally {
-          setIsLoading(false);
-       }
-    };
+         });
+      } finally {
+         setIsLoading(false);
+      }
+   };
 
-    const handleMarkAsPaid = () => {
+   const handleMarkAsPaid = () => {
       const skip = localStorage.getItem('skip_payment_confirm') === 'true';
       if (skip) {
-        runMarkAsPaid();
-        return;
+         runMarkAsPaid();
+         return;
       }
 
       setModalConfig({
-        isOpen: true,
-        title: "Settle Payment",
-        message: `Mark the full balance of ₹${Math.abs(grandTotalAmount).toFixed(2)} as paid in cash?`,
-        type: 'success',
-        confirmText: "Settle Now",
-        showDontShowAgain: true,
-        onConfirm: (dontShow) => {
-          if (dontShow) localStorage.setItem('skip_payment_confirm', 'true');
-          setModalConfig(prev => ({ ...prev, isOpen: false }));
-          runMarkAsPaid();
-        }
+         isOpen: true,
+         title: "Settle Payment",
+         message: `Mark the full balance of ₹${Math.abs(grandTotalAmount).toFixed(2)} as paid in cash?`,
+         type: 'success',
+         confirmText: "Settle Now",
+         showDontShowAgain: true,
+         onConfirm: (dontShow) => {
+            if (dontShow) localStorage.setItem('skip_payment_confirm', 'true');
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
+            runMarkAsPaid();
+         }
       });
-    };
+   };
 
    const changeMonth = (delta: number) => {
       const newDate = new Date(viewDate);
@@ -312,30 +312,30 @@ export default function CustomerProfilePage() {
                <>
                   <div className="bg-white rounded-b-3xl shadow-sm border-b border-zinc-200/50 relative overflow-hidden">
                      <div className="max-w-2xl mx-auto w-full px-6 pb-8 pt-4">
-                         <div className="flex items-start justify-between mb-6">
-                            <div className="flex items-center gap-4">
-                               <div className="h-12 w-12 sm:h-16 sm:w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-primary border border-primary/20">{customer.name.charAt(0)}</div>
-                               <div className="flex flex-col gap-1">
-                                  <div className="flex items-center gap-1.5 text-zinc-500 text-[13px] sm:text-sm font-medium"><MapPin size={14} className="text-zinc-400" /> {customer.area?.name || 'No Area'}</div>
-                                  <div className="flex items-center gap-1.5 text-zinc-500 text-[13px] sm:text-sm font-medium"><Phone size={14} className="text-zinc-400" /> {customer.phone}</div>
-                               </div>
-                            </div>
-                            <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
-                         </div>
-                         <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                            <div className="bg-slate-50 rounded-2xl p-3 sm:p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
-                            <div
-                               className={`rounded-2xl p-3 sm:p-4 border cursor-pointer transition-all ${financials?.account_status === 'Credit/Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`}
-                               onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
-                            >
-                               <div className={`flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2 opacity-80 ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
-                                  <Receipt size={12} /> {financials?.account_status === 'Credit/Advance' ? 'Advance' : 'Balance'}
-                               </div>
-                               <p className={`text-[13px] sm:text-sm font-black ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
-                                  {financials ? `₹${Math.abs(financials.current_balance).toFixed(2)}` : '₹0.00'}
-                               </p>
-                            </div>
-                         </div>
+                        <div className="flex items-start justify-between mb-6">
+                           <div className="flex items-center gap-4">
+                              <div className="h-12 w-12 sm:h-16 sm:w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-primary border border-primary/20">{customer.name.charAt(0)}</div>
+                              <div className="flex flex-col gap-1">
+                                 <div className="flex items-center gap-1.5 text-zinc-500 text-[13px] sm:text-sm font-medium"><MapPin size={14} className="text-zinc-400" /> {customer.area?.name || 'No Area'}</div>
+                                 <div className="flex items-center gap-1.5 text-zinc-500 text-[13px] sm:text-sm font-medium"><Phone size={14} className="text-zinc-400" /> {customer.phone}</div>
+                              </div>
+                           </div>
+                           <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                           <div className="bg-slate-50 rounded-2xl p-3 sm:p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
+                           <div
+                              className={`rounded-2xl p-3 sm:p-4 border cursor-pointer transition-all ${financials?.account_status === 'Credit/Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`}
+                              onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
+                           >
+                              <div className={`flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2 opacity-80 ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                                 <Receipt size={12} /> {financials?.account_status === 'Credit/Advance' ? 'Advance' : 'Balance'}
+                              </div>
+                              <p className={`text-[13px] sm:text-sm font-black ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                                 {financials ? `₹${Math.abs(financials.current_balance).toFixed(2)}` : '₹0.00'}
+                              </p>
+                           </div>
+                        </div>
                      </div>
                   </div>
 
@@ -353,70 +353,70 @@ export default function CustomerProfilePage() {
 
                               if (dayDeliveries.length === 0) {
                                  return (
-                                  <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-zinc-50/50 border-zinc-100/50 opacity-40">
-                                     <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                        <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-zinc-100 text-zinc-400">
-                                           <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
-                                           <span className="text-base sm:text-lg leading-none">{day}</span>
-                                        </div>
-                                        <p className="text-[11px] sm:text-xs font-bold text-zinc-400 italic tracking-tight">No delivery record scheduled</p>
-                                     </div>
-                                     <div className="text-right shrink-0 ml-2">
-                                        <p className="font-black text-[13px] sm:text-sm text-zinc-300">₹0</p>
-                                     </div>
-                                  </div>
+                                    <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-zinc-50/50 border-zinc-100/50 opacity-40">
+                                       <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                                          <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-zinc-100 text-zinc-400">
+                                             <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
+                                             <span className="text-base sm:text-lg leading-none">{day}</span>
+                                          </div>
+                                          <p className="text-[11px] sm:text-xs font-bold text-zinc-400 italic tracking-tight">No delivery record scheduled</p>
+                                       </div>
+                                       <div className="text-right shrink-0 ml-2">
+                                          <p className="font-black text-[13px] sm:text-sm text-zinc-300">₹0</p>
+                                       </div>
+                                    </div>
                                  );
                               }
 
                               const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 
                               return (
-                               <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
-                                  <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                     <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
-                                        <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
-                                        <span className="text-base sm:text-lg leading-none">{day}</span>
-                                     </div>
-                                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                                        {dayDeliveries.map((delivery, dIdx) => (
-                                           <div key={dIdx} className={`flex flex-col gap-1 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-zinc-100" : ""}`}>
-                                              <p className="font-black text-[13px] sm:text-[15px] text-zinc-900 leading-tight truncate max-w-[150px] sm:max-w-none">
-                                                 {[
-                                                    delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
-                                                    ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
-                                                 ].filter(Boolean).join(' + ')}
-                                              </p>
-                                              <div className="flex items-center gap-1.5">
-                                                 <span className={`px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border font-black shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
-                                                 {delivery.delivered ? (
-                                                    <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-emerald-200 font-bold uppercase tracking-tighter">Delivered</span>
-                                                 ) : (() => {
-                                                    const now = new Date();
-                                                    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                                                    const isPast = delivery.delivery_date < today;
-                                                    const isToday = delivery.delivery_date === today;
-                                                    const hour = now.getHours();
-                                                    
-                                                    const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
-                                                    
-                                                    if (isPast || (isToday && isShiftOver)) {
-                                                       return <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-rose-200 font-bold uppercase tracking-tighter">Undelivered</span>;
-                                                    }
-                                                    return <span className="bg-zinc-100 text-zinc-400 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Pending</span>;
-                                                 })()}
-                                                 {delivery.billed && (
-                                                    <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Billed</span>
-                                                 )}
-                                              </div>
-                                           </div>
-                                        ))}
-                                     </div>
-                                  </div>
-                                  <div className="text-right shrink-0 ml-2">
-                                     <p className="font-black text-[13px] sm:text-sm text-zinc-900">₹{dayTotal.toFixed(0)}</p>
-                                     <p className="text-[8px] sm:text-[10px] font-bold text-zinc-400 uppercase">Total</p>
-                                  </div>
-                               </div>
+                                 <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
+                                    <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                                       <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
+                                          <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
+                                          <span className="text-base sm:text-lg leading-none">{day}</span>
+                                       </div>
+                                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                                          {dayDeliveries.map((delivery, dIdx) => (
+                                             <div key={dIdx} className={`flex flex-col gap-1 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-zinc-100" : ""}`}>
+                                                <p className="font-black text-[13px] sm:text-[15px] text-zinc-900 leading-tight truncate max-w-[150px] sm:max-w-none">
+                                                   {[
+                                                      delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
+                                                      ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
+                                                   ].filter(Boolean).join(' + ')}
+                                                </p>
+                                                <div className="flex items-center gap-1.5">
+                                                   <span className={`px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border font-black shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
+                                                   {delivery.delivered ? (
+                                                      <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-emerald-200 font-bold uppercase tracking-tighter">Delivered</span>
+                                                   ) : (() => {
+                                                      const now = new Date();
+                                                      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                                                      const isPast = delivery.delivery_date < today;
+                                                      const isToday = delivery.delivery_date === today;
+                                                      const hour = now.getHours();
+
+                                                      const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
+
+                                                      if (isPast || (isToday && isShiftOver)) {
+                                                         return <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-rose-200 font-bold uppercase tracking-tighter">Undelivered</span>;
+                                                      }
+                                                      return <span className="bg-zinc-100 text-zinc-400 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Pending</span>;
+                                                   })()}
+                                                   {delivery.billed && (
+                                                      <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Billed</span>
+                                                   )}
+                                                </div>
+                                             </div>
+                                          ))}
+                                       </div>
+                                    </div>
+                                    <div className="text-right shrink-0 ml-2">
+                                       <p className="font-black text-[13px] sm:text-sm text-zinc-900">₹{dayTotal.toFixed(0)}</p>
+                                       <p className="text-[8px] sm:text-[10px] font-bold text-zinc-400 uppercase">Total</p>
+                                    </div>
+                                 </div>
                               );
                            })}
                            {deliveries.filter(d => d.delivered).length === 0 && (
@@ -437,9 +437,9 @@ export default function CustomerProfilePage() {
             )}
 
             <div className="max-w-2xl mx-auto w-full px-5 py-6">
-               <div className="bg-zinc-900 rounded-4xl p-6 sm:p-8 shadow-2xl text-white relative overflow-hidden border border-zinc-800">
+               <div className="bg-primary rounded-4xl p-6 sm:p-8 shadow-2xl text-white relative overflow-hidden border border-zinc-800">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[80px] rounded-full -mr-16 -mt-16" />
-                  
+
                   <div className="flex items-center justify-between mb-8 relative z-10">
                      <h3 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-500">Financial Summary</h3>
                      <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg ${grandTotalAmount < 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-primary/20 text-primary border border-primary/20'}`}>

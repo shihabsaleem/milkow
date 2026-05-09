@@ -347,7 +347,7 @@ export default function DeliveryPage() {
                            );
                         })}
                      </div>
-                     <button onClick={() => setExpandedStopId(null)} className="w-full bg-zinc-900 text-white py-4 rounded-2xl font-bold mt-8 shadow-xl">Done</button>
+                     <button onClick={() => setExpandedStopId(null)} className="w-full bg-primary text-white py-4 rounded-2xl font-bold mt-8 shadow-xl">Done</button>
                   </motion.div>
                </motion.div>
             )}

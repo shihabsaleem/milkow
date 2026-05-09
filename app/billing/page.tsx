@@ -366,7 +366,7 @@ export default function BillingPage() {
                            <div className="flex flex-col items-end"><span className="font-black text-lg text-primary">₹{Number(bill.amount).toFixed(2)}</span></div>
                         </div>
                         <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">
-                           <button onClick={() => setSelectedInvoice(bill)} className="flex-1 rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all bg-zinc-900 text-white active:scale-95"><QrCode size={16} /> Collect</button>
+                           <button onClick={() => setSelectedInvoice(bill)} className="flex-1 rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all bg-primary text-white active:scale-95"><QrCode size={16} /> Collect</button>
                            <button onClick={() => handleMarkAsPaid(bill.id)} className="flex-1 rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all bg-emerald-50 text-emerald-600 border active:scale-95"><CheckCircle2 size={16} /> Mark Paid</button>
                         </div>
                      </div>

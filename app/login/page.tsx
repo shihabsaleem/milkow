@@ -138,7 +138,7 @@ export default function LoginPage() {
                   <button
                      disabled={isLoading}
                      type="submit"
-                     className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-4 rounded-2xl shadow-[0_8px_20px_-8px_rgba(0,0,0,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative overflow-hidden group/btn disabled:opacity-70 mt-2"
+                     className="w-full bg-primary hover:bg-zinc-800 text-white font-bold py-4 rounded-2xl shadow-[0_8px_20px_-8px_rgba(0,0,0,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative overflow-hidden group/btn disabled:opacity-70 mt-2"
                   >
                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
                      {isLoading ? (

@@ -24,7 +24,7 @@ export default function UserProfilePage() {
    const [upiId, setUpiId] = useState("");
    const [pin, setPin] = useState("");
    const [isSaved, setIsSaved] = useState(false);
-   
+
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [newRoute, setNewRoute] = useState("");
    const [isAddingRoute, setIsAddingRoute] = useState(false);
@@ -53,7 +53,7 @@ export default function UserProfilePage() {
          const { data: areaData } = await supabase.from('areas').select('*').order('name', { ascending: true });
          if (areaData) setAreas(areaData as T.Area[]);
       };
-      
+
       fetchSettings();
       const sub = supabase.channel('profile_settings')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchSettings)
@@ -90,16 +90,16 @@ export default function UserProfilePage() {
    const addRoute = async () => {
       const name = newRoute.trim();
       if (!name || isAddingRoute) return;
-      
+
       setIsAddingRoute(true);
       try {
          const { data, error } = await supabase.from('areas').insert({ name }).select().single();
          if (error) throw error;
-         
+
          if (data) {
             setAreas(prev => [...prev, data as T.Area].sort((a, b) => a.name.localeCompare(b.name)));
          }
-         
+
          setNewRoute('');
          setRouteSuccess(true);
          // Scroll to bottom after state update
@@ -116,7 +116,7 @@ export default function UserProfilePage() {
       try {
          const { error } = await supabase.from('areas').delete().eq('id', id);
          if (error) throw error;
-         
+
          setAreas(prev => prev.filter(a => a.id !== id));
       } catch (e: unknown) {
          const err = e as Error;
@@ -156,7 +156,7 @@ export default function UserProfilePage() {
          <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-8">
             {/* Profile Picture */}
             <div className="flex flex-col items-center gap-4 mt-4">
-               <div className="h-28 w-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-xl relative group bg-zinc-900 flex items-center justify-center">
+               <div className="h-28 w-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-xl relative group bg-primary flex items-center justify-center">
                   <span className="text-white text-4xl font-black">{adminName.charAt(0)}</span>
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                      <p className="text-white text-[10px] font-bold uppercase tracking-widest">Change</p>
@@ -240,7 +240,7 @@ export default function UserProfilePage() {
                   <div className="flex flex-col gap-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
                      <AnimatePresence initial={false}>
                         {areas.map((area) => (
-                           <motion.div 
+                           <motion.div
                               key={area.id}
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
@@ -248,7 +248,7 @@ export default function UserProfilePage() {
                               className="flex items-center justify-between bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3"
                            >
                               <span className="text-sm font-bold text-zinc-900">{area.name}</span>
-                              <button 
+                              <button
                                  onClick={() => removeRoute(area.id)}
                                  className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors"
                               >
@@ -276,10 +276,9 @@ export default function UserProfilePage() {
                         whileTap={{ scale: 0.9 }}
                         onClick={addRoute}
                         disabled={!newRoute.trim() || isAddingRoute}
-                        className={`p-3 rounded-xl transition-all flex items-center justify-center min-w-[48px] ${
-                           routeSuccess ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 
-                           'bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed'
-                        }`}
+                        className={`p-3 rounded-xl transition-all flex items-center justify-center min-w-[48px] ${routeSuccess ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
+                           'bg-primary text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed'
+                           }`}
                      >
                         {isAddingRoute ? (
                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

@@ -36,7 +36,7 @@ export default function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-primary/60 backdrop-blur-sm"
           />
 
           {/* Modal Content */}
@@ -50,8 +50,8 @@ export default function Modal({
             <div className="p-8 pb-6">
               <div className="flex flex-col items-center text-center gap-4">
                 <div className={`h-16 w-16 rounded-3xl flex items-center justify-center ${type === 'danger' ? 'bg-rose-50 text-rose-500' :
-                    type === 'success' ? 'bg-emerald-50 text-emerald-500' :
-                      'bg-primary/10 text-primary'
+                  type === 'success' ? 'bg-emerald-50 text-emerald-500' :
+                    'bg-primary/10 text-primary'
                   }`}>
                   {type === 'danger' ? <AlertTriangle size={32} /> : <X size={32} />}
                 </div>
@@ -84,7 +84,7 @@ export default function Modal({
                 <button
                   onClick={() => onConfirm(dontShowAgain)}
                   className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${type === 'danger' ? 'bg-rose-500 text-white shadow-rose-200' :
-                      'bg-primary text-white shadow-primary/20'
+                    'bg-primary text-white shadow-primary/20'
                     }`}
                 >
                   {confirmText}

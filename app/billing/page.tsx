@@ -378,12 +378,12 @@ export default function BillingPage() {
 
          <AnimatePresence>
             {selectedInvoice && paymentSettings && (
-               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-center items-end">
+               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm flex justify-center items-end">
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full bg-white rounded-t-3xl pt-6 pb-12 px-6 flex flex-col items-center text-center relative max-w-sm">
                      <button onClick={() => setSelectedInvoice(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-500"><X size={20} /></button>
                      <div className="mb-4 mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Payment Request</p><h2 className="text-3xl font-black text-zinc-900">₹{Number(selectedInvoice.amount).toFixed(2)}</h2></div>
-                     <div ref={qrRef} className="bg-gradient-to-br from-primary to-primary-dim p-6 rounded-[2.5rem] shadow-2xl my-4 relative overflow-hidden">
-                        <div className="bg-white p-4 rounded-[2rem] shadow-inner relative z-10">
+                     <div ref={qrRef} className="bg-linear-to-br from-primary to-primary-dim p-6 rounded-[2.5rem] shadow-2xl my-4 relative overflow-hidden">
+                        <div className="bg-white p-4 rounded-4xl shadow-inner relative z-10">
                            <QRCodeCanvas
                               value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${selectedInvoice.amount}&cu=${paymentSettings.currency_code}`}
                               size={200}
@@ -414,7 +414,7 @@ export default function BillingPage() {
          </AnimatePresence>
 
          <AnimatePresence>
-            {showToast && (<motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[110] bg-emerald-600 text-white px-6 py-3 rounded-full font-bold shadow-xl flex items-center gap-2"><CheckCircle2 size={18} />Payment Recorded Successfully</motion.div>)}
+            {showToast && (<motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-110 bg-emerald-600 text-white px-6 py-3 rounded-full font-bold shadow-xl flex items-center gap-2"><CheckCircle2 size={18} />Payment Recorded Successfully</motion.div>)}
          </AnimatePresence>
 
          <Modal

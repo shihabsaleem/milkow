@@ -355,13 +355,13 @@ export default function CustomerProfilePage() {
                                  return (
                                   <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-zinc-50/50 border-zinc-100/50 opacity-40">
                                      <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                        <div className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-zinc-100 text-zinc-400">
+                                        <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-zinc-100 text-zinc-400">
                                            <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                            <span className="text-base sm:text-lg leading-none">{day}</span>
                                         </div>
                                         <p className="text-[11px] sm:text-xs font-bold text-zinc-400 italic tracking-tight">No delivery record scheduled</p>
                                      </div>
-                                     <div className="text-right flex-shrink-0 ml-2">
+                                     <div className="text-right shrink-0 ml-2">
                                         <p className="font-black text-[13px] sm:text-sm text-zinc-300">₹0</p>
                                      </div>
                                   </div>
@@ -373,7 +373,7 @@ export default function CustomerProfilePage() {
                               return (
                                <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
                                   <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                     <div className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
+                                     <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
                                         <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                         <span className="text-base sm:text-lg leading-none">{day}</span>
                                      </div>
@@ -387,7 +387,7 @@ export default function CustomerProfilePage() {
                                                  ].filter(Boolean).join(' + ')}
                                               </p>
                                               <div className="flex items-center gap-1.5">
-                                                 <span className={`px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border font-black flex-shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
+                                                 <span className={`px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border font-black shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
                                                  {delivery.delivered ? (
                                                     <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-emerald-200 font-bold uppercase tracking-tighter">Delivered</span>
                                                  ) : (() => {
@@ -412,7 +412,7 @@ export default function CustomerProfilePage() {
                                         ))}
                                      </div>
                                   </div>
-                                  <div className="text-right flex-shrink-0 ml-2">
+                                  <div className="text-right shrink-0 ml-2">
                                      <p className="font-black text-[13px] sm:text-sm text-zinc-900">₹{dayTotal.toFixed(0)}</p>
                                      <p className="text-[8px] sm:text-[10px] font-bold text-zinc-400 uppercase">Total</p>
                                   </div>
@@ -437,7 +437,7 @@ export default function CustomerProfilePage() {
             )}
 
             <div className="max-w-2xl mx-auto w-full px-5 py-6">
-               <div className="bg-zinc-900 rounded-[2rem] p-6 sm:p-8 shadow-2xl text-white relative overflow-hidden border border-zinc-800">
+               <div className="bg-zinc-900 rounded-4xl p-6 sm:p-8 shadow-2xl text-white relative overflow-hidden border border-zinc-800">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[80px] rounded-full -mr-16 -mt-16" />
                   
                   <div className="flex items-center justify-between mb-8 relative z-10">
@@ -514,7 +514,7 @@ export default function CustomerProfilePage() {
 
          <AnimatePresence>
             {isEditModalOpen && (
-               <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-5">
+               <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
                      <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Edit Customer</p><button onClick={() => setIsEditModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>

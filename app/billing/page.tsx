@@ -53,22 +53,10 @@ export default function BillingPage() {
       const prices: Record<string, number> = {};
       prods.forEach(p => { prices[p.id] = p.price; prices[p.name] = p.price; });
 
-      // Group unbilled by customer
-      const unbilledTotals: Record<string, number> = {};
-      (unbilledData || []).forEach((d: any) => {
-         const milkPrice = prices[d.product_id || ""] || 0;
-         let total = (d.milk_qty || 0) * milkPrice;
-         (d.misc_items || []).forEach((item: { name: string; qty: number }) => {
-            total += (item.qty || 0) * (prices[item.name] || 0);
-         });
-         unbilledTotals[d.customer_id] = (unbilledTotals[d.customer_id] || 0) + total;
-      });
-
       // Combine with financials
       const combinedBills: (T.Bill & { customer: T.Customer })[] = [];
       (financialsData || []).forEach((fin: T.CustomerFinancials) => {
-         const unbilled = unbilledTotals[fin.id] || 0;
-         const grandTotal = fin.current_balance + unbilled;
+         const grandTotal = fin.current_balance;
 
          if (grandTotal > 0) {
             combinedBills.push({
@@ -164,18 +152,11 @@ export default function BillingPage() {
 
          const pastOutstanding = Number(customer.past_outstanding) || 0;
 
-         // Calculate unbilled deliveries amount
-         const priceMap: Record<string, number> = {};
-         products.forEach(p => { priceMap[p.id] = Number(p.price); priceMap[p.name] = Number(p.price); });
-         const unbilledAmount = (unbilledDeliveries || []).reduce((acc, d) => {
-            const unitPrice = priceMap[d.product_id || ""] || 0;
-            let t = (d.milk_qty || 0) * unitPrice;
-            (d.misc_items || []).forEach((item: any) => { t += (item.qty || 0) * (priceMap[item.name] || 0); });
-            return acc + t;
-         }, 0);
+         // Calculate unbilled deliveries amount from the new total_cost column
+         const unbilledAmount = (unbilledDeliveries || []).reduce((acc, d) => acc + (Number(d.total_cost) || 0), 0);
 
-         // The true total owed = ledger balance (from DB view) + unbilled not yet in view
-         const totalOwed = Number(freshFinancials.current_balance) + unbilledAmount;
+         // The true total owed is directly from the view
+         const totalOwed = Number(freshFinancials.current_balance);
          if (totalOwed <= 0) return; // Nothing to settle
 
          // 1. Convert past_outstanding to a bill so billed = paid math works

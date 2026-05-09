@@ -93,7 +93,9 @@ export default function CustomerProfilePage() {
    products.forEach(p => prices[p.name] = Number(p.price));
    const milkPrice = prices[Object.keys(prices).find(n => n.toLowerCase().includes('milk')) || ''] || 50;
 
-   const calculateDeliveryTotal = (d: T.Delivery) => {
+   const calculateDeliveryTotal = (d: T.Delivery & { total_cost?: number }) => {
+      if (d.total_cost != null && d.total_cost > 0) return Number(d.total_cost);
+      
       const product = products.find(p => p.id === d.product_id);
       const basePrice = product ? Number(product.price) : milkPrice;
       let total = (Number(d.milk_qty) || 0) * basePrice;
@@ -106,14 +108,13 @@ export default function CustomerProfilePage() {
    };
 
    const unbilledDeliveries = deliveries.filter(d => d.delivered && !d.billed);
-   const currentDeliveriesAmount = allUnbilledDeliveries.reduce((acc, d) => acc + calculateDeliveryTotal(d), 0);
+   const currentDeliveriesAmount = unbilledDeliveries.reduce((acc, d) => acc + calculateDeliveryTotal(d), 0);
    
-   const totalBilled = bills.reduce((sum, b) => sum + Number(b.amount), 0);
-   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-   const pastOutstanding = Number(customer?.past_outstanding) || 0;
-   const billsBalance = pastOutstanding + totalBilled - totalPaid;
+   // The view now natively tracks the grand total including unbilled items
+   const grandTotalAmount = financials?.current_balance || 0;
    
-   const grandTotalAmount = billsBalance + currentDeliveriesAmount;
+   // Historical balance is everything minus the current unbilled amount
+   const billsBalance = grandTotalAmount - currentDeliveriesAmount;
 
    const toggleStatus = async () => {
       if (!customer) return;
@@ -175,52 +176,6 @@ export default function CustomerProfilePage() {
       showDontShowAgain: false
     });
 
-    const runGenerateBill = async () => {
-       if (!customer || unbilledDeliveries.length === 0) return;
-       try {
-          setIsLoading(true);
-          const { data: newBill, error: billError } = await supabase.from('bills').insert({
-             customer_id: customer.id,
-             amount: currentDeliveriesAmount,
-             type: 'Monthly',
-             status: 'Pending',
-             created_at: new Date().toISOString(),
-          }).select().single();
-
-          if (billError) throw billError;
-
-          const ids = allUnbilledDeliveries.map(d => d.id);
-          await supabase.from('deliveries').update({ billed: true }).in('id', ids);
-
-          await fetchData();
-          router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
-       } catch (err) {
-          console.error("Failed to generate bill:", err);
-          setIsLoading(false);
-       }
-    };
-
-    const handleGenerateBill = () => {
-      const skip = localStorage.getItem('skip_bill_confirm') === 'true';
-      if (skip) {
-        runGenerateBill();
-        return;
-      }
-
-      setModalConfig({
-        isOpen: true,
-        title: "Generate Bill",
-        message: `Create a new monthly bill for ₹${currentDeliveriesAmount.toFixed(2)}?`,
-        type: 'info',
-        confirmText: "Generate",
-        showDontShowAgain: true,
-        onConfirm: (dontShow) => {
-          if (dontShow) localStorage.setItem('skip_bill_confirm', 'true');
-          setModalConfig(prev => ({ ...prev, isOpen: false }));
-          runGenerateBill();
-        }
-      });
-    };
 
     const runMarkAsPaid = async () => {
        if (!customer || grandTotalAmount <= 0) return;
@@ -242,16 +197,16 @@ export default function CustomerProfilePage() {
              }).eq('id', customer.id);
           }
 
-          if (allUnbilledDeliveries.length > 0) {
+          if (unbilledDeliveries.length > 0) {
              await supabase.from('bills').insert({
                 customer_id: customer.id,
                 amount: currentDeliveriesAmount,
-                type: 'Monthly',
+                type: 'Spot',
                 status: 'Paid', 
                 created_at: new Date().toISOString(),
              });
 
-             const ids = allUnbilledDeliveries.map(d => d.id);
+             const ids = unbilledDeliveries.map(d => d.id);
              await supabase.from('deliveries').update({ billed: true }).in('id', ids);
           }
 
@@ -529,15 +484,6 @@ export default function CustomerProfilePage() {
                      </div>
 
                      <div className="flex flex-col sm:flex-row gap-3">
-                        {currentDeliveriesAmount > 0 && (
-                           <button
-                              onClick={handleGenerateBill}
-                              className="flex-1 bg-white/5 hover:bg-white/10 text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/10"
-                           >
-                              <Receipt size={18} />
-                              Generate Monthly Bill
-                           </button>
-                        )}
 
                         {grandTotalAmount > 0 && (
                            <button

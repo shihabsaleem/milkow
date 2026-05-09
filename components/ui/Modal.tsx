@@ -29,7 +29,7 @@ export default function Modal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-4 sm:p-6">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -49,14 +49,13 @@ export default function Modal({
           >
             <div className="p-8 pb-6">
               <div className="flex flex-col items-center text-center gap-4">
-                <div className={`h-16 w-16 rounded-3xl flex items-center justify-center ${
-                  type === 'danger' ? 'bg-rose-50 text-rose-500' : 
-                  type === 'success' ? 'bg-emerald-50 text-emerald-500' :
-                  'bg-primary/10 text-primary'
-                }`}>
+                <div className={`h-16 w-16 rounded-3xl flex items-center justify-center ${type === 'danger' ? 'bg-rose-50 text-rose-500' :
+                    type === 'success' ? 'bg-emerald-50 text-emerald-500' :
+                      'bg-primary/10 text-primary'
+                  }`}>
                   {type === 'danger' ? <AlertTriangle size={32} /> : <X size={32} />}
                 </div>
-                
+
                 <div>
                   <h3 className="text-xl font-black text-zinc-900 uppercase tracking-tight">{title}</h3>
                   <p className="text-sm text-zinc-500 font-medium mt-2 leading-relaxed">
@@ -70,9 +69,8 @@ export default function Modal({
                   <button
                     type="button"
                     onClick={() => setDontShowAgain(!dontShowAgain)}
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
-                      dontShowAgain ? 'bg-primary border-primary text-white' : 'border-zinc-200 bg-zinc-50'
-                    }`}
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${dontShowAgain ? 'bg-primary border-primary text-white' : 'border-zinc-200 bg-zinc-50'
+                      }`}
                   >
                     {dontShowAgain && <Check size={12} strokeWidth={4} />}
                   </button>
@@ -85,10 +83,9 @@ export default function Modal({
               <div className="flex flex-col gap-3 mt-8">
                 <button
                   onClick={() => onConfirm(dontShowAgain)}
-                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${
-                    type === 'danger' ? 'bg-rose-500 text-white shadow-rose-200' : 
-                    'bg-primary text-white shadow-primary/20'
-                  }`}
+                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${type === 'danger' ? 'bg-rose-500 text-white shadow-rose-200' :
+                      'bg-primary text-white shadow-primary/20'
+                    }`}
                 >
                   {confirmText}
                 </button>

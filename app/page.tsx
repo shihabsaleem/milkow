@@ -140,7 +140,7 @@ export default function Dashboard() {
       custSub.unsubscribe();
       setSub.unsubscribe();
     };
-  }, [fetchDashboardData]); 
+  }, [fetchDashboardData]);
 
   const handleShiftToggle = (newShift: "morning" | "evening") => {
     setManualOverride(true);
@@ -160,7 +160,7 @@ export default function Dashboard() {
       <div className="sticky top-0 z-40 border-b bg-slate-50/90 border-black/5 backdrop-blur-md">
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-white shadow-sm flex-shrink-0 relative bg-primary flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-white shadow-sm shrink-0 relative bg-primary flex items-center justify-center">
               <span className="text-white text-lg font-black">{adminName.charAt(0)}</span>
             </div>
             <div className="flex flex-col leading-tight">
@@ -177,7 +177,7 @@ export default function Dashboard() {
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="absolute right-0 top-12 w-52 bg-white border border-zinc-200 shadow-2xl rounded-2xl overflow-hidden py-1 z-50 origin-top-right text-left">
                   <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-zinc-700 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"><User size={16} className="text-zinc-400" /> Profile</Link>
-                  <div className="w-full h-[1px] bg-zinc-100" />
+                  <div className="w-full h-px bg-zinc-100" />
                   <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-rose-600 hover:bg-rose-50 active:bg-rose-100 transition-colors"><LogOut size={16} className="text-rose-400" /> Log Out</button>
                 </motion.div>
               </>
@@ -189,13 +189,13 @@ export default function Dashboard() {
       <div className="w-full max-w-2xl mx-auto pt-5 pb-32 flex flex-col gap-10">
         <section className="flex flex-col gap-4 px-7">
           <div className="w-full rounded-2xl h-[68px] px-5 text-white flex items-center gap-4 relative bg-primary">
-            <div className="p-2.5 rounded-xl flex-shrink-0 pointer-events-none bg-white/20"><Calendar size={20} strokeWidth={2} /></div>
+            <div className="p-2.5 rounded-xl shrink-0 pointer-events-none bg-white/20"><Calendar size={20} strokeWidth={2} /></div>
             <div className="pointer-events-none">
               <p className="text-[17px] font-bold tracking-tight leading-snug">{fmtDate(date)}</p>
               <p className="text-[12px] font-medium leading-none mt-0.5 text-white/70">{dayName}</p>
             </div>
             <div className="ml-auto pointer-events-none flex items-center gap-1 text-white/50"><Calendar size={14} strokeWidth={2} /><span className="text-[11px] font-medium">Tap to change</span></div>
-            <input ref={inputRef} type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-base z-10" value={date} onChange={e => setDate(e.target.value)} onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) {} }} />
+            <input ref={inputRef} type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-base z-10" value={date} onChange={e => setDate(e.target.value)} onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) { } }} />
           </div>
 
           <div className="grid grid-cols-2 p-1 rounded-2xl bg-[#EBEBEF] relative h-14">
@@ -213,7 +213,7 @@ export default function Dashboard() {
             ) : (
               inventory.map((item, i) => <InventoryCard key={i} item={item} />)
             )}
-            <div className="min-w-[28px] flex-shrink-0" />
+            <div className="min-w-[28px] shrink-0" />
           </div>
           <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-3 px-7">
             {isLoading ? (

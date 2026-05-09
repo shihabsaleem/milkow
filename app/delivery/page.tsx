@@ -244,7 +244,7 @@ export default function DeliveryPage() {
                [1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 animate-pulse">
                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 bg-zinc-200 rounded-full flex-shrink-0" />
+                        <div className="h-12 w-12 bg-zinc-200 rounded-full shrink-0" />
                         <div className="flex-1">
                            <div className="h-4 bg-zinc-200 rounded w-1/2 mb-2" />
                            <div className="h-3 bg-zinc-100 rounded w-1/3" />
@@ -301,7 +301,7 @@ export default function DeliveryPage() {
 
          <AnimatePresence>
             {expandedStopId !== null && (
-               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-5">
+               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-5">
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl pt-6 pb-12 px-6 flex flex-col relative">
                      <button onClick={() => setExpandedStopId(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-500"><X size={20} /></button>
                      <div className="mb-6"><h2 className="text-xl font-black text-zinc-900">Add Products</h2><p className="text-sm text-zinc-500">For {deliveries.find(d => d.id === expandedStopId)?.customer?.name}</p></div>
@@ -329,9 +329,9 @@ export default function DeliveryPage() {
                         <div className="h-px bg-zinc-100 my-1" />
 
                         {products.filter(p => {
-                            const stop = deliveries.find(d => d.id === expandedStopId);
-                            return p.id !== stop?.product_id;
-                         }).map((product) => {
+                           const stop = deliveries.find(d => d.id === expandedStopId);
+                           return p.id !== stop?.product_id;
+                        }).map((product) => {
                            const stopItems = deliveries.find(d => d.id === expandedStopId)?.misc_items || [];
                            const item = stopItems.find((i: any) => i.name === product.name);
                            const qty = item ? item.qty : 0;

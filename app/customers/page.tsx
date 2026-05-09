@@ -195,21 +195,21 @@ export default function CustomersPage() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="w-3/4">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-              <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
-            </div></div>
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
+              </div></div>
             <div className="w-1/4">
-            <CustomSelect
-              fullWidth={true}
-              className="min-w-[160px]"
-              options={[
-                { value: "", label: "All Routes" },
-                ...areas.map(a => ({ value: a.id.toString(), label: a.name }))
-              ]}
-              value={selectedAreaId}
-              onChange={(val) => setSelectedAreaId(val)}
-            /></div>
+              <CustomSelect
+                fullWidth={true}
+                className="min-w-[160px]"
+                options={[
+                  { value: "", label: "All Routes" },
+                  ...areas.map(a => ({ value: a.id.toString(), label: a.name }))
+                ]}
+                value={selectedAreaId}
+                onChange={(val) => setSelectedAreaId(val)}
+              /></div>
           </div>
         </div>
       </div>
@@ -267,7 +267,7 @@ export default function CustomersPage() {
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-5">
+          <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
               <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">New Onboarding</p><button onClick={() => setIsModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>

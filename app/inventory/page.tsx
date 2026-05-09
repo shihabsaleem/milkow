@@ -256,7 +256,7 @@ export default function InventoryPage() {
               pipeline.map((stage, i) => (
                 <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5 group relative">
                   <div className="text-primary"><Droplet size={20} /></div>
-                  <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none" /><span className="text-[13px] font-medium ml-2 flex-shrink-0 text-zinc-400">{stage.unit}</span></div></div>
+                  <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none" /><span className="text-[13px] font-medium ml-2 shrink-0 text-zinc-400">{stage.unit}</span></div></div>
                 </div>
               ))
             )}
@@ -286,7 +286,7 @@ export default function InventoryPage() {
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-5">
+          <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
               <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">{editingIndex !== null ? "Edit Product" : "New Product"}</p><button onClick={() => setIsModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
@@ -313,9 +313,9 @@ export default function InventoryPage() {
                 </div>
                 <div className="flex gap-2 mt-2">
                   {editingIndex !== null && (
-                    <button type="button" onClick={handleDeleteProduct} className="flex-shrink-0 w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center hover:bg-rose-100 transition-colors"><Trash2 size={20} /></button>
+                    <button type="button" onClick={handleDeleteProduct} className="shrink-0 w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center hover:bg-rose-100 transition-colors"><Trash2 size={20} /></button>
                   )}
-                  <button type="submit" className="flex-grow bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">{editingIndex !== null ? "Save Changes" : "Create Product"}</button>
+                  <button type="submit" className="grow bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">{editingIndex !== null ? "Save Changes" : "Create Product"}</button>
                 </div>
               </form>
             </motion.div>
@@ -325,7 +325,7 @@ export default function InventoryPage() {
 
       <AnimatePresence>
         {isCloseShiftModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-5">
+          <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCloseShiftModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
               <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Close Shift</p><button onClick={() => setIsCloseShiftModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>

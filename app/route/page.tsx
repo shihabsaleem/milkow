@@ -53,7 +53,7 @@ function SortableItem({
       style={style}
       className="flex items-center gap-3 bg-white border border-zinc-100 rounded-2xl px-4 py-3.5 shadow-sm"
     >
-      <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black flex-shrink-0">
+      <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0">
         {index + 1}
       </div>
       <div className="flex-1 min-w-0">
@@ -77,7 +77,7 @@ function SortableItem({
 function DragCard({ customer }: { customer: CustomerWithArea }) {
   return (
     <div className="flex items-center gap-3 bg-white border-2 border-primary rounded-2xl px-4 py-3.5 shadow-2xl rotate-1">
-      <div className="w-7 h-7 rounded-lg bg-primary text-white flex items-center justify-center text-xs font-black flex-shrink-0">
+      <div className="w-7 h-7 rounded-lg bg-primary text-white flex items-center justify-center text-xs font-black shrink-0">
         #
       </div>
       <div className="flex-1 min-w-0">

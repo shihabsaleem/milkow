@@ -5,7 +5,7 @@ export type DeliveredItem = { name: string; vol: string; count: number; unit: st
 export function InventoryCard({ item }: { item: T.InventoryItem }) {
   const isEmpty = item.count === 0;
   return (
-    <div className="min-w-[210px] sm:min-w-0 flex-shrink-0 rounded-2xl overflow-hidden snap-start hover:brightness-105 transition-all bg-primary flex flex-col h-full">
+    <div className="min-w-[210px] sm:min-w-0 shrink-0 rounded-2xl overflow-hidden snap-start hover:brightness-105 transition-all bg-primary flex flex-col h-full">
       <div className="p-5 pb-4 flex-1">
         <p className="text-white text-[18px] font-bold leading-tight">{item.name}</p>
         <p className="text-[13px] font-medium text-white/60">{item.vol}</p>

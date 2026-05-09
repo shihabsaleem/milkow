@@ -153,7 +153,7 @@ export default function BillingPage() {
          const pastOutstanding = Number(customer.past_outstanding) || 0;
 
          // Calculate unbilled deliveries amount from the new total_cost column
-         const unbilledAmount = (unbilledDeliveries || []).reduce((acc, d) => acc + (Number(d.total_cost) || 0), 0);
+         const unbilledAmount = (unbilledDeliveries || []).reduce((acc: number, d: any) => acc + (Number(d.total_cost) || 0), 0);
 
          // The true total owed is directly from the view
          const totalOwed = Number(freshFinancials.current_balance);
@@ -181,7 +181,7 @@ export default function BillingPage() {
                status: 'Pending',
                created_at: new Date().toISOString()
             });
-            const ids = unbilledDeliveries.map(d => d.id);
+            const ids = unbilledDeliveries.map((d: any) => d.id);
             await supabase.from('deliveries').update({ billed: true }).in('id', ids);
          }
 

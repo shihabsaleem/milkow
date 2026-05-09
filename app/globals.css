@@ -2,41 +2,55 @@
 
 /* ─── Design Tokens ─── */
 @theme {
-  --color-primary: #5B52F0;
-  --color-primary-dim: rgba(91, 82, 240, 0.12);
+  --color-primary: #050044;
+  --color-primary-dim: rgba(5, 0, 68, 0.12);
 }
 
 :root {
-  --primary:        var(--color-primary);
-  --primary-dim:    var(--color-primary-dim);
-  --primary-card:   var(--color-primary);
+  --primary: var(--color-primary);
+  --primary-dim: var(--color-primary-dim);
+  --primary-card: var(--color-primary);
 
-  --bg:             #F4F4F8;
-  --surface:        #FFFFFF;
-  --card:           var(--color-primary);
+  --bg: #F4F4F8;
+  --surface: #FFFFFF;
+  --card: var(--color-primary);
 
-  --text-1:         #18181B;   /* headings */
-  --text-2:         #52525B;   /* body */
-  --text-3:         #A1A1AA;   /* captions */
+  --text-1: #18181B;
+  /* headings */
+  --text-2: #52525B;
+  /* body */
+  --text-3: #A1A1AA;
+  /* captions */
 
-  --green:          #22C55E;
-  --green-soft:     #F0FDF4;
-  --green-border:   #BBF7D0;
+  --green: #22C55E;
+  --green-soft: #F0FDF4;
+  --green-border: #BBF7D0;
 
-  --red:            #EF4444;
-  --red-soft:       #FFF1F2;
-  --red-border:     #FECDD3;
+  --red: #EF4444;
+  --red-soft: #FFF1F2;
+  --red-border: #FECDD3;
 
-  --radius:         16px;
-  --radius-sm:      10px;
-  --radius-lg:      24px;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 24px;
 
   color-scheme: light only;
 }
 
 /* ─── Reset ─── */
-*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { min-height: 100%; overflow-x: hidden; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background: var(--bg);
   color: var(--text-1);
@@ -50,19 +64,36 @@ body {
   user-select: none;
 }
 
-button, a, input[type="button"], input[type="submit"], [role="button"] {
+button,
+a,
+input[type="button"],
+input[type="submit"],
+[role="button"] {
   cursor: pointer;
 }
 
-input[type="text"], input[type="number"], input[type="tel"], input[type="password"], textarea {
+input[type="text"],
+input[type="number"],
+input[type="tel"],
+input[type="password"],
+textarea {
   cursor: text;
   user-select: text;
 }
 
 /* ─── Utilities ─── */
 @layer utilities {
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
-::selection { background: var(--primary-dim); color: var(--primary); }
+::selection {
+  background: var(--primary-dim);
+  color: var(--primary);
+}

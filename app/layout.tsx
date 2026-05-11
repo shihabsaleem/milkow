@@ -50,6 +50,7 @@ export default function RootLayout({
           <main className="flex-1 overflow-y-auto overflow-x-hidden">
             {children}
           </main>
+          <BottomNav />
         </AuthProvider>
       </body>
     </html>

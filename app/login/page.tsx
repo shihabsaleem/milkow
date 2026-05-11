@@ -78,7 +78,7 @@ export default function LoginPage() {
             {/* Login Card */}
             <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.04)] border border-white relative group overflow-visible">
                {/* Subtle background glow for the card */}
-               <div className="absolute -inset-1 bg-gradient-to-br from-primary/20 to-emerald-400/20 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-70 transition-opacity -z-10" />
+               <div className="absolute -inset-1 bg-linear-to-br from-primary/20 to-emerald-400/20 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-70 transition-opacity -z-10" />
                <div className="absolute inset-0 bg-white/60 rounded-[2.5rem] -z-10 backdrop-blur-3xl" />
 
                <div className="text-center mb-8">
@@ -88,7 +88,7 @@ export default function LoginPage() {
 
                <form onSubmit={handleLogin} className="flex flex-col gap-5">
                   <div className="flex flex-col gap-1.5 relative group/input">
-                     <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
+                     <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
                      <div className="relative flex items-center">
                         <div className="absolute left-4 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors">
                            <Mail size={18} strokeWidth={2.5} />
@@ -105,7 +105,7 @@ export default function LoginPage() {
                   </div>
 
                   <div className="flex flex-col gap-1.5 relative group/input">
-                     <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
+                     <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
                      <div className="relative flex items-center">
                         <div className="absolute left-4 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors">
                            <Lock size={18} strokeWidth={2.5} />
@@ -140,7 +140,7 @@ export default function LoginPage() {
                      type="submit"
                      className="w-full bg-primary hover:bg-zinc-800 text-white font-bold py-4 rounded-2xl shadow-[0_8px_20px_-8px_rgba(0,0,0,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative overflow-hidden group/btn disabled:opacity-70 mt-2"
                   >
-                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
+                     <div className="absolute inset-0 bg-linear-to-br from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
                      {isLoading ? (
                         <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                      ) : (

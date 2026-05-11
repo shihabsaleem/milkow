@@ -74,7 +74,7 @@ export default function CustomSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute left-0 right-0 mt-2 bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden z-[110] min-w-[200px]"
+            className="absolute left-0 right-0 mt-2 bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden z-110 min-w-[200px]"
           >
             <div className="py-1 max-h-60 overflow-y-auto no-scrollbar">
               {options.length > 0 ? (

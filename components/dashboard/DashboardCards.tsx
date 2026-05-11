@@ -39,9 +39,9 @@ export function FinanceCard({ amount, label, badge, type }: { amount: string; la
   const isGreen = type === "green";
   return (
     <div className={`rounded-2xl p-5 flex flex-col items-center gap-1 border ${isGreen ? 'bg-primary/5 border-primary/20' : 'bg-rose-50 border-rose-200'}`}>
-      <p className="text-[22px] font-extrabold text-zinc-900">{amount}</p>
-      <p className="text-[13px] font-semibold mb-2 text-zinc-600">{label}</p>
-      <span className={`px-3 py-1 rounded-full text-white text-[11px] font-bold ${isGreen ? 'bg-emerald-500' : 'bg-rose-500'}`}>{badge}</span>
+      <p className="text-[22px] font-extrabold text-zinc-900 text-center">{amount}</p>
+      <p className="text-[13px] font-semibold mb-2 text-zinc-600 text-center leading-tight">{label}</p>
+      <span className={`px-3 py-1 rounded-full text-white text-[11px] font-bold text-center ${isGreen ? 'bg-emerald-500' : 'bg-rose-500'}`}>{badge}</span>
     </div>
   );
 }

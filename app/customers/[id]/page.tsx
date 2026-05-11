@@ -441,7 +441,7 @@ export default function CustomerProfilePage() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary-dim/10 blur-[80px] rounded-full -mr-16 -mt-16" />
 
                   <div className="flex items-center justify-between mb-8 relative z-10">
-                     <h3 className="text-sm font-black uppercase tracking-[0.1em] text-primary">Financial Summary</h3>
+                     <h3 className="text-sm font-black uppercase tracking-widest text-primary">Financial Summary</h3>
                      <span className={`text-[10px] font-bold  tracking-widest px-3 py-1 rounded-lg ${grandTotalAmount < 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-primary-dim/20 text-primary border border-primary/20'}`}>
                         {grandTotalAmount < 0 ? 'Advance Account' : 'Credit Account'}
                      </span>

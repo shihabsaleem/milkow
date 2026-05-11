@@ -194,12 +194,12 @@ export default function CustomersPage() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="w-3/4">
+            <div className="w-full sm:w-3/4">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                 <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
               </div></div>
-            <div className="w-1/4">
+            <div className="w-full sm:w-1/4">
               <CustomSelect
                 fullWidth={true}
                 className="min-w-[160px]"

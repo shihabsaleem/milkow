@@ -437,12 +437,12 @@ export default function CustomerProfilePage() {
             )}
 
             <div className="max-w-2xl mx-auto w-full px-5 py-6">
-               <div className="bg-primary rounded-4xl p-6 sm:p-8 shadow-2xl text-white relative overflow-hidden border border-zinc-800">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[80px] rounded-full -mr-16 -mt-16" />
+               <div className="bg-white rounded-4xl p-6 sm:p-8 shadow-lg text-white relative overflow-hidden border border-primary-dim">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary-dim/10 blur-[80px] rounded-full -mr-16 -mt-16" />
 
                   <div className="flex items-center justify-between mb-8 relative z-10">
-                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-500">Financial Summary</h3>
-                     <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg ${grandTotalAmount < 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-primary/20 text-primary border border-primary/20'}`}>
+                     <h3 className="text-sm font-black uppercase tracking-[0.1em] text-primary">Financial Summary</h3>
+                     <span className={`text-[10px] font-bold  tracking-widest px-3 py-1 rounded-lg ${grandTotalAmount < 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-primary-dim/20 text-primary border border-primary/20'}`}>
                         {grandTotalAmount < 0 ? 'Advance Account' : 'Credit Account'}
                      </span>
                   </div>
@@ -460,7 +460,7 @@ export default function CustomerProfilePage() {
                      <div className="flex flex-col gap-2">
                         <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Current Month</p>
                         <div className="flex flex-col gap-1">
-                           <p className="text-lg font-black text-zinc-200">₹{currentDeliveriesAmount.toFixed(2)}</p>
+                           <p className="text-lg font-black text-primary">₹{currentDeliveriesAmount.toFixed(2)}</p>
                            <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md w-fit bg-white/5 text-zinc-400">
                               Unbilled
                            </span>

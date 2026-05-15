@@ -281,9 +281,63 @@ export default function CustomerProfilePage() {
    const isCurrentMonth = viewDate.getMonth() === new Date().getMonth() && viewDate.getFullYear() === new Date().getFullYear();
    const displayDays = isCurrentMonth ? new Date().getDate() : daysCount;
 
+   if (!customer && isLoading) {
+      return (
+         <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-hidden">
+            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
+               <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                     <div className="w-8 h-8 bg-zinc-100 rounded-full animate-pulse" />
+                     <div className="flex flex-col gap-2">
+                        <div className="w-32 h-4 bg-zinc-100 rounded-md animate-pulse" />
+                        <div className="w-20 h-3 bg-zinc-100 rounded-md animate-pulse" />
+                     </div>
+                  </div>
+               </div>
+            </header>
+            <main className="flex-1 overflow-y-auto">
+               <div className="bg-white rounded-b-3xl shadow-sm border-b border-zinc-200/50 relative overflow-hidden">
+                  <div className="max-w-2xl mx-auto w-full px-6 pb-8 pt-4">
+                     <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                           <div className="h-12 w-12 sm:h-16 sm:w-16 bg-zinc-100 rounded-2xl animate-pulse" />
+                           <div className="flex flex-col gap-2">
+                              <div className="w-40 h-5 bg-zinc-100 rounded-md animate-pulse" />
+                              <div className="w-32 h-4 bg-zinc-100 rounded-md animate-pulse" />
+                           </div>
+                        </div>
+                        <div className="w-16 h-6 bg-zinc-100 rounded-xl animate-pulse" />
+                     </div>
+                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                        <div className="h-16 bg-slate-50 rounded-2xl animate-pulse border border-zinc-100" />
+                        <div className="h-16 bg-slate-50 rounded-2xl animate-pulse border border-zinc-100" />
+                     </div>
+                  </div>
+               </div>
+               <div className="max-w-2xl mx-auto w-full px-5 py-8 flex flex-col gap-6">
+                  <div className="h-80 bg-white border border-zinc-100 rounded-3xl animate-pulse" />
+                  <div className="h-48 bg-white border border-zinc-100 rounded-3xl animate-pulse" />
+               </div>
+            </main>
+         </div>
+      );
+   }
+
    if (!customer) {
-      if (isLoading) return <div className="h-screen flex items-center justify-center font-bold">Loading Cloud Data...</div>;
-      return <div className="flex h-full w-full items-center justify-center bg-slate-50 text-zinc-500 flex-col gap-4"><p>Customer not found</p><button onClick={() => router.back()} className="text-primary font-bold">Go Back</button></div>;
+      return (
+         <div className="flex h-full w-full items-center justify-center bg-slate-50 text-zinc-500 flex-col gap-4">
+            <div className="h-16 w-16 bg-zinc-100 rounded-2xl flex items-center justify-center text-zinc-300">
+               <X size={32} />
+            </div>
+            <div className="text-center">
+               <p className="font-bold text-zinc-900">Customer not found</p>
+               <p className="text-sm text-zinc-400">The customer you're looking for doesn't exist.</p>
+            </div>
+            <button onClick={() => router.back()} className="mt-2 px-6 py-2 bg-white border border-zinc-200 rounded-xl font-bold text-zinc-900 shadow-sm active:scale-95 transition-all">
+               Go Back
+            </button>
+         </div>
+      );
    }
 
    return (

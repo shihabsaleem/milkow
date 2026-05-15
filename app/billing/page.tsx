@@ -240,27 +240,118 @@ export default function BillingPage() {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return null;
-      const width = 800; const height = 1100;
-      canvas.width = width; canvas.height = height;
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, "#4F46E5"); gradient.addColorStop(1, "#3730A3");
-      ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
+
+      // High-res for sharing (9:16 aspect ratio)
+      const width = 1080;
+      const height = 1920;
+      canvas.width = width;
+      canvas.height = height;
+
+      // 1. Background (Premium Deep Navy)
+      const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+      bgGradient.addColorStop(0, "#050044");
+      bgGradient.addColorStop(1, "#020024");
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // Add subtle decorative accents
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(width * 0.9, height * 0.1, 500, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(width * 0.1, height * 0.9, 400, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1.0;
+
+      // 2. Main Card Body (Receipt Style)
+      const cardX = 80;
+      const cardY = 120;
+      const cardW = width - 160;
+      const cardH = 1600; // Card spans from y=120 to y=1720
+      const radius = 80;
+
+      // Card Shadow
+      ctx.shadowColor = "rgba(0,0,0,0.4)";
+      ctx.shadowBlur = 60;
+      ctx.shadowOffsetY = 30;
       ctx.fillStyle = "#FFFFFF";
-      ctx.beginPath(); ctx.roundRect(50, 50, width - 100, height - 100, 60); ctx.fill();
+      ctx.beginPath();
+      ctx.roundRect(cardX, cardY, cardW, cardH, radius);
+      ctx.fill();
+      ctx.shadowColor = "transparent";
+
+      // 3. Logo & Brand Header
       const logo = new Image();
       logo.src = "/assets/logo.svg";
-      await new Promise((resolve) => { logo.onload = resolve; });
-      ctx.drawImage(logo, (width / 2) - 50, 100, 100, 100);
-      ctx.fillStyle = "#111827"; ctx.font = "black 70px Geist Sans"; ctx.textAlign = "center"; ctx.fillText(`₹${Number(invoice.amount).toFixed(2)}`, width / 2, 330);
-      ctx.fillStyle = "#374151"; ctx.font = "bold 35px Geist-Sans"; ctx.fillText(`Payable by ${invoice.customer?.name}`, width / 2, 390);
-      const uiQrCanvas = qrRef.current?.querySelector("canvas");
-      if (uiQrCanvas) { ctx.drawImage(uiQrCanvas, 150, 450, 500, 500); }
-      ctx.fillStyle = "#111827"; ctx.font = "bold 30px Geist"; ctx.fillText("Scan with any UPI App", width / 2, 1000);
-      ctx.fillStyle = "#9CA3AF"; ctx.font = "medium 24px Geist"; ctx.fillText(`Invoice: ${invoice.id.slice(0, 8)}`, width / 2, 1040);
+      await new Promise((resolve) => { logo.onload = resolve; logo.onerror = resolve; });
+      if (logo.complete && logo.naturalWidth > 0) {
+         const logoWidth = 260;
+         const logoHeight = logo.naturalHeight * (logoWidth / logo.naturalWidth);
+         ctx.drawImage(logo, (width / 2) - (logoWidth / 2), cardY + 80, logoWidth, logoHeight);
+      }
+
+      // 4. Amount Section
+      ctx.fillStyle = "#94A3B8";
+      ctx.font = "500 36px Geist, Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("TOTAL PAYABLE", width / 2, cardY + 300);
+
+      ctx.fillStyle = "#050044";
+      ctx.font = "900 120px Geist, Inter, sans-serif";
+      const formattedAmount = `₹${Number(invoice.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      ctx.fillText(formattedAmount, width / 2, cardY + 440);
+
+      // Divider Line
+      ctx.strokeStyle = "#F1F5F9";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cardX + 100, cardY + 540);
+      ctx.lineTo(cardX + cardW - 100, cardY + 540);
+      ctx.stroke();
+
+      // 5. Customer Details
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#64748B";
+      ctx.font = "bold 30px Geist, Inter, sans-serif";
+      ctx.fillText("BILL TO", cardX + 100, cardY + 640);
+
+      ctx.fillStyle = "#1E293B";
+      ctx.font = "900 50px Geist, Inter, sans-serif";
+      ctx.fillText(invoice.customer?.name || "Customer", cardX + 100, cardY + 720);
+
+      // 6. QR Code Section
+      const qrSize = 540;
+      const qrX = (width / 2) - (qrSize / 2);
+      const qrY = cardY + 840;
+
+      // QR Frame/Container
+      ctx.fillStyle = "#F8FAFC";
+      ctx.beginPath();
+      ctx.roundRect(qrX - 40, qrY - 40, qrSize + 80, qrSize + 80, 60);
+      ctx.fill();
       
-      const dataUrl = canvas.toDataURL("image/png");
+      // Decorative border for QR
+      ctx.strokeStyle = "#E2E8F0";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const uiQrCanvas = qrRef.current?.querySelector("canvas");
+      if (uiQrCanvas) {
+         ctx.drawImage(uiQrCanvas, qrX, qrY, qrSize, qrSize);
+      }
+
+      // 7. Payment Instructions
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#050044";
+      ctx.font = "bold 38px Geist, Inter, sans-serif";
+      ctx.fillText("Scan with any UPI App", width / 2, cardY + 1500);
+
+      // 8. Bottom Branding
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.font = "bold 32px Geist, Inter, sans-serif";
+      ctx.fillText("Fresh Milk, Delivered with Love.", width / 2, 1860);
+
+      const dataUrl = canvas.toDataURL("image/png", 0.95);
       const blob = await (await fetch(dataUrl)).blob();
-      return new File([blob], `Payment_${invoice.customer?.name}.png`, { type: "image/png" });
+      return new File([blob], `Milkow_Bill_${invoice.customer?.name}.png`, { type: "image/png" });
    };
 
    const handleShareCard = async () => {

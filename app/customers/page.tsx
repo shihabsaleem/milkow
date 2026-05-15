@@ -10,6 +10,7 @@ import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
 import { checkAndRunAutomations } from "@/lib/automation";
 import CustomSelect from "@/components/ui/CustomSelect";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -37,8 +38,8 @@ export default function CustomersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     const [
       { data: custs },
       { data: areaList },
@@ -60,7 +61,7 @@ export default function CustomersPage() {
     }
     if (areaList) setAreas(areaList as T.Area[]);
     if (productList) setProducts(productList as T.Product[]);
-    setIsLoading(false);
+    if (!silent) setIsLoading(false);
   }, []);
 
   // 1. DATA LOAD & SYNC
@@ -176,7 +177,7 @@ export default function CustomersPage() {
   });
 
   return (
-    <div className="min-h-full w-full pb-32 bg-zinc-50/50">
+    <PullToRefresh onRefresh={() => fetchData(true)} className="bg-zinc-50/50 pb-32">
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="max-w-2xl mx-auto px-5 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
@@ -328,6 +329,6 @@ export default function CustomersPage() {
         type={modalConfig.type}
         confirmText={modalConfig.confirmText}
       />
-    </div>
+    </PullToRefresh>
   );
 }

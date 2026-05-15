@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
 import CustomSelect from "@/components/ui/CustomSelect";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 
 export default function CustomerProfilePage() {
    const params = useParams();
@@ -28,9 +29,9 @@ export default function CustomerProfilePage() {
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
 
-   const fetchData = useCallback(async () => {
+   const fetchData = useCallback(async (silent = false) => {
       if (!customerIdParam) return;
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       const year = viewDate.getFullYear();
       const month = viewDate.getMonth();
       const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
@@ -74,7 +75,7 @@ export default function CustomerProfilePage() {
             outstanding: custData.past_outstanding?.toString() || "0"
          });
       }
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
    }, [customerIdParam, viewDate]);
 
    useEffect(() => {
@@ -341,7 +342,7 @@ export default function CustomerProfilePage() {
    }
 
    return (
-      <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
+      <PullToRefresh onRefresh={() => fetchData(true)} className="bg-slate-50 pb-32">
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between gap-4">
                <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-base sm:text-lg font-bold">{customer?.name || 'Customer'}</h1><p className="text-[10px] sm:text-xs text-zinc-500">Customer Profile</p></div></div>
@@ -601,6 +602,6 @@ export default function CustomerProfilePage() {
                </div>
             )}
          </AnimatePresence>
-      </div>
+      </PullToRefresh>
    );
 }

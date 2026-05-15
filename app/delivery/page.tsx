@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, PackagePlus, PackageSearch, Search, Minus, Plus, ChevronDown, X, Sunrise, Sunset } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { deductInventoryOnDelivery } from "@/lib/automation";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 import * as T from "@/types/database";
 
 type DeliveryWithCustomer = T.Delivery & { customer: T.Customer };
@@ -171,7 +172,7 @@ export default function DeliveryPage() {
    const remainingStops = filteredDeliveries.filter(d => !d.delivered).length;
 
    return (
-      <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
+      <PullToRefresh onRefresh={() => fetchData(true)} className="bg-slate-50 pb-32">
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex flex-col gap-3">
                <div className="flex items-center justify-between">
@@ -352,6 +353,6 @@ export default function DeliveryPage() {
                </motion.div>
             )}
          </AnimatePresence>
-      </div>
+      </PullToRefresh>
    );
 }

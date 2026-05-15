@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import * as T from "@/types/database";
 import { InventoryCard, DeliveredCard, FinanceCard, DeliveredItem } from "@/components/dashboard/DashboardCards";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 
 const fmtDate = (s: string) => {
   if (!s) return "";
@@ -59,8 +60,8 @@ export default function Dashboard() {
     router.refresh();
   };
 
-  const fetchDashboardData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchDashboardData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     const dbShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
 
     const [
@@ -121,7 +122,7 @@ export default function Dashboard() {
         name, vol: val.vol, count: val.count, unit: val.unit
       })));
     }
-    setIsLoading(false);
+    if (!silent) setIsLoading(false);
   }, [shift, date]);
 
   useEffect(() => {
@@ -156,7 +157,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-full w-full bg-slate-50">
+    <PullToRefresh onRefresh={() => fetchDashboardData(true)} className="bg-slate-50 pb-32">
       <div className="sticky top-0 z-40 border-b bg-slate-50/90 border-black/5 backdrop-blur-md">
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -252,6 +253,6 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
-    </div>
+    </PullToRefresh>
   );
 }

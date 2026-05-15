@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
 import CustomSelect from "@/components/ui/CustomSelect";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 import * as T from "@/types/database";
 
 type PipelineStage = { label: string; value: number; unit: string; id: number; productId?: string | number };
@@ -61,8 +62,8 @@ export default function InventoryPage() {
     setIsModalOpen(true);
   };
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     const [{ data: prods }, { data: pipes }] = await Promise.all([
       supabase.from('products').select('*'),
       supabase.from('inventory').select('*').not('product_id', 'is', null)
@@ -70,7 +71,7 @@ export default function InventoryPage() {
     if (prods) setProducts(prods as T.Product[]);
     // Note: mapping 'inventory' to pipeline for this view
     if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
-    setIsLoading(false);
+    if (!silent) setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -230,7 +231,7 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="min-h-full w-full pb-32 bg-slate-50">
+    <PullToRefresh onRefresh={() => fetchData(true)} className="pb-32 bg-slate-50">
       <div className="sticky top-0 z-40 border-b bg-slate-50/90 border-black/5 backdrop-blur-md">
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
@@ -359,6 +360,6 @@ export default function InventoryPage() {
         confirmText={modalConfig.confirmText}
         showDontShowAgain={modalConfig.showDontShowAgain}
       />
-    </div>
+    </PullToRefresh>
   );
 }

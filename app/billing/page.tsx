@@ -7,6 +7,7 @@ import { QrCode, MessageCircle, Wallet2, CheckCircle2, X, Check, Search, Share2,
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 import * as T from "@/types/database";
 
 export default function BillingPage() {
@@ -29,10 +30,6 @@ export default function BillingPage() {
    const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
    const [showToast, setShowToast] = useState(false);
    const [isLoading, setIsLoading] = useState(true);
-   const [isRefreshing, setIsRefreshing] = useState(false);
-   const [pullDistance, setPullDistance] = useState(0);
-   const startY = useRef(0);
-   const isPulling = useRef(false);
 
    const fetchData = async (silent = false) => {
       if (!silent) setIsLoading(true);
@@ -87,6 +84,7 @@ export default function BillingPage() {
       }
       if (!silent) setIsLoading(false);
    };
+
    // 1. DATA LOAD & SYNC
    useEffect(() => {
       fetchData();
@@ -115,51 +113,6 @@ export default function BillingPage() {
       const matchesRoute = selectedRoute === "" || bill.customer?.area_id === selectedRoute;
       return matchesSearch && matchesRoute && bill.status !== 'Paid';
    });
-
-   // PULL TO REFRESH LOGIC
-   const handleTouchStart = (e: React.TouchEvent) => {
-      if (qrRef.current) return; // Don't trigger when modal is open
-      const container = e.currentTarget;
-      if (container.scrollTop <= 0) {
-         startY.current = e.touches[0].pageY;
-         isPulling.current = true;
-      }
-   };
-
-   const handleTouchMove = (e: React.TouchEvent) => {
-      if (!isPulling.current) return;
-      const touchY = e.touches[0].pageY;
-      const diff = touchY - startY.current;
-
-      if (diff > 0 && e.currentTarget.scrollTop <= 0) {
-         // Apply resistance
-         const distance = Math.pow(diff, 0.7);
-         setPullDistance(Math.min(distance * 2, 80));
-         if (diff > 10) {
-            if (e.cancelable) e.preventDefault();
-         }
-      } else {
-         isPulling.current = false;
-         setPullDistance(0);
-      }
-   };
-
-   const handleTouchEnd = async () => {
-      if (!isPulling.current) return;
-      isPulling.current = false;
-
-      if (pullDistance > 60) {
-         setIsRefreshing(true);
-         setPullDistance(40);
-         await fetchData(true);
-         setTimeout(() => {
-            setIsRefreshing(false);
-            setPullDistance(0);
-         }, 500);
-      } else {
-         setPullDistance(0);
-      }
-   };
 
    const [modalConfig, setModalConfig] = useState<{
       isOpen: boolean;
@@ -350,30 +303,7 @@ export default function BillingPage() {
    };
 
    return (
-      <div
-         className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32 overscroll-contain"
-         onTouchStart={handleTouchStart}
-         onTouchMove={handleTouchMove}
-         onTouchEnd={handleTouchEnd}
-      >
-         <motion.div
-            animate={{ height: pullDistance }}
-            style={{ opacity: pullDistance / 60 }}
-            className="flex items-center justify-center overflow-hidden bg-white/50"
-         >
-            <div className={`transition-transform duration-300 ${pullDistance > 60 ? 'rotate-180' : ''}`}>
-               <ChevronDown size={20} className={isRefreshing ? 'hidden' : 'text-primary'} />
-            </div>
-            {isRefreshing && (
-               <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            )}
-            {!isRefreshing && pullDistance > 10 && (
-               <span className="text-[10px] font-black uppercase tracking-widest ml-2 text-primary">
-                  {pullDistance > 60 ? 'Release to Refresh' : 'Pull to Refresh'}
-               </span>
-            )}
-         </motion.div>
-
+      <PullToRefresh onRefresh={() => fetchData(true)} className="bg-slate-50 text-zinc-900 font-sans pb-32">
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex flex-col gap-1">
                <div className="flex items-center justify-between">
@@ -524,6 +454,6 @@ export default function BillingPage() {
             confirmText={modalConfig.confirmText}
             showDontShowAgain={modalConfig.showDontShowAgain}
          />
-      </div>
+      </PullToRefresh>
    );
 }

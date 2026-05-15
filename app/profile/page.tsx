@@ -2,8 +2,9 @@
 
 import { ArrowLeft, Save, LogOut, X, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -39,28 +40,28 @@ export default function UserProfilePage() {
    }, [routeSuccess]);
 
    // Load current settings from Supabase
+   const fetchSettings = useCallback(async (silent = false) => {
+      const { data } = await supabase.from('system_settings').select('*').eq('key', 'general').single();
+      if (data) {
+         const val = data.value as T.Settings;
+         setAdminName(val.system_user?.name || "Sayas R.");
+         setPin(val.system_user?.pin || "");
+         setPayeeName(val.payment?.payee_name || "");
+         setUpiId(val.payment?.upi_id || "");
+      }
+
+      const { data: areaData } = await supabase.from('areas').select('*').order('name', { ascending: true });
+      if (areaData) setAreas(areaData as T.Area[]);
+   }, []);
+
    useEffect(() => {
-      const fetchSettings = async () => {
-         const { data } = await supabase.from('system_settings').select('*').eq('key', 'general').single();
-         if (data) {
-            const val = data.value as T.Settings;
-            setAdminName(val.system_user?.name || "Sayas R.");
-            setPin(val.system_user?.pin || "");
-            setPayeeName(val.payment?.payee_name || "");
-            setUpiId(val.payment?.upi_id || "");
-         }
-
-         const { data: areaData } = await supabase.from('areas').select('*').order('name', { ascending: true });
-         if (areaData) setAreas(areaData as T.Area[]);
-      };
-
       fetchSettings();
       const sub = supabase.channel('profile_settings')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchSettings)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, fetchSettings)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, () => fetchSettings(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => fetchSettings(true))
          .subscribe();
       return () => { sub.unsubscribe(); };
-   }, []);
+   }, [fetchSettings]);
 
    const handleSave = async () => {
       try {
@@ -139,7 +140,7 @@ export default function UserProfilePage() {
    }
 
    return (
-      <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto pb-32">
+      <PullToRefresh onRefresh={() => fetchSettings(true)} className="bg-slate-50 pb-32">
          {/* HEADER */}
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center gap-4">
@@ -306,6 +307,6 @@ export default function UserProfilePage() {
 
             </div>
          </main>
-      </div>
+      </PullToRefresh>
    );
 }

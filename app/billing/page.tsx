@@ -29,9 +29,13 @@ export default function BillingPage() {
    const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
    const [showToast, setShowToast] = useState(false);
    const [isLoading, setIsLoading] = useState(true);
+   const [isRefreshing, setIsRefreshing] = useState(false);
+   const [pullDistance, setPullDistance] = useState(0);
+   const startY = useRef(0);
+   const isPulling = useRef(false);
 
-   const fetchData = async () => {
-      setIsLoading(true);
+   const fetchData = async (silent = false) => {
+      if (!silent) setIsLoading(true);
       const [
          { data: routeSets },
          { data: financialsData },
@@ -81,7 +85,7 @@ export default function BillingPage() {
          const general = settingsData.value as { payment?: T.PaymentSetup };
          if (general?.payment) setPaymentSettings(general.payment);
       }
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
    };
    // 1. DATA LOAD & SYNC
    useEffect(() => {
@@ -111,6 +115,51 @@ export default function BillingPage() {
       const matchesRoute = selectedRoute === "" || bill.customer?.area_id === selectedRoute;
       return matchesSearch && matchesRoute && bill.status !== 'Paid';
    });
+
+   // PULL TO REFRESH LOGIC
+   const handleTouchStart = (e: React.TouchEvent) => {
+      if (qrRef.current) return; // Don't trigger when modal is open
+      const container = e.currentTarget;
+      if (container.scrollTop <= 0) {
+         startY.current = e.touches[0].pageY;
+         isPulling.current = true;
+      }
+   };
+
+   const handleTouchMove = (e: React.TouchEvent) => {
+      if (!isPulling.current) return;
+      const touchY = e.touches[0].pageY;
+      const diff = touchY - startY.current;
+
+      if (diff > 0 && e.currentTarget.scrollTop <= 0) {
+         // Apply resistance
+         const distance = Math.pow(diff, 0.7);
+         setPullDistance(Math.min(distance * 2, 80));
+         if (diff > 10) {
+            if (e.cancelable) e.preventDefault();
+         }
+      } else {
+         isPulling.current = false;
+         setPullDistance(0);
+      }
+   };
+
+   const handleTouchEnd = async () => {
+      if (!isPulling.current) return;
+      isPulling.current = false;
+
+      if (pullDistance > 60) {
+         setIsRefreshing(true);
+         setPullDistance(40);
+         await fetchData(true);
+         setTimeout(() => {
+            setIsRefreshing(false);
+            setPullDistance(0);
+         }, 500);
+      } else {
+         setPullDistance(0);
+      }
+   };
 
    const [modalConfig, setModalConfig] = useState<{
       isOpen: boolean;
@@ -234,11 +283,10 @@ export default function BillingPage() {
       });
    };
 
-   const handleShareCard = async () => {
-      if (!selectedInvoice) return;
+   const getPaymentCardFile = async (invoice: T.Bill & { customer: T.Customer }) => {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      if (!ctx) return null;
       const width = 800; const height = 1100;
       canvas.width = width; canvas.height = height;
       const gradient = ctx.createLinearGradient(0, 0, width, height);
@@ -250,33 +298,82 @@ export default function BillingPage() {
       logo.src = "/assets/logo.svg";
       await new Promise((resolve) => { logo.onload = resolve; });
       ctx.drawImage(logo, (width / 2) - 50, 100, 100, 100);
-      ctx.fillStyle = "#111827"; ctx.font = "black 70px Geist Sans"; ctx.fillText(`₹${Number(selectedInvoice.amount).toFixed(2)}`, width / 2, 330);
-      ctx.fillStyle = "#374151"; ctx.font = "bold 35px Geist-Sans"; ctx.fillText(`Payable by ${selectedInvoice.customer?.name}`, width / 2, 390);
+      ctx.fillStyle = "#111827"; ctx.font = "black 70px Geist Sans"; ctx.textAlign = "center"; ctx.fillText(`₹${Number(invoice.amount).toFixed(2)}`, width / 2, 330);
+      ctx.fillStyle = "#374151"; ctx.font = "bold 35px Geist-Sans"; ctx.fillText(`Payable by ${invoice.customer?.name}`, width / 2, 390);
       const uiQrCanvas = qrRef.current?.querySelector("canvas");
       if (uiQrCanvas) { ctx.drawImage(uiQrCanvas, 150, 450, 500, 500); }
       ctx.fillStyle = "#111827"; ctx.font = "bold 30px Geist"; ctx.fillText("Scan with any UPI App", width / 2, 1000);
-      ctx.fillStyle = "#9CA3AF"; ctx.font = "medium 24px Geist"; ctx.fillText(`Invoice: ${selectedInvoice.id.slice(0, 8)}`, width / 2, 1040);
+      ctx.fillStyle = "#9CA3AF"; ctx.font = "medium 24px Geist"; ctx.fillText(`Invoice: ${invoice.id.slice(0, 8)}`, width / 2, 1040);
+      
+      const dataUrl = canvas.toDataURL("image/png");
+      const blob = await (await fetch(dataUrl)).blob();
+      return new File([blob], `Payment_${invoice.customer?.name}.png`, { type: "image/png" });
+   };
+
+   const handleShareCard = async () => {
+      if (!selectedInvoice) return;
       try {
-         const dataUrl = canvas.toDataURL("image/png");
-         const blob = await (await fetch(dataUrl)).blob();
-         const file = new File([blob], `Payment_${selectedInvoice.customer?.name}.png`, { type: "image/png" });
+         const file = await getPaymentCardFile(selectedInvoice);
+         if (!file) return;
          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: `Payment Card for ${selectedInvoice.customer?.name}`, text: `Hi ${selectedInvoice.customer?.name}, your payment card is ready.` });
          } else {
+            const dataUrl = URL.createObjectURL(file);
             const link = document.createElement("a"); link.href = dataUrl; link.download = `Milkow_Card_${selectedInvoice.customer?.name}.png`; link.click();
          }
       } catch (e) { console.error(e); }
    };
 
-   const handleWhatsAppShare = (invoice: (T.Bill & { customer: T.Customer })) => {
+   const handleWhatsAppShare = async (invoice: (T.Bill & { customer: T.Customer })) => {
       if (!paymentSettings) return;
       const amount = Number(invoice.amount).toFixed(2);
-      const message = `Hi ${invoice.customer?.name}, your bill for ${invoice.type} is ₹${amount}. upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
-      const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`; window.open(url, "_blank");
+      const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
+      const message = `Hi ${invoice.customer?.name}, your bill for ${invoice.type} is ₹${amount}. You can pay using the attached QR or this link: ${upiLink}`;
+      
+      try {
+         const file = await getPaymentCardFile(invoice);
+         if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ 
+               files: [file], 
+               title: `Payment for ${invoice.customer?.name}`, 
+               text: message 
+            });
+         } else {
+            const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`; 
+            window.open(url, "_blank");
+         }
+      } catch (e) {
+         console.error("Share failed", e);
+         const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`; 
+         window.open(url, "_blank");
+      }
    };
 
    return (
-      <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32">
+      <div
+         className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-y-auto overflow-x-hidden pb-32 overscroll-contain"
+         onTouchStart={handleTouchStart}
+         onTouchMove={handleTouchMove}
+         onTouchEnd={handleTouchEnd}
+      >
+         <motion.div
+            animate={{ height: pullDistance }}
+            style={{ opacity: pullDistance / 60 }}
+            className="flex items-center justify-center overflow-hidden bg-white/50"
+         >
+            <div className={`transition-transform duration-300 ${pullDistance > 60 ? 'rotate-180' : ''}`}>
+               <ChevronDown size={20} className={isRefreshing ? 'hidden' : 'text-primary'} />
+            </div>
+            {isRefreshing && (
+               <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            )}
+            {!isRefreshing && pullDistance > 10 && (
+               <span className="text-[10px] font-black uppercase tracking-widest ml-2 text-primary">
+                  {pullDistance > 60 ? 'Release to Refresh' : 'Pull to Refresh'}
+               </span>
+            )}
+         </motion.div>
+
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex flex-col gap-1">
                <div className="flex items-center justify-between">

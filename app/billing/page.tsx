@@ -480,7 +480,9 @@ export default function BillingPage() {
                   return (
                      <div key={bill.id} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
                         <div className="flex justify-between items-start">
-                           <div><h3 className="font-bold text-zinc-900">{bill.customer?.name}</h3><p className="text-xs text-zinc-500 mt-1">{bill.id.slice(0, 8)} • {bill.type} Billing</p></div>
+                           <div><h3 className="font-bold text-zinc-900">{bill.customer?.name}</h3>
+                           <p className="text-xs text-zinc-500 mt-1">{bill.id.slice(0, 8)} • {bill.type} Billing</p>
+                           </div>
                            <div className="flex flex-col items-end"><span className="font-black text-lg text-primary">₹{Number(bill.amount).toFixed(2)}</span></div>
                         </div>
                         <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">

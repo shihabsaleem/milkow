@@ -179,7 +179,7 @@ export default function CustomersPage() {
   return (
     <PullToRefresh onRefresh={() => fetchData(true)} className="bg-zinc-50/50 pb-32">
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-100">
-        <div className="max-w-2xl mx-auto px-5 py-4 flex flex-col gap-4">
+        <div className="w-full max-w-2xl mx-auto px-5 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[20px] font-black text-zinc-900 leading-none">Customers</p>
@@ -215,7 +215,7 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <main className="max-w-2xl mx-auto px-5 py-6 flex flex-col gap-3">
+      <main className="w-full max-w-2xl mx-auto px-5 py-6 flex flex-col gap-3">
         {isLoading ? (
           [1, 2, 3, 4, 5].map(i => <div key={i} className="h-24 bg-white border border-black/5 rounded-2xl animate-pulse" />)
         ) : filteredCustomers.length > 0 ? (
@@ -226,16 +226,16 @@ export default function CustomersPage() {
               onClick={() => {
                 if (customer.id) router.push(`/customers/${customer.id}`);
               }}
-              className="bg-white border border-black/5 p-5 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
+              className="w-full bg-white border border-black/5 p-4 sm:p-5 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
             >
-              <div className="flex items-center gap-4">
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg font-black ${customer.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>{customer.name.charAt(0)}</div>
-                <div>
-                  <h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors">{customer.name}</h3>
-                  <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5"><MapPin size={12} /> {customer.area?.name || 'No Area'}</p>
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 pr-2">
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg font-black shrink-0 ${customer.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>{customer.name.charAt(0)}</div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors truncate">{customer.name}</h3>
+                  <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5 truncate"><MapPin size={12} className="shrink-0" /> <span className="truncate">{customer.area?.name || 'No Area'}</span></p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <div className="text-right mr-2">
                   <p className={`text-[14px] font-black ${customer.financials && customer.financials.current_balance < 0 ? 'text-emerald-600' : 'text-zinc-900'}`}>
                     ₹{Math.abs(customer.financials?.current_balance || 0).toLocaleString()}

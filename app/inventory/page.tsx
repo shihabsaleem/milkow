@@ -208,11 +208,25 @@ export default function InventoryPage() {
         value: { ...dailyPrices, [date]: todayData }
       });
 
+      // 2. Reset stock levels to zero
+      const productIds = products.map(p => p.id).filter(id => id);
+      const inventoryIds = pipeline.map(p => p.id).filter(id => id);
+      
+      if (productIds.length > 0) {
+        await supabase.from('products').update({ stock: 0 }).in('id', productIds);
+      }
+      if (inventoryIds.length > 0) {
+        await supabase.from('inventory').update({ count: 0 }).in('id', inventoryIds);
+      }
+
+      // Refresh data
+      await fetchData(true);
+
       setIsCloseShiftModalOpen(false);
       setModalConfig({
         isOpen: true,
         title: "Shift Closed",
-        message: `${closingShift} has been closed successfully. Stock levels were preserved for the next shift.`,
+        message: `${closingShift} has been closed successfully. All stock levels have been reset to zero.`,
         type: 'success',
         confirmText: "Done",
         onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
@@ -233,7 +247,7 @@ export default function InventoryPage() {
   return (
     <PullToRefresh onRefresh={() => fetchData(true)} className="pb-32 bg-slate-50">
       <div className="sticky top-0 z-40 border-b bg-slate-50/90 border-black/5 backdrop-blur-md">
-        <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
+        <div className="w-full max-w-2xl mx-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div><p className="text-[20px] font-extrabold text-zinc-900">Inventory</p><p className="text-[13px] font-medium text-zinc-400">Stock & Pipeline</p></div>
             <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
@@ -247,7 +261,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-5 sm:px-6 pt-6 flex flex-col gap-7">
+      <div className="w-full max-w-2xl mx-auto px-5 sm:px-6 pt-6 flex flex-col gap-7">
         <div>
           <p className="text-[12px] font-bold uppercase tracking-widest mb-3 text-zinc-400">Supply Pipeline</p>
           <div className="grid grid-cols-2 gap-3">
@@ -341,7 +355,7 @@ export default function InventoryPage() {
                   onChange={setClosingShift}
                 />
                 <div className="bg-primary/5 border border-primary/10 p-4 rounded-xl">
-                  <p className="text-xs font-medium text-primary">This will record the end of the shift and archive current prices for the ledger. Your stock levels will remain unchanged for the next shift.</p>
+                  <p className="text-xs font-medium text-primary">This will record the end of the shift and archive current prices for the ledger. All inventory and stock levels will be reset to zero.</p>
                 </div>
                 <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Confirm Close Shift</button>
               </form>

@@ -26,6 +26,7 @@ export default function InventoryPage() {
   // Close Shift States
   const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
   const [closingShift, setClosingShift] = useState("Morning Only");
+  const [closedShifts, setClosedShifts] = useState<{ [date: string]: string[] }>({});
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Modal States
@@ -64,13 +65,24 @@ export default function InventoryPage() {
 
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
-    const [{ data: prods }, { data: pipes }] = await Promise.all([
+    const [{ data: prods }, { data: pipes }, { data: settings }] = await Promise.all([
       supabase.from('products').select('*'),
-      supabase.from('inventory').select('*').not('product_id', 'is', null)
+      supabase.from('inventory').select('*').not('product_id', 'is', null),
+      supabase.from('system_settings').select('value').eq('key', 'daily_prices').single()
     ]);
     if (prods) setProducts(prods as T.Product[]);
     // Note: mapping 'inventory' to pipeline for this view
     if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
+    
+    if (settings && settings.value) {
+      const dailyPrices = settings.value as any;
+      const closed: { [date: string]: string[] } = {};
+      Object.keys(dailyPrices).forEach(d => {
+        closed[d] = Object.keys(dailyPrices[d] || {});
+      });
+      setClosedShifts(closed);
+    }
+
     if (!silent) setIsLoading(false);
   }, []);
 
@@ -294,7 +306,13 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        <button onClick={() => setIsCloseShiftModalOpen(true)} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">
+        <button onClick={() => {
+          const disabledMorning = closedShifts[date]?.includes("Morning Only");
+          const disabledEvening = closedShifts[date]?.includes("Evening Only");
+          if (!disabledMorning) setClosingShift("Morning Only");
+          else if (!disabledEvening) setClosingShift("Evening Only");
+          setIsCloseShiftModalOpen(true);
+        }} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">
           Close Shift
         </button>
       </div>
@@ -348,8 +366,8 @@ export default function InventoryPage() {
                 <CustomSelect
                   label="Which shift are you closing?"
                   options={[
-                    { value: "Morning Only", label: "Morning Shift" },
-                    { value: "Evening Only", label: "Evening Shift" }
+                    { value: "Morning Only", label: "Morning Shift", disabled: closedShifts[date]?.includes("Morning Only") },
+                    { value: "Evening Only", label: "Evening Shift", disabled: closedShifts[date]?.includes("Evening Only") }
                   ]}
                   value={closingShift}
                   onChange={setClosingShift}

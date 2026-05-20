@@ -4,8 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, PackagePlus, PackageSearch, Search, Minus, Plus, ChevronDown, X, Sunrise, Sunset } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { deductInventoryOnDelivery } from "@/lib/automation";
+import { deductInventoryOnDelivery, restoreInventoryOnUndelivery } from "@/lib/automation";
 import PullToRefresh from "@/components/ui/PullToRefresh";
+import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
 
 type DeliveryWithCustomer = T.Delivery & { customer: T.Customer };
@@ -29,6 +30,17 @@ export default function DeliveryPage() {
    const [editSeqVal, setEditSeqVal] = useState("");
    const [manualShift, setManualShift] = useState<'morning' | 'evening' | null>(null);
    const [isLoading, setIsLoading] = useState(true);
+   const [modalConfig, setModalConfig] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      type: 'danger' | 'info' | 'success';
+   }>({
+      isOpen: false,
+      title: "",
+      message: "",
+      type: 'info'
+   });
 
    // Auto-detect shift from time of day
    const shift = useMemo<'morning' | 'evening'>(() => {
@@ -86,17 +98,51 @@ export default function DeliveryPage() {
 
       const nowDelivered = !stop.delivered;
 
+      if (nowDelivered) {
+         const zeroStockItems: string[] = [];
+         
+         if (stop.milk_qty > 0 && stop.product_id) {
+            const prod = products.find(p => p.id === stop.product_id);
+            if (prod && (prod.stock == null || prod.stock <= 0)) {
+                zeroStockItems.push(prod.name);
+            }
+         }
+         
+         const miscProducts = stop.misc_items || [];
+         miscProducts.forEach((item: any) => {
+            if (item.qty > 0) {
+               const prod = products.find(p => p.name === item.name);
+               if (prod && (prod.stock == null || prod.stock <= 0)) {
+                  zeroStockItems.push(prod.name);
+               }
+            }
+         });
+
+         if (zeroStockItems.length > 0) {
+            setModalConfig({
+               isOpen: true,
+               title: "Out of Stock",
+               message: `Cannot mark delivery. The following items have zero stock: ${zeroStockItems.join(", ")}.`,
+               type: 'danger'
+            });
+            return;
+         }
+      }
+
       // Optimistic UI update
       setDeliveries(prev => prev.map(d => d.id === id ? { ...d, delivered: nowDelivered } : d));
 
       try {
-         await supabase.from('deliveries').update({ delivered: nowDelivered }).eq('id', id);
+         await supabase.from('deliveries').update({ delivered: nowDelivered, inventory_deducted: nowDelivered }).eq('id', id);
+
+         const miscProducts = stop.misc_items || [];
+         const extrasRecord: Record<string, number> = {};
+         miscProducts.forEach((item: any) => extrasRecord[item.name] = item.qty);
 
          if (nowDelivered) {
-            const miscProducts = stop.misc_items || [];
-            const extrasRecord: Record<string, number> = {};
-            miscProducts.forEach((item: any) => extrasRecord[item.name] = item.qty);
-            await deductInventoryOnDelivery(id, stop.milk_qty, extrasRecord);
+            await deductInventoryOnDelivery(id, stop.product_id, stop.milk_qty, extrasRecord, true);
+         } else {
+            await restoreInventoryOnUndelivery(id, stop.product_id, stop.milk_qty, extrasRecord, true);
          }
       } catch (err) {
          console.error("Failed to toggle delivery:", err);
@@ -353,6 +399,15 @@ export default function DeliveryPage() {
                </motion.div>
             )}
          </AnimatePresence>
+         <Modal
+            isOpen={modalConfig.isOpen}
+            onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+            onConfirm={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+            title={modalConfig.title}
+            message={modalConfig.message}
+            type={modalConfig.type}
+            confirmText="Okay"
+         />
       </PullToRefresh>
    );
 }

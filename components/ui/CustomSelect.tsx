@@ -7,6 +7,7 @@ import { ChevronDown, Check } from "lucide-react";
 interface Option {
   value: string | number;
   label: string;
+  disabled?: boolean;
 }
 
 interface CustomSelectProps {
@@ -82,18 +83,21 @@ export default function CustomSelect({
                   <button
                     key={option.value}
                     type="button"
+                    disabled={option.disabled}
                     onClick={() => {
-                      onChange(option.value);
-                      setIsOpen(false);
+                      if (!option.disabled) {
+                        onChange(option.value);
+                        setIsOpen(false);
+                      }
                     }}
                     className={`w-full text-left px-4 py-3 text-sm font-bold flex items-center justify-between transition-all ${
                       value === option.value
                         ? "bg-primary/5 text-primary"
                         : "text-zinc-600 hover:bg-zinc-50"
-                    }`}
+                    } ${option.disabled ? "opacity-50 cursor-not-allowed bg-zinc-50" : ""}`}
                   >
-                    <span>{option.label}</span>
-                    {value === option.value && <Check size={14} strokeWidth={3} />}
+                    <span>{option.label} {option.disabled && <span className="text-[10px] font-normal uppercase ml-2 text-zinc-400 tracking-wider">(Closed)</span>}</span>
+                    {value === option.value && !option.disabled && <Check size={14} strokeWidth={3} />}
                   </button>
                 ))
               ) : (

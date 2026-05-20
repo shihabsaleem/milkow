@@ -112,22 +112,27 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
 
 export async function deductInventoryOnDelivery(
   stopId: string,
+  productId: string | null,
   milkQty: number,
-  miscProducts: Record<string, number> = {}
+  miscProducts: Record<string, number> = {},
+  force: boolean = false
 ): Promise<void> {
   try {
-    // 1. Check if already deducted
-    const { data: stopData } = await supabase
-      .from('deliveries')
-      .select('inventory_deducted, product_id')
-      .eq('id', stopId)
-      .single();
+    if (!force) {
+      // 1. Check if already deducted
+      const { data: stopData } = await supabase
+        .from('deliveries')
+        .select('inventory_deducted, product_id')
+        .eq('id', stopId)
+        .single();
 
-    const stop = stopData as T.Delivery | null;
-    if (stop?.inventory_deducted) return;
+      const stop = stopData as T.Delivery | null;
+      if (stop?.inventory_deducted) return;
+      productId = stop?.product_id || null;
+    }
 
-    if (stop?.product_id && milkQty > 0) {
-      const { data: prodData } = await supabase.from('products').select('*').eq('id', stop.product_id).single();
+    if (productId && milkQty > 0) {
+      const { data: prodData } = await supabase.from('products').select('*').eq('id', productId).single();
       const prod = prodData as T.Product | null;
       if (prod) {
         await supabase
@@ -141,7 +146,6 @@ export async function deductInventoryOnDelivery(
           await supabase
             .from('inventory')
             .update({ 
-              count: Math.max(0, (invData.count || 0) - milkQty),
               loaded: Math.max(0, (invData.loaded || 0) - milkQty)
             })
             .eq('id', invData.id);
@@ -170,6 +174,77 @@ export async function deductInventoryOnDelivery(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[Automation] ❌ Inventory deduction failed:", message);
+  }
+}
+
+// ─────────────────────────────────────────────
+// 2.5 INVENTORY AUTO-RESTORE
+// ─────────────────────────────────────────────
+
+export async function restoreInventoryOnUndelivery(
+  stopId: string,
+  productId: string | null,
+  milkQty: number,
+  miscProducts: Record<string, number> = {},
+  force: boolean = false
+): Promise<void> {
+  try {
+    if (!force) {
+      // 1. Check if actually deducted
+      const { data: stopData } = await supabase
+        .from('deliveries')
+        .select('inventory_deducted, product_id')
+        .eq('id', stopId)
+        .single();
+
+      const stop = stopData as T.Delivery | null;
+      if (!stop?.inventory_deducted) return;
+      productId = stop?.product_id || null;
+    }
+
+    if (productId && milkQty > 0) {
+      const { data: prodData } = await supabase.from('products').select('*').eq('id', productId).single();
+      const prod = prodData as T.Product | null;
+      if (prod) {
+        await supabase
+          .from('products')
+          .update({ stock: (prod.stock || 0) + milkQty })
+          .eq('id', prod.id);
+        
+        // Also update the linked inventory pipeline record if it exists
+        const { data: invData } = await supabase.from('inventory').select('*').eq('product_id', prod.id).single();
+        if (invData) {
+          await supabase
+            .from('inventory')
+            .update({ 
+              loaded: (invData.loaded || 0) + milkQty
+            })
+            .eq('id', invData.id);
+        }
+      }
+    }
+
+    // 3. Restore Extras to products
+    for (const [name, qtyUsed] of Object.entries(miscProducts)) {
+      if (qtyUsed > 0) {
+        const { data: prodData } = await supabase.from('products').select('*').eq('name', name).single();
+        const prod = prodData as T.Product | null;
+        if (prod) {
+          await supabase
+            .from('products')
+            .update({ stock: (prod.stock || 0) + qtyUsed })
+            .eq('id', prod.id);
+        }
+      }
+    }
+
+    // 4. Mark as not deducted
+    await supabase.from('deliveries').update({ inventory_deducted: false }).eq('id', stopId);
+
+    console.log(`[Automation] ✅ Inventory restored for delivery #${stopId}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Automation] ❌ Inventory restoration failed:", message);
   }
 }
 

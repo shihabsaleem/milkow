@@ -27,6 +27,7 @@ export default function InventoryPage() {
   const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
   const [closingShift, setClosingShift] = useState("Morning Only");
   const [closedShifts, setClosedShifts] = useState<{ [date: string]: string[] }>({});
+  const [dailyPrices, setDailyPrices] = useState<any>({});
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Modal States
@@ -52,13 +53,40 @@ export default function InventoryPage() {
     return d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
   };
 
+  const getProductPriceForDate = (product: T.Product) => {
+    if (!product.name) return Number(product.price) || 0;
+    const dateData = dailyPrices[date];
+    if (!dateData) return Number(product.price) || 0;
+
+    // Check if the structure contains shift keys (e.g. { "Morning Only": { prices: ... } })
+    const keys = Object.keys(dateData);
+    let shiftPrice: number | undefined;
+    for (const key of keys) {
+      if (dateData[key] && typeof dateData[key] === 'object' && 'prices' in dateData[key]) {
+        const prices = dateData[key].prices;
+        if (prices && prices[product.name] !== undefined) {
+          shiftPrice = Number(prices[product.name]);
+        }
+      }
+    }
+    if (shiftPrice !== undefined) return shiftPrice;
+
+    // Check if it's the simpler schema (e.g. { "Raw Buffalo Milk": 72 })
+    if (dateData[product.name] !== undefined && typeof dateData[product.name] === 'number') {
+      return Number(dateData[product.name]);
+    }
+
+    return Number(product.price) || 0;
+  };
+
   const openEditModal = (index: number) => {
     setEditingIndex(index);
+    const targetProduct = products[index];
     setNewProduct({
-      ...products[index],
-      stock: products[index].stock?.toString() || "0",
-      price: Number(products[index].price) || 0,
-      unit: products[index].unit || "Bottles"
+      ...targetProduct,
+      stock: targetProduct.stock?.toString() || "0",
+      price: getProductPriceForDate(targetProduct),
+      unit: targetProduct.unit || "Bottles"
     });
     setIsModalOpen(true);
   };
@@ -75,10 +103,11 @@ export default function InventoryPage() {
     if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
     
     if (settings && settings.value) {
-      const dailyPrices = settings.value as any;
+      const dbDailyPrices = settings.value as any;
+      setDailyPrices(dbDailyPrices);
       const closed: { [date: string]: string[] } = {};
-      Object.keys(dailyPrices).forEach(d => {
-        closed[d] = Object.keys(dailyPrices[d] || {});
+      Object.keys(dbDailyPrices).forEach(d => {
+        closed[d] = Object.keys(dbDailyPrices[d] || {});
       });
       setClosedShifts(closed);
     }
@@ -299,7 +328,7 @@ export default function InventoryPage() {
               products.map((p, i) => (
                 <div key={i} onClick={() => openEditModal(i)} className="flex items-center justify-between p-4 rounded-2xl border transition-colors cursor-pointer bg-white border-black/5">
                   <div><p className="text-[15px] font-bold text-zinc-900">{p.name}</p><p className="text-[12px] font-medium mt-0.5 text-zinc-400">{p.size} · {p.stock} in stock</p></div>
-                  <div className="flex flex-col items-end"><p className="text-[16px] font-black text-primary">₹{p.price}</p><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Selling Price</p></div>
+                  <div className="flex flex-col items-end"><p className="text-[16px] font-black text-primary">₹{getProductPriceForDate(p)}</p><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Selling Price</p></div>
                 </div>
               ))
             )}

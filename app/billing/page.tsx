@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
-import { QrCode, MessageCircle, Wallet2, CheckCircle2, X, Check, Search, Share2, ChevronDown } from "lucide-react";
+import { QrCode, MessageCircle, Wallet2, CheckCircle2, X, Check, MapPin, Search, Share2, ChevronDown } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
@@ -38,13 +38,15 @@ export default function BillingPage() {
          { data: financialsData },
          { data: productList },
          { data: unbilledData },
-         { data: settingsData }
+         { data: settingsData },
+         { data: customersData }
       ] = await Promise.all([
          supabase.from('areas').select('*').order('name', { ascending: true }),
          supabase.from('customer_financials').select('*'),
          supabase.from('products').select('*'),
          supabase.from('deliveries').select('*, customers(*)').eq('delivered', true).eq('billed', false),
-         supabase.from('system_settings').select('value').eq('key', 'general').single()
+         supabase.from('system_settings').select('value').eq('key', 'general').single(),
+         supabase.from('customers').select('id, phone')
       ]);
 
       if (routeSets) setRoutesList(routeSets as T.Area[]);
@@ -54,10 +56,13 @@ export default function BillingPage() {
       const prices: Record<string, number> = {};
       prods.forEach(p => { prices[p.id] = p.price; prices[p.name] = p.price; });
 
+      const customersMap = new Map((customersData || []).map((c: any) => [c.id, c]));
+
       // Combine with financials
       const combinedBills: (T.Bill & { customer: T.Customer })[] = [];
-      (financialsData || []).forEach((fin: T.CustomerFinancials) => {
+      (financialsData || []).forEach((fin: any) => {
          const grandTotal = fin.current_balance;
+         const cDetail = customersMap.get(fin.id) as any;
 
          if (grandTotal > 0) {
             combinedBills.push({
@@ -70,7 +75,8 @@ export default function BillingPage() {
                customer: {
                   id: fin.id,
                   name: fin.name,
-                  area_id: (financialsData as any[]).find(f => f.id === fin.id)?.area_id || null
+                  phone: cDetail?.phone || null,
+                  area_id: fin.area_id || null
                } as any
             });
          }
@@ -311,11 +317,28 @@ export default function BillingPage() {
       ctx.textAlign = "left";
       ctx.fillStyle = "#64748B";
       ctx.font = "bold 30px Geist, Inter, sans-serif";
-      ctx.fillText("BILL TO", cardX + 100, cardY + 640);
+      ctx.fillText("BILL TO", cardX + 100, cardY + 620);
 
       ctx.fillStyle = "#1E293B";
       ctx.font = "900 50px Geist, Inter, sans-serif";
-      ctx.fillText(invoice.customer?.name || "Customer", cardX + 100, cardY + 720);
+      ctx.fillText(invoice.customer?.name || "Customer", cardX + 100, cardY + 695);
+
+      const phone = invoice.customer?.phone || "";
+      const routeId = invoice.customer?.area_id;
+      const routeName = routesList.find(r => r.id === routeId)?.name || "";
+
+      let detailsText = "";
+      if (phone && routeName) {
+         detailsText = `${phone}   ·   ${routeName}`;
+      } else {
+         detailsText = phone || routeName || "";
+      }
+
+      if (detailsText) {
+         ctx.fillStyle = "#64748B";
+         ctx.font = "600 32px Geist, Inter, sans-serif";
+         ctx.fillText(detailsText, cardX + 100, cardY + 760);
+      }
 
       // 6. QR Code Section
       const qrSize = 540;
@@ -327,7 +350,7 @@ export default function BillingPage() {
       ctx.beginPath();
       ctx.roundRect(qrX - 40, qrY - 40, qrSize + 80, qrSize + 80, 60);
       ctx.fill();
-      
+
       // Decorative border for QR
       ctx.strokeStyle = "#E2E8F0";
       ctx.lineWidth = 2;
@@ -342,7 +365,13 @@ export default function BillingPage() {
       ctx.textAlign = "center";
       ctx.fillStyle = "#050044";
       ctx.font = "bold 38px Geist, Inter, sans-serif";
-      ctx.fillText("Scan with any UPI App", width / 2, cardY + 1500);
+      ctx.fillText("Scan with any UPI App", width / 2, cardY + 1475);
+
+      if (paymentSettings?.upi_id) {
+         ctx.fillStyle = "#64748B";
+         ctx.font = "600 30px Geist, Inter, sans-serif";
+         ctx.fillText(`UPI ID: ${paymentSettings.upi_id}`, width / 2, cardY + 1535);
+      }
 
       // 8. Bottom Branding
       ctx.fillStyle = "rgba(255,255,255,0.6)";
@@ -373,22 +402,22 @@ export default function BillingPage() {
       const amount = Number(invoice.amount).toFixed(2);
       const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
       const message = `Hi ${invoice.customer?.name}, your bill for ${invoice.type} is ₹${amount}. You can pay using the attached QR or this link: ${upiLink}`;
-      
+
       try {
          const file = await getPaymentCardFile(invoice);
          if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ 
-               files: [file], 
-               title: `Payment for ${invoice.customer?.name}`, 
-               text: message 
+            await navigator.share({
+               files: [file],
+               title: `Payment for ${invoice.customer?.name}`,
+               text: message
             });
          } else {
-            const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`; 
+            const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`;
             window.open(url, "_blank");
          }
       } catch (e) {
          console.error("Share failed", e);
-         const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`; 
+         const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`;
          window.open(url, "_blank");
       }
    };
@@ -481,7 +510,10 @@ export default function BillingPage() {
                      <div key={bill.id} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
                         <div className="flex justify-between items-start">
                            <div><h3 className="font-bold text-zinc-900">{bill.customer?.name}</h3>
-                           <p className="text-xs text-zinc-500 mt-1">{bill.id.slice(0, 8)} • {bill.type} Billing</p>
+                              <div className="flex items-center">
+                                 <MapPin size={12} className="text-zinc-400 shrink-0" />
+                                 <p className="text-xs text-zinc-500 font-medium">{routesList.find(r => r.id === bill.customer?.area_id)?.name || "No Route"}</p>
+                              </div>
                            </div>
                            <div className="flex flex-col items-end"><span className="font-black text-lg text-primary">₹{Number(bill.amount).toFixed(2)}</span></div>
                         </div>
@@ -519,7 +551,11 @@ export default function BillingPage() {
                               }}
                            />
                         </div>
-                        <div className="mt-4 text-white"><p className="text-[10px] font-bold opacity-60 uppercase text-black">{paymentSettings.payee_name}</p><p className="text-sm text-black font-black">{selectedInvoice.customer?.name}</p></div>
+                        <div className="mt-4 text-white">
+                           <p className="text-[10px] font-bold opacity-60 uppercase text-black">{paymentSettings.payee_name}</p>
+                           <p className="text-sm text-black font-black">{selectedInvoice.customer?.name}</p>
+                           <p className="text-[11px] font-bold opacity-75 text-black mt-1">{paymentSettings.upi_id}</p>
+                        </div>
                      </div>
                      <div className="w-full flex flex-col gap-3 mt-4">
                         <div className="flex gap-2">

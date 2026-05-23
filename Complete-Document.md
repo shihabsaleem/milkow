@@ -37,21 +37,21 @@ npm run dev
 ---
 
 ## 4. Database Architecture
-The system uses a relational PostgreSQL schema. All setup logic is consolidated in `supabase_setup.sql`.
+The system uses a relational PostgreSQL schema leveraging Row Level Security (RLS) and triggers. Setup logic is split across `supabase/01_schema.sql`, `02_triggers.sql`, and `03_dummy_data.sql`.
 
 ### Core Tables
-- `customers`: Primary customer records including delivery preferences and decimal indexing for route order.
-- `products`: Product master list with pricing and stock levels.
-- `deliveries`: Daily transaction headers tracking status (Delivered, Billed).
-- `delivery_items`: Normalized line items for each delivery.
-- `bills`: Aggregated customer charges (Pending/Paid).
-- `payments`: Individual collection events.
-- `inventory`: Physical stock pipeline tracking.
+- `customers`: Primary customer records tracking default products, subscription frequencies, and route ordering.
+- `products`: Product master list with pricing, dynamic sizing (`vol`), and current physical stock.
+- `deliveries`: Tracks daily delivery stops. Stores extra/spot products as JSONB in `misc_items` instead of a separate normalized table.
+- `bills`: Aggregated customer charges generated from unbilled deliveries.
+- `payments`: Individual cash/UPI collection events.
+- `inventory`: Pipeline tracking for shift-based management. Keeps a static snapshot of what was `loaded` to the van, and syncs `count` with product stock.
 - `areas`: Delivery zones/routes.
-- `system_settings`: JSONB configurations (UPI details, Admin name, Automation timestamps).
+- `system_settings`: JSONB configurations (UPI details, Admin name, daily price snapshots, automation timestamps).
+- **View `customer_financials`**: Real-time SQL view aggregating bills, unbilled deliveries, and payments to instantly calculate `current_balance` and `account_status` without drift.
 
 ### Key PostgreSQL Trigger: `handle_payment_settlement`
-Located in the `Trigger` section of `supabase_setup.sql`. This trigger automatically marks pending bills as paid and settles customer outstanding balances whenever a new payment is inserted.
+Located in `02_triggers.sql`. This trigger automatically marks pending bills as paid and settles customer outstanding balances whenever a new payment is inserted.
 
 ---
 
@@ -87,7 +87,7 @@ The background tasks and automated data manipulations are handled centrally in `
 
 ### `deductInventoryOnDelivery(stopId, milkQty, miscProducts)`
 - **Signature**: `export async function deductInventoryOnDelivery(stopId: string, milkQty: number, miscProducts: Record<string, number> = {}): Promise<void>`
-- **Purpose**: Deducts inventory for a specific delivery stop when a delivery is marked as complete. Prevents double-deduction by checking the `inventory_deducted` flag. Supports deducting miscellaneous items (`miscProducts`) ordered on the fly.
+- **Purpose**: Deducts total physical stock (`products.stock`) for a specific delivery stop when a delivery is marked as complete. Crucially, it does *not* modify the `inventory.loaded` snapshot, leaving it intact for the dashboard. Prevents double-deduction by checking the `inventory_deducted` flag.
 
 ### `generateDailyBills()`
 - **Signature**: `export async function generateDailyBills(): Promise<{ ran: boolean; count: number; message: string }>`
@@ -116,7 +116,7 @@ The background tasks and automated data manipulations are handled centrally in `
 
 ## 9. Deployment & Maintenance
 - **Build**: `npm run build`
-- **Database Migrations**: If changes are needed, update `supabase_setup.sql` and run the queries in the Supabase SQL Editor.
+- **Database Migrations**: If changes are needed, update `supabase/01_schema.sql` and run the queries in the Supabase SQL Editor.
 - **Static Assets**: Logos and assets are located in `/public/assets`.
 
 ---

@@ -141,15 +141,7 @@ export async function deductInventoryOnDelivery(
           .eq('id', prod.id);
         
         // Also update the linked inventory pipeline record if it exists
-        const { data: invData } = await supabase.from('inventory').select('*').eq('product_id', prod.id).single();
-        if (invData) {
-          await supabase
-            .from('inventory')
-            .update({ 
-              loaded: Math.max(0, (invData.loaded || 0) - milkQty)
-            })
-            .eq('id', invData.id);
-        }
+        // NOTE: Only deduct from product stock, NOT from 'loaded' — loaded is a static snapshot until shift close
       }
     }
 
@@ -212,15 +204,7 @@ export async function restoreInventoryOnUndelivery(
           .eq('id', prod.id);
         
         // Also update the linked inventory pipeline record if it exists
-        const { data: invData } = await supabase.from('inventory').select('*').eq('product_id', prod.id).single();
-        if (invData) {
-          await supabase
-            .from('inventory')
-            .update({ 
-              loaded: (invData.loaded || 0) + milkQty
-            })
-            .eq('id', invData.id);
-        }
+        // NOTE: Only restore product stock, NOT 'loaded' — loaded is a static snapshot until shift close
       }
     }
 
@@ -566,24 +550,7 @@ export async function syncBatchDeliveries(
     if (prodError) {
       console.error(`[Sync] Error updating product stock for ${prod.name}:`, prodError);
     }
-
-    const { data: invData } = await supabase
-      .from('inventory')
-      .select('*')
-      .eq('product_id', productId)
-      .maybeSingle();
-
-    if (invData) {
-      const newLoaded = Math.max(0, (invData.loaded || 0) + delta);
-      const { error: invError } = await supabase
-        .from('inventory')
-        .update({ loaded: newLoaded })
-        .eq('id', invData.id);
-
-      if (invError) {
-        console.error(`[Sync] Error updating inventory loaded for ${prod.name}:`, invError);
-      }
-    }
+    // NOTE: Do NOT update inventory.loaded here — loaded is a static snapshot until shift close
   }
 
   console.log(`[Sync] ✅ Successfully synchronized ${changedDeliveries.length} delivery records and updated inventory stock.`);

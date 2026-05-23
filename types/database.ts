@@ -55,8 +55,6 @@ export interface Customer {
   default_qty: number;
   default_product_id?: string | null;
   past_outstanding: number;
-  address?: string;
-  notes?: string;
   created_at?: string;
 }
 
@@ -105,14 +103,6 @@ export interface Payment {
   created_at: string;
 }
 
-export interface DeliveryItem {
-  id: string;
-  delivery_id: string;
-  product_id: string;
-  quantity: number;
-  unit_price: number;
-  created_at?: string;
-}
 
 export interface CustomerFinancials {
   id: string;

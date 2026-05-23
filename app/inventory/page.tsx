@@ -212,8 +212,8 @@ export default function InventoryPage() {
     setPipeline(prev => prev.map(p => p.id === id ? { ...p, value: numValue } : p));
 
     try {
-      // 2. Sync to Supabase
-      const { error } = await supabase.from('inventory').update({ count: numValue }).eq('id', id);
+      // 2. Sync to Supabase (update both count AND loaded so dashboard stays in sync)
+      const { error } = await supabase.from('inventory').update({ count: numValue, loaded: numValue }).eq('id', id);
       if (error) throw error;
 
       // 3. Update linked Product stock
@@ -257,7 +257,7 @@ export default function InventoryPage() {
         await supabase.from('products').update({ stock: 0 }).in('id', productIds);
       }
       if (inventoryIds.length > 0) {
-        await supabase.from('inventory').update({ count: 0 }).in('id', inventoryIds);
+        await supabase.from('inventory').update({ count: 0, loaded: 0 }).in('id', inventoryIds);
       }
 
       // Refresh data

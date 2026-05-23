@@ -65,8 +65,6 @@ CREATE TABLE IF NOT EXISTS customers (
     default_product_id UUID,
     default_qty INTEGER DEFAULT 1,
     past_outstanding DECIMAL(12, 2) DEFAULT 0.00,
-    address TEXT,
-    notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
 
@@ -116,21 +114,6 @@ CREATE TABLE IF NOT EXISTS deliveries (
         UNIQUE (customer_id, delivery_date, shift)
 );
 
--- Delivery Items: Line items per delivery (normalized)
-CREATE TABLE IF NOT EXISTS delivery_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    delivery_id UUID NOT NULL,
-    product_id UUID NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    unit_price DECIMAL(10, 2),
-    created_at TIMESTAMPTZ DEFAULT now(),
-
-    CONSTRAINT delivery_items_delivery_id_fkey
-        FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE,
-    CONSTRAINT delivery_items_product_id_fkey
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
-);
-
 -- Bills: Aggregated customer charges
 CREATE TABLE IF NOT EXISTS bills (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -144,17 +127,6 @@ CREATE TABLE IF NOT EXISTS bills (
 
     CONSTRAINT bills_customer_id_fkey
         FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
-);
-
--- Bill Deliveries: Junction — which deliveries belong to a bill
-CREATE TABLE IF NOT EXISTS bill_deliveries (
-    bill_id UUID NOT NULL,
-    delivery_id UUID NOT NULL,
-    PRIMARY KEY (bill_id, delivery_id),
-    CONSTRAINT bill_deliveries_bill_id_fkey
-        FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE,
-    CONSTRAINT bill_deliveries_delivery_id_fkey
-        FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE
 );
 
 -- Payments: Individual cash / UPI collection events
@@ -189,7 +161,6 @@ CREATE INDEX IF NOT EXISTS idx_customers_status        ON customers(status);
 CREATE INDEX IF NOT EXISTS idx_inventory_product_id    ON inventory(product_id);
 CREATE INDEX IF NOT EXISTS idx_deliveries_customer_id  ON deliveries(customer_id);
 CREATE INDEX IF NOT EXISTS idx_deliveries_date         ON deliveries(delivery_date);
-CREATE INDEX IF NOT EXISTS idx_delivery_items_delivery ON delivery_items(delivery_id);
 CREATE INDEX IF NOT EXISTS idx_bills_customer_id       ON bills(customer_id);
 CREATE INDEX IF NOT EXISTS idx_bills_status            ON bills(status);
 CREATE INDEX IF NOT EXISTS idx_payments_customer_id    ON payments(customer_id);
@@ -239,9 +210,7 @@ ALTER TABLE products        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deliveries      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE delivery_items  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bills           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bill_deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 

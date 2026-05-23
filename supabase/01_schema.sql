@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS deliveries (
     inventory_deducted BOOLEAN DEFAULT FALSE,
     billed BOOLEAN DEFAULT FALSE,
     sequence_no INTEGER,
+    total_cost DECIMAL(10, 2),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
 
@@ -198,8 +199,14 @@ CREATE INDEX IF NOT EXISTS idx_payments_customer_id    ON payments(customer_id);
 DROP VIEW IF EXISTS customer_financials;
 CREATE VIEW customer_financials WITH (security_invoker = on) AS
 WITH bill_summary AS (
-    SELECT customer_id, COALESCE(SUM(amount), 0) AS total_billed
+    SELECT customer_id, COALESCE(SUM(amount), 0) AS total_billed_manual
     FROM bills
+    GROUP BY customer_id
+),
+unbilled_deliveries AS (
+    SELECT customer_id, COALESCE(SUM(total_cost), 0) AS total_unbilled
+    FROM deliveries
+    WHERE delivered = TRUE AND billed = FALSE
     GROUP BY customer_id
 ),
 payment_summary AS (
@@ -212,17 +219,18 @@ SELECT
     c.name,
     c.area_id,
     c.past_outstanding,
-    COALESCE(bs.total_billed, 0)                                                    AS total_billed,
-    COALESCE(ps.total_paid, 0)                                                      AS total_paid,
-    (c.past_outstanding + COALESCE(bs.total_billed, 0) - COALESCE(ps.total_paid, 0)) AS current_balance,
+    (COALESCE(bs.total_billed_manual, 0) + COALESCE(ud.total_unbilled, 0)) AS total_billed,
+    COALESCE(ps.total_paid, 0)                                            AS total_paid,
+    (c.past_outstanding + COALESCE(bs.total_billed_manual, 0) + COALESCE(ud.total_unbilled, 0) - COALESCE(ps.total_paid, 0)) AS current_balance,
     CASE
-        WHEN (c.past_outstanding + COALESCE(bs.total_billed, 0) - COALESCE(ps.total_paid, 0)) < 0
+        WHEN (c.past_outstanding + COALESCE(bs.total_billed_manual, 0) + COALESCE(ud.total_unbilled, 0) - COALESCE(ps.total_paid, 0)) < 0
             THEN 'Advance'
         ELSE 'Credit'
     END AS account_status
 FROM customers c
-LEFT JOIN bill_summary    bs ON bs.customer_id = c.id
-LEFT JOIN payment_summary ps ON ps.customer_id = c.id;
+LEFT JOIN bill_summary         bs ON bs.customer_id = c.id
+LEFT JOIN unbilled_deliveries  ud ON ud.customer_id = c.id
+LEFT JOIN payment_summary      ps ON ps.customer_id = c.id;
 
 
 -- ─── ROW LEVEL SECURITY ───────────────────

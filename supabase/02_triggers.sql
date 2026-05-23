@@ -42,26 +42,48 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function: Auto-deduct inventory on delivery
-CREATE OR REPLACE FUNCTION handle_inventory_deduction()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF (NEW.delivered = TRUE AND (OLD.delivered = FALSE OR OLD.delivered IS NULL)) THEN
-        IF (NEW.inventory_deducted = FALSE) THEN
-            UPDATE products SET stock = GREATEST(0, stock - NEW.milk_qty) WHERE id = NEW.product_id;
-            UPDATE inventory SET count = GREATEST(0, count - NEW.milk_qty), loaded = GREATEST(0, loaded - NEW.milk_qty) WHERE product_id = NEW.product_id;
-            NEW.inventory_deducted := TRUE;
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- NOTE: handle_inventory_deduction() trigger was REMOVED.
+-- Inventory deductions are now handled client-side by
+-- syncBatchDeliveries() in lib/automation.ts to support
+-- offline-first batch sync and avoid double-deduction.
 
 -- Function: Sync product to inventory
 CREATE OR REPLACE FUNCTION sync_product_to_inventory()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE inventory SET name = NEW.name, vol = NEW.size, count = NEW.stock, unit = NEW.unit WHERE product_id = NEW.id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function: Auto-calculate delivery cost on insert/update
+CREATE OR REPLACE FUNCTION calculate_delivery_cost()
+RETURNS TRIGGER AS $$
+DECLARE
+    milk_price DECIMAL(10,2) := 0;
+    total DECIMAL(10,2) := 0;
+    misc_item JSONB;
+    item_price DECIMAL(10,2);
+BEGIN
+    IF (NEW.delivered = TRUE) THEN
+        IF (NEW.total_cost IS NULL OR NEW.total_cost = 0) THEN
+            IF NEW.product_id IS NOT NULL THEN
+                SELECT price INTO milk_price FROM products WHERE id = NEW.product_id;
+            END IF;
+
+            total := COALESCE(NEW.milk_qty, 0) * COALESCE(milk_price, 0);
+
+            IF NEW.misc_items IS NOT NULL AND jsonb_typeof(NEW.misc_items) = 'array' THEN
+                FOR misc_item IN SELECT * FROM jsonb_array_elements(NEW.misc_items)
+                LOOP
+                    SELECT price INTO item_price FROM products WHERE name = misc_item->>'name';
+                    total := total + (CAST(misc_item->>'qty' AS INTEGER) * COALESCE(item_price, 0));
+                END LOOP;
+            END IF;
+
+            NEW.total_cost := total;
+        END IF;
+    END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -87,12 +109,17 @@ DROP TRIGGER IF EXISTS tr_update_prod_at ON products;
 CREATE TRIGGER tr_update_prod_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 
--- Business Logic: Settlement & Inventory
+-- Business Logic: Settlement, Product Sync & Cost Calculation
 DROP TRIGGER IF EXISTS tr_payment_settlement ON payments;
 CREATE TRIGGER tr_payment_settlement AFTER INSERT ON payments FOR EACH ROW EXECUTE FUNCTION handle_payment_settlement();
 
+-- NOTE: tr_inventory_deduction intentionally NOT created.
+-- Inventory deductions are handled client-side by syncBatchDeliveries().
 DROP TRIGGER IF EXISTS tr_inventory_deduction ON deliveries;
-CREATE TRIGGER tr_inventory_deduction BEFORE UPDATE ON deliveries FOR EACH ROW EXECUTE FUNCTION handle_inventory_deduction();
 
 DROP TRIGGER IF EXISTS tr_product_inventory_sync ON products;
 CREATE TRIGGER tr_product_inventory_sync AFTER UPDATE ON products FOR EACH ROW EXECUTE FUNCTION sync_product_to_inventory();
+
+DROP TRIGGER IF EXISTS tr_calculate_delivery_cost ON deliveries;
+CREATE TRIGGER tr_calculate_delivery_cost BEFORE INSERT OR UPDATE ON deliveries FOR EACH ROW EXECUTE FUNCTION calculate_delivery_cost();
+

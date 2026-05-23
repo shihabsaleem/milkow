@@ -8,7 +8,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["*", "192.168.29.103", "192.168.29.225"],
+  allowedDevOrigins: ["*", "192.168.29.103", "192.168.29.200"],
   turbopack: {},
 };
 
@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
 // (withPWA may strip unknown keys, so we add it after)
 const finalConfig = {
   ...withPWA(nextConfig),
-  allowedDevOrigins: ["*", "192.168.29.103", "192.168.29.225"],
+  allowedDevOrigins: ["*", "192.168.29.103", "192.168.29.200"],
 };
 
 export default finalConfig;

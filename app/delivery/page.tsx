@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, PackagePlus, PackageSearch, Search, Minus, Plus, ChevronDown, X, Sunrise, Sunset } from "lucide-react";
+import { Check, PackagePlus, PackageSearch, Search, Minus, Plus, ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { deductInventoryOnDelivery, restoreInventoryOnUndelivery } from "@/lib/automation";
+import { deductInventoryOnDelivery, restoreInventoryOnUndelivery, syncBatchDeliveries } from "@/lib/automation";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
@@ -13,6 +13,9 @@ type DeliveryWithCustomer = T.Delivery & { customer: T.Customer };
 
 export default function DeliveryPage() {
    const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
+   const [serverDeliveries, setServerDeliveries] = useState<DeliveryWithCustomer[]>([]);
+   const [isSyncing, setIsSyncing] = useState(false);
+   const [isStagingCollapsed, setIsStagingCollapsed] = useState(false);
    const [products, setProducts] = useState<T.Product[]>([]);
    const [routesList, setRoutesList] = useState<T.Area[]>([]);
 
@@ -71,7 +74,33 @@ export default function DeliveryPage() {
       }
 
       if (prodData) setProducts(prodData as T.Product[]);
-      if (routeData) setDeliveries(routeData as (T.Delivery & { customer: T.Customer })[]);
+
+      if (routeData) {
+         const dbDeliveries = routeData as (T.Delivery & { customer: T.Customer })[];
+         setServerDeliveries(dbDeliveries);
+
+         // Apply staged changes from localStorage if they exist
+         const cacheKey = `milkow_staged_changes_${today}_${shift === 'morning' ? 'Morning Only' : 'Evening Only'}`;
+         const cached = localStorage.getItem(cacheKey);
+         if (cached) {
+            try {
+               const stagedUpdates = JSON.parse(cached) as Record<string, Partial<T.Delivery>>;
+               const merged = dbDeliveries.map(d => {
+                  const update = stagedUpdates[d.id];
+                  if (update) {
+                     return { ...d, ...update } as DeliveryWithCustomer;
+                  }
+                  return d;
+               });
+               setDeliveries(merged);
+            } catch (e) {
+               console.error("Failed to parse cached staged changes:", e);
+               setDeliveries(dbDeliveries);
+            }
+         } else {
+            setDeliveries(dbDeliveries);
+         }
+      }
       setIsLoading(false);
    };
 
@@ -92,6 +121,48 @@ export default function DeliveryPage() {
       localStorage.setItem('milkow_selected_route', selectedRoute.toString());
    }, [selectedRoute]);
 
+   // Helper to save local staged changes
+   const saveStagedChange = (id: string, update: Partial<T.Delivery>) => {
+      const today = new Date().toLocaleDateString('en-CA');
+      const currentShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
+      const cacheKey = `milkow_staged_changes_${today}_${currentShift}`;
+
+      const cached = localStorage.getItem(cacheKey);
+      let stagedUpdates: Record<string, Partial<T.Delivery>> = {};
+      if (cached) {
+         try {
+            stagedUpdates = JSON.parse(cached);
+         } catch (e) {
+            console.error("Failed to parse cached staged changes:", e);
+         }
+      }
+
+      stagedUpdates[id] = {
+         ...(stagedUpdates[id] || {}),
+         ...update
+      };
+
+      // Clean up if it matches initial server values
+      const initial = serverDeliveries.find(sd => sd.id === id);
+      if (initial) {
+         const currentMerged = { ...initial, ...stagedUpdates[id] };
+         const isSameAsServer =
+            currentMerged.delivered === initial.delivered &&
+            currentMerged.milk_qty === initial.milk_qty &&
+            JSON.stringify(currentMerged.misc_items) === JSON.stringify(initial.misc_items);
+
+         if (isSameAsServer) {
+            delete stagedUpdates[id];
+         }
+      }
+
+      if (Object.keys(stagedUpdates).length === 0) {
+         localStorage.removeItem(cacheKey);
+      } else {
+         localStorage.setItem(cacheKey, JSON.stringify(stagedUpdates));
+      }
+   };
+
    const toggleDelivery = async (id: string) => {
       const stop = deliveries.find(d => d.id === id);
       if (!stop) return;
@@ -100,14 +171,14 @@ export default function DeliveryPage() {
 
       if (nowDelivered) {
          const zeroStockItems: string[] = [];
-         
+
          if (stop.milk_qty > 0 && stop.product_id) {
             const prod = products.find(p => p.id === stop.product_id);
             if (prod && (prod.stock == null || prod.stock <= 0)) {
-                zeroStockItems.push(prod.name);
+               zeroStockItems.push(prod.name);
             }
          }
-         
+
          const miscProducts = stop.misc_items || [];
          miscProducts.forEach((item: any) => {
             if (item.qty > 0) {
@@ -129,26 +200,9 @@ export default function DeliveryPage() {
          }
       }
 
-      // Optimistic UI update
+      // Update state locally and save to staging cache
       setDeliveries(prev => prev.map(d => d.id === id ? { ...d, delivered: nowDelivered } : d));
-
-      try {
-         await supabase.from('deliveries').update({ delivered: nowDelivered, inventory_deducted: nowDelivered }).eq('id', id);
-
-         const miscProducts = stop.misc_items || [];
-         const extrasRecord: Record<string, number> = {};
-         miscProducts.forEach((item: any) => extrasRecord[item.name] = item.qty);
-
-         if (nowDelivered) {
-            await deductInventoryOnDelivery(id, stop.product_id, stop.milk_qty, extrasRecord, true);
-         } else {
-            await restoreInventoryOnUndelivery(id, stop.product_id, stop.milk_qty, extrasRecord, true);
-         }
-      } catch (err) {
-         console.error("Failed to toggle delivery:", err);
-         // Revert on error
-         setDeliveries(prev => prev.map(d => d.id === id ? { ...d, delivered: stop.delivered } : d));
-      }
+      saveStagedChange(id, { delivered: nowDelivered });
    };
 
    const updateProductQty = async (stopId: string, productName: string, delta: number) => {
@@ -170,29 +224,64 @@ export default function DeliveryPage() {
          updatedExtras.push({ name: productName, qty: delta });
       }
 
-      // Optimistic update
+      // Update state locally and save to staging cache
       setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, misc_items: updatedExtras } : d));
-
-      try {
-         await supabase.from('deliveries').update({ misc_items: updatedExtras }).eq('id', stopId);
-      } catch (err) {
-         console.error("Failed to update extra product qty:", err);
-         // Revert
-         setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, misc_items: stop.misc_items } : d));
-      }
+      saveStagedChange(stopId, { misc_items: updatedExtras });
    };
 
    const updateMilkQty = async (stopId: string, delta: number) => {
       const stop = deliveries.find(d => d.id === stopId);
       if (!stop) return;
       const newQty = Math.max(0, (stop.milk_qty || 0) + delta);
-      // Optimistic update
+
+      // Update state locally and save to staging cache
       setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, milk_qty: newQty } : d));
+      saveStagedChange(stopId, { milk_qty: newQty });
+   };
+
+   // Memoize changed deliveries
+   const changedDeliveries = useMemo(() => {
+      return deliveries.filter(d => {
+         const initial = serverDeliveries.find(sd => sd.id === d.id);
+         if (!initial) return false;
+         return initial.delivered !== d.delivered ||
+            initial.milk_qty !== d.milk_qty ||
+            JSON.stringify(initial.misc_items) !== JSON.stringify(d.misc_items);
+      });
+   }, [deliveries, serverDeliveries]);
+
+   const hasUnsavedChanges = changedDeliveries.length > 0;
+
+   const handleSync = async () => {
+      if (changedDeliveries.length === 0) return;
+      setIsSyncing(true);
       try {
-         await supabase.from('deliveries').update({ milk_qty: newQty }).eq('id', stopId);
-      } catch (err) {
-         console.error("Failed to update milk qty:", err);
-         setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, milk_qty: stop.milk_qty } : d));
+         await syncBatchDeliveries(changedDeliveries, serverDeliveries);
+
+         const today = new Date().toLocaleDateString('en-CA');
+         const currentShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
+         const cacheKey = `milkow_staged_changes_${today}_${currentShift}`;
+         localStorage.removeItem(cacheKey);
+         setIsStagingCollapsed(false);
+
+         setModalConfig({
+            isOpen: true,
+            title: "Sync Successful",
+            message: `Successfully synchronized ${changedDeliveries.length} delivery changes.`,
+            type: 'success'
+         });
+
+         await fetchData(true);
+      } catch (e: any) {
+         console.error("Failed to sync deliveries:", e);
+         setModalConfig({
+            isOpen: true,
+            title: "Sync Failed",
+            message: `Error syncing data: ${e?.message || String(e)}`,
+            type: 'danger'
+         });
+      } finally {
+         setIsSyncing(false);
       }
    };
 
@@ -399,6 +488,72 @@ export default function DeliveryPage() {
                </motion.div>
             )}
          </AnimatePresence>
+
+         <AnimatePresence>
+            {hasUnsavedChanges && !isStagingCollapsed && (
+               <motion.div
+                  initial={{ y: 80, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 80, opacity: 0 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                  className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-md bg-linear-to-r from-zinc-950 via-primary/95 to-zinc-950 backdrop-blur-xl text-white rounded-2xl py-3.5 px-4 shadow-[0_20px_50px_rgba(5,0,68,0.3)] z-110 flex items-center justify-between border border-white/10"
+               >
+                  <div className="flex items-center gap-3">
+                     <div className="relative flex h-3.5 w-3.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                     </div>
+                     <div className="flex flex-col text-left">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Offline Staging</span>
+                        <span className="text-sm font-bold text-white">{changedDeliveries.length} {changedDeliveries.length === 1 ? 'Change' : 'Changes'} Pending</span>
+                     </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <button
+                        onClick={handleSync}
+                        disabled={isSyncing}
+                        className="bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all shadow-[0_8px_20px_rgba(16,185,129,0.3)] disabled:opacity-50"
+                     >
+                        {isSyncing ? (
+                           <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
+                              <span>Syncing...</span>
+                           </>
+                        ) : (
+                           <>
+                              <CloudUpload size={14} strokeWidth={2.5} />
+                              <span>Sync</span>
+                           </>
+                        )}
+                     </button>
+                     <button
+                        onClick={() => setIsStagingCollapsed(true)}
+                        className="p-2 hover:bg-white/10 text-zinc-400 hover:text-white rounded-full transition-colors"
+                        title="Collapse"
+                     >
+                        <ChevronRight size={18} />
+                     </button>
+                  </div>
+               </motion.div>
+            )}
+
+            {hasUnsavedChanges && isStagingCollapsed && (
+               <motion.button
+                  key="collapsed-staging"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  onClick={() => setIsStagingCollapsed(false)}
+                  className="fixed bottom-24 right-5 z-110 bg-linear-to-r from-primary/95 to-[#0b0080]/95 backdrop-blur-md text-white py-2.5 px-4 rounded-full shadow-[0_12px_30px_rgba(5,0,68,0.4)] border border-white/10 flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
+                  title="Expand Staging Banner"
+               >
+                  <CloudUpload size={18} className="text-emerald-400 animate-bounce" />
+                  <div className="w-px h-4 bg-white/20" />
+                  <span className="text-xs font-black text-white">{changedDeliveries.length} Pending</span>
+               </motion.button>
+            )}
+         </AnimatePresence>
+
          <Modal
             isOpen={modalConfig.isOpen}
             onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}

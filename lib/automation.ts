@@ -423,3 +423,169 @@ export async function checkAndRunAutomations(): Promise<void> {
     isRunning = false;
   }
 }
+
+// ─────────────────────────────────────────────
+// 6. BATCH ROUTE SYNCHRONIZATION
+// ─────────────────────────────────────────────
+
+export async function syncBatchDeliveries(
+  changedDeliveries: any[],
+  initialDeliveries: any[]
+): Promise<void> {
+  if (changedDeliveries.length === 0) return;
+
+  // 1. Bulk Update deliveries
+  const dbUpdates = changedDeliveries.map(d => ({
+    id: d.id,
+    customer_id: d.customer_id,
+    delivery_date: d.delivery_date,
+    shift: d.shift,
+    product_id: d.product_id,
+    milk_qty: d.milk_qty,
+    misc_items: d.misc_items,
+    delivered: d.delivered,
+    sequence_no: d.sequence_no,
+    inventory_deducted: d.delivered,
+    billed: d.billed
+  }));
+
+  const { error: upsertError } = await supabase
+    .from('deliveries')
+    .upsert(dbUpdates);
+
+  if (upsertError) {
+    throw upsertError;
+  }
+
+  // 2. Fetch all products to get stock levels and name maps
+  const { data: productsData } = await supabase.from('products').select('*');
+  const products = (productsData || []) as T.Product[];
+  const productByName = new Map(products.map(p => [p.name, p]));
+  const productById = new Map(products.map(p => [p.id, p]));
+
+  // Calculate net changes for each product ID
+  // Positive delta: ADD back to stock (restoring undelivered)
+  // Negative delta: SUBTRACT from stock (delivering)
+  const stockDeltas = new Map<string, number>();
+
+  const adjustDelta = (productId: string, amount: number) => {
+    if (!productId) return;
+    const current = stockDeltas.get(productId) || 0;
+    stockDeltas.set(productId, current + amount);
+  };
+
+  for (const d of changedDeliveries) {
+    const initial = initialDeliveries.find(sd => sd.id === d.id);
+    if (!initial) continue;
+
+    const getExtrasRecord = (miscItems: any[]): Record<string, number> => {
+      const record: Record<string, number> = {};
+      (miscItems || []).forEach(item => {
+        if (item.name && item.qty != null) {
+          record[item.name] = item.qty;
+        }
+      });
+      return record;
+    };
+
+    const initialExtras = getExtrasRecord(initial.misc_items);
+    const currentExtras = getExtrasRecord(d.misc_items);
+
+    // Case 1: Toggled Undelivered -> Delivered
+    if (!initial.delivered && d.delivered) {
+      if (d.product_id) {
+        adjustDelta(d.product_id, -d.milk_qty);
+      }
+      for (const [name, qty] of Object.entries(currentExtras)) {
+        const prod = productByName.get(name);
+        if (prod) {
+          adjustDelta(prod.id, -qty);
+        }
+      }
+    }
+    // Case 2: Toggled Delivered -> Undelivered
+    else if (initial.delivered && !d.delivered) {
+      if (initial.product_id) {
+        adjustDelta(initial.product_id, initial.milk_qty);
+      }
+      for (const [name, qty] of Object.entries(initialExtras)) {
+        const prod = productByName.get(name);
+        if (prod) {
+          adjustDelta(prod.id, qty);
+        }
+      }
+    }
+    // Case 3: Remains Delivered, but internal changes
+    else if (initial.delivered && d.delivered) {
+      if (initial.product_id === d.product_id) {
+        const milkDelta = initial.milk_qty - d.milk_qty;
+        if (d.product_id) {
+          adjustDelta(d.product_id, milkDelta);
+        }
+      } else {
+        if (initial.product_id) {
+          adjustDelta(initial.product_id, initial.milk_qty);
+        }
+        if (d.product_id) {
+          adjustDelta(d.product_id, -d.milk_qty);
+        }
+      }
+
+      const allExtraNames = new Set([
+        ...Object.keys(initialExtras),
+        ...Object.keys(currentExtras)
+      ]);
+      for (const name of allExtraNames) {
+        const initQty = initialExtras[name] || 0;
+        const curQty = currentExtras[name] || 0;
+        const diff = initQty - curQty;
+        if (diff !== 0) {
+          const prod = productByName.get(name);
+          if (prod) {
+            adjustDelta(prod.id, diff);
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Commit the stock updates to products and inventory
+  for (const [productId, delta] of stockDeltas.entries()) {
+    if (delta === 0) continue;
+
+    const prod = productById.get(productId);
+    if (!prod) continue;
+
+    const newStock = Math.max(0, (prod.stock || 0) + delta);
+
+    const { error: prodError } = await supabase
+      .from('products')
+      .update({ stock: newStock })
+      .eq('id', productId);
+
+    if (prodError) {
+      console.error(`[Sync] Error updating product stock for ${prod.name}:`, prodError);
+    }
+
+    const { data: invData } = await supabase
+      .from('inventory')
+      .select('*')
+      .eq('product_id', productId)
+      .maybeSingle();
+
+    if (invData) {
+      const newLoaded = Math.max(0, (invData.loaded || 0) + delta);
+      const { error: invError } = await supabase
+        .from('inventory')
+        .update({ loaded: newLoaded })
+        .eq('id', invData.id);
+
+      if (invError) {
+        console.error(`[Sync] Error updating inventory loaded for ${prod.name}:`, invError);
+      }
+    }
+  }
+
+  console.log(`[Sync] ✅ Successfully synchronized ${changedDeliveries.length} delivery records and updated inventory stock.`);
+}
+

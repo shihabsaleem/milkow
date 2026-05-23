@@ -570,7 +570,7 @@ export default function BillingPage() {
          </AnimatePresence>
 
          <AnimatePresence>
-            {showToast && (<motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-110 bg-emerald-600 text-white px-6 py-3 rounded-full font-bold shadow-xl flex items-center gap-2"><CheckCircle2 size={18} />Payment Recorded Successfully</motion.div>)}
+            {showToast && (<motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-110 bg-emerald-600 text-white px-6 py-3 rounded-full font-bold text-sm shadow-xl flex items-center gap-2"><CheckCircle2 size={16} />Payment Recorded Successfully</motion.div>)}
          </AnimatePresence>
 
          <Modal

@@ -15,6 +15,7 @@ export default function DeliveryPage() {
    const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [serverDeliveries, setServerDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [isSyncing, setIsSyncing] = useState(false);
+   const [isShiftClosed, setIsShiftClosed] = useState(false);
    const [isStagingCollapsed, setIsStagingCollapsed] = useState(false);
    const [products, setProducts] = useState<T.Product[]>([]);
    const [routesList, setRoutesList] = useState<T.Area[]>([]);
@@ -58,15 +59,28 @@ export default function DeliveryPage() {
       const [
          { data: routeSets },
          { data: prodData },
-         { data: routeData }
+         { data: routeData },
+         { data: settingsData }
       ] = await Promise.all([
          supabase.from('areas').select('*').order('name', { ascending: true }),
          supabase.from('products').select('*').order('name', { ascending: true }),
          supabase.from('deliveries')
             .select('*, customer:customers(*)')
             .eq('delivery_date', today)
-            .eq('shift', shift === 'morning' ? 'Morning Only' : 'Evening Only')
+            .eq('shift', shift === 'morning' ? 'Morning Only' : 'Evening Only'),
+         supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle()
       ]);
+
+      if (settingsData) {
+         const settings = (settingsData as any).value || {};
+         if (shift === 'morning') {
+            setIsShiftClosed(settings.lastMorningClose === today);
+         } else {
+            setIsShiftClosed(settings.lastEveningClose === today);
+         }
+      } else {
+         setIsShiftClosed(false);
+      }
 
       if (routeSets) {
          const areas = routeSets as T.Area[];
@@ -163,7 +177,37 @@ export default function DeliveryPage() {
       }
    };
 
+   const getAvailableStockById = (prodId: string) => {
+      const prod = products.find(p => p.id === prodId);
+      if (!prod) return 0;
+      if (prod.stock == null) return Infinity;
+      let available = prod.stock;
+
+      changedDeliveries.forEach(cd => {
+         const initial = serverDeliveries.find(sd => sd.id === cd.id);
+         if (!initial) return;
+
+         const initialMilkConsumed = (initial.delivered && initial.product_id === prodId) ? initial.milk_qty : 0;
+         const currentMilkConsumed = (cd.delivered && cd.product_id === prodId) ? cd.milk_qty : 0;
+         available -= (currentMilkConsumed - initialMilkConsumed);
+
+         const initialMiscQty = initial.delivered 
+             ? (initial.misc_items || []).find((i: any) => i.name === prod.name)?.qty || 0 
+             : 0;
+         const currentMiscQty = cd.delivered 
+             ? (cd.misc_items || []).find((i: any) => i.name === prod.name)?.qty || 0 
+             : 0;
+         available -= (currentMiscQty - initialMiscQty);
+      });
+
+      return available;
+   };
+
    const toggleDelivery = async (id: string) => {
+      if (isShiftClosed) {
+         setModalConfig({ isOpen: true, title: "Shift Closed", message: `The ${shift} shift is closed for today.`, type: 'info' });
+         return;
+      }
       const stop = deliveries.find(d => d.id === id);
       if (!stop) return;
 
@@ -171,11 +215,22 @@ export default function DeliveryPage() {
 
       if (nowDelivered) {
          const zeroStockItems: string[] = [];
+         const tempAvailable = new Map<string, number>();
+
+         const getTempAvail = (prodId: string) => {
+            if (!tempAvailable.has(prodId)) {
+                tempAvailable.set(prodId, getAvailableStockById(prodId));
+            }
+            return tempAvailable.get(prodId)!;
+         };
 
          if (stop.milk_qty > 0 && stop.product_id) {
-            const prod = products.find(p => p.id === stop.product_id);
-            if (prod && (prod.stock == null || prod.stock <= 0)) {
-               zeroStockItems.push(prod.name);
+            const avail = getTempAvail(stop.product_id);
+            if (avail < stop.milk_qty) {
+               const prod = products.find(p => p.id === stop.product_id);
+               zeroStockItems.push(prod ? prod.name : 'Unknown Product');
+            } else {
+               tempAvailable.set(stop.product_id, avail - stop.milk_qty);
             }
          }
 
@@ -183,8 +238,13 @@ export default function DeliveryPage() {
          miscProducts.forEach((item: any) => {
             if (item.qty > 0) {
                const prod = products.find(p => p.name === item.name);
-               if (prod && (prod.stock == null || prod.stock <= 0)) {
-                  zeroStockItems.push(prod.name);
+               if (prod) {
+                  const avail = getTempAvail(prod.id);
+                  if (avail < item.qty) {
+                     zeroStockItems.push(prod.name);
+                  } else {
+                     tempAvailable.set(prod.id, avail - item.qty);
+                  }
                }
             }
          });
@@ -193,7 +253,7 @@ export default function DeliveryPage() {
             setModalConfig({
                isOpen: true,
                title: "Out of Stock",
-               message: `Cannot mark delivery. The following items have zero stock: ${zeroStockItems.join(", ")}.`,
+               message: `Cannot mark delivery. Insufficient stock for: ${zeroStockItems.join(", ")}.`,
                type: 'danger'
             });
             return;
@@ -206,12 +266,32 @@ export default function DeliveryPage() {
    };
 
    const updateProductQty = async (stopId: string, productName: string, delta: number) => {
+      if (isShiftClosed) {
+         setModalConfig({ isOpen: true, title: "Shift Closed", message: `The ${shift} shift is closed for today.`, type: 'info' });
+         return;
+      }
       const stop = deliveries.find(d => d.id === stopId);
       if (!stop) return;
 
       const currentExtras = stop.misc_items || [];
       const itemIndex = currentExtras.findIndex((item: any) => item.name === productName);
       const updatedExtras = [...currentExtras];
+
+      if (stop.delivered && delta > 0) {
+         const prod = products.find(p => p.name === productName);
+         if (prod) {
+             const available = getAvailableStockById(prod.id);
+             if (available < delta) {
+                setModalConfig({
+                   isOpen: true,
+                   title: "Out of Stock",
+                   message: `Cannot add ${productName}. Insufficient stock.`,
+                   type: 'danger'
+                });
+                return;
+             }
+         }
+      }
 
       if (itemIndex > -1) {
          const newQty = Math.max(0, updatedExtras[itemIndex].qty + delta);
@@ -230,9 +310,26 @@ export default function DeliveryPage() {
    };
 
    const updateMilkQty = async (stopId: string, delta: number) => {
+      if (isShiftClosed) {
+         setModalConfig({ isOpen: true, title: "Shift Closed", message: `The ${shift} shift is closed for today.`, type: 'info' });
+         return;
+      }
       const stop = deliveries.find(d => d.id === stopId);
       if (!stop) return;
       const newQty = Math.max(0, (stop.milk_qty || 0) + delta);
+
+      if (stop.delivered && delta > 0 && stop.product_id) {
+         const available = getAvailableStockById(stop.product_id);
+         if (available < delta) {
+            setModalConfig({
+               isOpen: true,
+               title: "Out of Stock",
+               message: `Cannot increase quantity. Insufficient stock for ${products.find(p => p.id === stop.product_id)?.name}.`,
+               type: 'danger'
+            });
+            return;
+         }
+      }
 
       // Update state locally and save to staging cache
       setDeliveries(prev => prev.map(d => d.id === stopId ? { ...d, milk_qty: newQty } : d));
@@ -413,7 +510,7 @@ export default function DeliveryPage() {
                                     })()}
                                  </div>
                               </div>
-                              <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'}`}><Check size={20} strokeWidth={3} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
                            </div>
                            {!isExpanded && activeItems.length > 0 && (
                               <div className="mt-3 flex flex-wrap gap-2 mb-2">

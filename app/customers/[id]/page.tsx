@@ -1,14 +1,15 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
 import CustomSelect from "@/components/ui/CustomSelect";
 import PullToRefresh from "@/components/ui/PullToRefresh";
+import { toPng } from "html-to-image";
 
 export default function CustomerProfilePage() {
    const params = useParams();
@@ -17,6 +18,8 @@ export default function CustomerProfilePage() {
 
    const [customer, setCustomer] = useState<(T.Customer & { area: T.Area }) | null>(null);
    const [financials, setFinancials] = useState<T.CustomerFinancials | null>(null);
+   const screenshotRef = useRef<HTMLDivElement>(null);
+   const [isCapturing, setIsCapturing] = useState(false);
    const [bills, setBills] = useState<T.Bill[]>([]);
    const [deliveries, setDeliveries] = useState<T.Delivery[]>([]);
    const [allUnbilledDeliveries, setAllUnbilledDeliveries] = useState<T.Delivery[]>([]);
@@ -276,6 +279,113 @@ export default function CustomerProfilePage() {
       setViewDate(newDate);
    };
 
+   const handleCaptureScreenshot = async () => {
+      if (!screenshotRef.current || !customer) return;
+      setIsCapturing(true);
+      try {
+         const balanceText = grandTotalAmount > 0 
+            ? `Outstanding Balance: ₹${grandTotalAmount.toFixed(2)}` 
+            : `Advance Balance: ₹${Math.abs(grandTotalAmount).toFixed(2)}`;
+         const message = `Hi ${customer.name}, here is your delivery ledger and statement for ${monthName} ${yearName}.\n${balanceText}`;
+
+         const openWhatsApp = (msg: string) => {
+            const phoneNum = customer.phone || "";
+            const cleanPhone = phoneNum.replace(/[^0-9]/g, "");
+            const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+            const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`;
+            window.open(url, "_blank");
+         };
+
+         const generateBlob = async () => {
+            const dataUrl = await toPng(screenshotRef.current!, {
+               quality: 0.95,
+               backgroundColor: "#f8fafc",
+               style: {
+                  height: "auto",
+                  overflow: "visible",
+               },
+            });
+            return await (await fetch(dataUrl)).blob();
+         };
+
+         let shared = false;
+         if (navigator.share && navigator.canShare) {
+            try {
+               const blob = await generateBlob();
+               const fileName = `Milkow_Profile_${customer.name.replace(/\s+/g, '_')}_${monthName}_${yearName}.png`;
+               const file = new File([blob], fileName, { type: "image/png" });
+
+               if (navigator.canShare({ files: [file] })) {
+                  await navigator.share({
+                     files: [file],
+                     title: `${customer.name} Statement`,
+                     text: message,
+                  });
+                  shared = true;
+               }
+            } catch (shareErr) {
+               console.warn("Native share failed, trying clipboard:", shareErr);
+            }
+         }
+
+         if (!shared) {
+            let clipboardCopied = false;
+            try {
+               if (navigator.clipboard && window.ClipboardItem) {
+                  const blobPromise = generateBlob();
+                  await navigator.clipboard.write([
+                     new ClipboardItem({
+                        "image/png": blobPromise
+                     })
+                  ]);
+                  clipboardCopied = true;
+               }
+            } catch (clipErr) {
+               console.warn("Clipboard copy failed, falling back to download:", clipErr);
+            }
+
+            if (clipboardCopied) {
+               setModalConfig({
+                  isOpen: true,
+                  title: "Copied to Clipboard",
+                  message: `The ledger statement has been copied to your clipboard. WhatsApp will open now—simply paste (Ctrl+V or long-press paste) to share the image.`,
+                  type: 'success',
+                  confirmText: "Open WhatsApp",
+                  onConfirm: () => {
+                     setModalConfig(prev => ({ ...prev, isOpen: false }));
+                     openWhatsApp(message);
+                  }
+               });
+            } else {
+               const blob = await generateBlob();
+               const fileName = `Milkow_Profile_${customer.name.replace(/\s+/g, '_')}_${monthName}_${yearName}.png`;
+               const fileUrl = URL.createObjectURL(blob);
+               const link = document.createElement("a");
+               link.download = fileName;
+               link.href = fileUrl;
+               link.click();
+               URL.revokeObjectURL(fileUrl);
+
+               setModalConfig({
+                  isOpen: true,
+                  title: "Statement Downloaded",
+                  message: `The statement image has been downloaded. WhatsApp will open now—please attach the downloaded image manually.`,
+                  type: 'info',
+                  confirmText: "Open WhatsApp",
+                  onConfirm: () => {
+                     setModalConfig(prev => ({ ...prev, isOpen: false }));
+                     openWhatsApp(message);
+                  }
+               });
+            }
+         }
+      } catch (err) {
+         console.error("Screenshot capture and share failed:", err);
+      } finally {
+         setIsCapturing(false);
+      }
+   };
+
    const monthName = viewDate.toLocaleString('default', { month: 'long' });
    const yearName = viewDate.getFullYear();
    const daysCount = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
@@ -351,13 +461,21 @@ export default function CustomerProfilePage() {
                      <Receipt size={16} />
                      <span className="hidden sm:inline">QR Bill</span>
                   </button>
+                  <button
+                      onClick={handleCaptureScreenshot}
+                      disabled={isCapturing}
+                      className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl active:scale-90 disabled:opacity-50 transition-all"
+                      title="Take Screenshot"
+                   >
+                      <Camera size={20} className={isCapturing ? "animate-pulse text-primary" : ""} />
+                   </button>
                   <button onClick={() => setIsEditModalOpen(true)} className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl active:scale-90"><Edit2 size={20} /></button>
                   <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl active:scale-90"><Trash2 size={20} /></button>
                </div>
             </div>
          </header>
 
-         <main className="flex flex-col">
+         <main ref={screenshotRef} className="flex flex-col">
             {isLoading ? (
                <div className="max-w-2xl mx-auto w-full px-5 py-8 flex flex-col gap-6">
                   <div className="h-48 bg-white border border-zinc-100 rounded-3xl animate-pulse" />

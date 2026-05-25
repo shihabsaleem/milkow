@@ -28,7 +28,7 @@ const BLOCKED_USER_AGENTS = [
   "sqlmap",
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const userAgent = request.headers.get("user-agent")?.toLowerCase() || "";
   const host = request.headers.get("host") || "";
 

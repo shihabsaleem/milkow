@@ -9,15 +9,13 @@ import Link from "next/link";
 import Image from "next/image";
 
 interface BillData {
-  customerName: string;
+  customer_name: string;
   phone: string;
-  areaName: string;
-  balance: number;
-  payment: {
-    upi_id: string;
-    payee_name: string;
-    currency_code: string;
-  };
+  area_name: string;
+  current_balance: number;
+  upi_id: string;
+  payee_name: string;
+  currency_code: string;
 }
 
 export default function PublicBillPage() {
@@ -68,7 +66,7 @@ export default function PublicBillPage() {
 
   const copyUpiId = () => {
     if (!billData) return;
-    navigator.clipboard.writeText(billData.payment.upi_id);
+    navigator.clipboard.writeText(billData.upi_id);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -76,7 +74,7 @@ export default function PublicBillPage() {
   const shareBillLink = async () => {
     if (!billData) return;
     const url = typeof window !== "undefined" ? window.location.href : "";
-    const text = `Hi, view your latest milk bill outstanding balance of ₹${billData.balance.toFixed(2)} on Milkow.`;
+    const text = `Hi, view your latest milk bill outstanding balance of ₹${billData.current_balance.toFixed(2)} on Milkow.`;
 
     try {
       if (navigator.share) {
@@ -96,8 +94,8 @@ export default function PublicBillPage() {
 
   const getUpiLink = () => {
     if (!billData) return "";
-    const { upi_id, payee_name, currency_code } = billData.payment;
-    return `upi://pay?pa=${upi_id}&pn=${encodeURIComponent(payee_name)}&am=${billData.balance.toFixed(2)}&cu=${currency_code}`;
+    const { upi_id, payee_name, currency_code } = billData;
+    return `upi://pay?pa=${upi_id}&pn=${encodeURIComponent(payee_name)}&am=${billData.current_balance.toFixed(2)}&cu=${currency_code}`;
   };
 
   return (
@@ -198,7 +196,7 @@ export default function PublicBillPage() {
                 </button>
               </form>
             </motion.div>
-          ) : billData.balance <= 0 ? (
+          ) : billData.current_balance <= 0 ? (
             /* ================= SETTLED STATE ================= */
             <motion.div
               key="settled-card"
@@ -215,15 +213,15 @@ export default function PublicBillPage() {
 
               <div className="bg-zinc-50/50 border border-zinc-150 rounded-2xl px-4 py-3.5 my-5 text-left text-xs">
                 <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Customer</p>
-                <p className="font-bold text-zinc-900 mt-0.5">{billData.customerName}</p>
-                <p className="text-zinc-500 mt-0.5">{billData.areaName}</p>
+                <p className="font-bold text-zinc-900 mt-0.5">{billData.customer_name}</p>
+                <p className="text-zinc-500 mt-0.5">{billData.area_name}</p>
 
                 <div className="w-full h-px bg-zinc-200/60 my-2.5" />
 
                 <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Outstanding Balance</p>
-                <p className={`font-bold mt-0.5 ${billData.balance < 0 ? "text-indigo-600" : "text-emerald-600"}`}>
-                  {billData.balance < 0 ? (
-                    `₹${Math.abs(billData.balance).toFixed(2)} (Advance)`
+                <p className={`font-bold mt-0.5 ${billData.current_balance < 0 ? "text-indigo-600" : "text-emerald-600"}`}>
+                  {billData.current_balance < 0 ? (
+                    `₹${Math.abs(billData.current_balance).toFixed(2)} (Advance)`
                   ) : (
                     "₹0.00"
                   )}
@@ -231,7 +229,7 @@ export default function PublicBillPage() {
               </div>
 
               <p className="text-xs text-zinc-500 leading-relaxed px-1">
-                {billData.balance < 0 ? (
+                {billData.current_balance < 0 ? (
                   "You have an advance credit with us. No payment is required."
                 ) : (
                   "No outstanding balance. Thank you for your support!"
@@ -270,7 +268,7 @@ export default function PublicBillPage() {
                 <div className="text-center pt-8 pb-3">
                   <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Payable Balance</p>
                   <h2 className="text-3xl font-black text-zinc-950 mt-1 tracking-tight">
-                    ₹{billData.balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    ₹{billData.current_balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </h2>
                 </div>
 
@@ -278,13 +276,13 @@ export default function PublicBillPage() {
                 <div className="bg-zinc-50/70 border border-zinc-200/60 rounded-xl px-4 py-3 my-4 flex justify-between items-center text-left text-xs">
                   <div>
                     <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-400 block leading-none">Bill To</span>
-                    <span className="font-extrabold text-zinc-900 mt-1.5 block leading-none">{billData.customerName}</span>
+                    <span className="font-extrabold text-zinc-900 mt-1.5 block leading-none">{billData.customer_name}</span>
                     <span className="text-zinc-500 mt-1 block leading-none">{billData.phone}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-400 block leading-none">Route</span>
                     <span className="text-[10px] font-bold text-zinc-700 bg-zinc-200/50 px-2.5 py-1 rounded-md mt-1.5 inline-block border border-zinc-200">
-                      {billData.areaName}
+                      {billData.area_name}
                     </span>
                   </div>
                 </div>
@@ -311,7 +309,7 @@ export default function PublicBillPage() {
                   </div>
                   
                   <div className="mt-3.5 text-center text-zinc-500">
-                    <p className="text-[8px] font-bold uppercase tracking-widest">{billData.payment.payee_name}</p>
+                    <p className="text-[8px] font-bold uppercase tracking-widest">{billData.payee_name}</p>
                     <p className="text-[9px] font-bold tracking-widest uppercase mt-0.5 text-zinc-400">Scan with any UPI App</p>
                   </div>
                 </div>

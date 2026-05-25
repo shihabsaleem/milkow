@@ -1,8 +1,9 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
+import type { CustomerBill } from "@/types/supabase";
 
-export async function getPublicBill(phone: string) {
+export async function getPublicBill(phone: string): Promise<{ success?: boolean; data?: CustomerBill; error?: string }> {
   const sanitizedPhone = phone.trim();
   
   // Basic validation: ensure digits only and suitable length
@@ -32,15 +33,13 @@ export async function getPublicBill(phone: string) {
     return {
       success: true,
       data: {
-        customerName: bill.customer_name,
+        customer_name: bill.customer_name,
         phone: bill.phone,
-        areaName: bill.area_name,
-        balance: Number(bill.current_balance),
-        payment: {
-          upi_id: bill.upi_id,
-          payee_name: bill.payee_name,
-          currency_code: bill.currency_code,
-        },
+        area_name: bill.area_name,
+        current_balance: Number(bill.current_balance),
+        upi_id: bill.upi_id,
+        payee_name: bill.payee_name,
+        currency_code: bill.currency_code,
       },
     };
   } catch (error) {

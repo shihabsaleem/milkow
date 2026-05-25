@@ -1,15 +1,16 @@
+-- Consolidated Supabase Schema and Triggers
+
+-- ====================
+-- 01_schema.sql content
+-- ====================
 -- ==========================================
 -- MILKOW — 01_SCHEMA.SQL
 -- Extensions, Types, Tables, Indexes,
 -- Views, RLS & Policies
 -- ==========================================
 
-
--- ─── EXTENSIONS ───────────────────────────
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-
--- ─── CUSTOM TYPES ─────────────────────────
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'customer_status') THEN
         CREATE TYPE customer_status AS ENUM ('Active', 'Inactive');
@@ -30,7 +31,6 @@ DO $$ BEGIN
         CREATE TYPE payment_method AS ENUM ('Cash', 'UPI', 'Bank Transfer', 'Other');
     END IF;
 END $$;
-
 
 -- ─── TABLES ───────────────────────────────
 
@@ -154,7 +154,6 @@ CREATE TABLE IF NOT EXISTS system_settings (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-
 -- ─── INDEXES ──────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_customers_area_id       ON customers(area_id);
 CREATE INDEX IF NOT EXISTS idx_customers_status        ON customers(status);
@@ -164,7 +163,6 @@ CREATE INDEX IF NOT EXISTS idx_deliveries_date         ON deliveries(delivery_da
 CREATE INDEX IF NOT EXISTS idx_bills_customer_id       ON bills(customer_id);
 CREATE INDEX IF NOT EXISTS idx_bills_status            ON bills(status);
 CREATE INDEX IF NOT EXISTS idx_payments_customer_id    ON payments(customer_id);
-
 
 -- ─── VIEWS ────────────────────────────────
 DROP VIEW IF EXISTS customer_financials;
@@ -203,7 +201,6 @@ LEFT JOIN bill_summary         bs ON bs.customer_id = c.id
 LEFT JOIN unbilled_deliveries  ud ON ud.customer_id = c.id
 LEFT JOIN payment_summary      ps ON ps.customer_id = c.id;
 
-
 -- ─── ROW LEVEL SECURITY ───────────────────
 ALTER TABLE areas           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products        ENABLE ROW LEVEL SECURITY;
@@ -213,7 +210,6 @@ ALTER TABLE deliveries      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bills           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
-
 
 -- ─── POLICIES ─────────────────────────────
 -- Full access for authenticated users on all tables
@@ -233,29 +229,30 @@ BEGIN
     END LOOP;
 END $$;
 
+-- Additional fine‑grained RLS policies
+-- Customers: owners can read/write their own rows
+CREATE POLICY "Customer owner" ON customers
+FOR ALL USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
+
+-- Deliveries: owners can read/write their own rows
+CREATE POLICY "Delivery owner" ON deliveries
+FOR ALL USING (auth.uid() = customer_id)
+WITH CHECK (auth.uid() = customer_id);
+
+-- Bills: owners can read/write their own rows
+CREATE POLICY "Bill owner" ON bills
+FOR ALL USING (auth.uid() = customer_id)
+WITH CHECK (auth.uid() = customer_id);
+
+-- Payments: owners can read/write their own rows
+CREATE POLICY "Payment owner" ON payments
+FOR ALL USING (auth.uid() = customer_id)
+WITH CHECK (auth.uid() = customer_id);
+
 
 -- ─── DATA INTEGRITY — ONE-TIME FIXES ──────
--- Run this block if any customer shows a negative (Advance) balance
--- caused by the old "Mark as Paid" bug (payment recorded without matching bills).
--- Safe to re-run: only removes settlement payments where total_paid > total_billed + past_outstanding.
---
--- DELETE FROM payments
--- WHERE id IN (
---   SELECT p.id
---   FROM payments p
---   JOIN customers c ON c.id = p.customer_id
---   LEFT JOIN (
---     SELECT customer_id, COALESCE(SUM(amount), 0) AS total_billed
---     FROM bills GROUP BY customer_id
---   ) b ON b.customer_id = c.id
---   LEFT JOIN (
---     SELECT customer_id, COALESCE(SUM(amount), 0) AS total_paid
---     FROM payments GROUP BY customer_id
---   ) py ON py.customer_id = c.id
---   WHERE (c.past_outstanding + COALESCE(b.total_billed, 0) - COALESCE(py.total_paid, 0)) < 0
---     AND p.notes IN ('Full Settlement from Billing', 'Full Settlement from Profile')
--- );
-
+-- (Optional integrity fix block – keep commented if not needed)
 
 -- ─── RPC FUNCTIONS ────────────────────────
 -- Public-facing bill retrieval by phone number
@@ -278,7 +275,6 @@ DECLARE
   pay_name text := 'Milkow Distributor';
   pay_curr text := 'INR';
 BEGIN
-  -- Fetch general payment settings (UPI details)
   SELECT value INTO general_settings FROM system_settings WHERE key = 'general';
   IF general_settings IS NOT NULL AND general_settings ? 'payment' THEN
     pay_upi := COALESCE((general_settings->'payment'->>'upi_id'), pay_upi);
@@ -302,4 +298,133 @@ BEGIN
      OR (length(phone_input) >= 10 AND c.phone LIKE '%' || right(phone_input, 10));
 END;
 $$ LANGUAGE plpgsql;
+
+-- ====================
+-- 02_triggers.sql content
+-- ====================
+-- ==========================================
+-- MILKOW — 02_TRIGGERS.SQL
+-- Consolidated Triggers: Audit & Business Logic
+-- ==========================================
+
+-- ─── 1. TRIGGER FUNCTIONS ─────────────────
+
+-- Function: Auto-update updated_at column
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function: Auto-settle bills on payment
+CREATE OR REPLACE FUNCTION handle_payment_settlement()
+RETURNS TRIGGER AS $$
+DECLARE
+    rem_payment DECIMAL(12, 2);
+    bill_rec RECORD;
+BEGIN
+    IF NEW.bill_id IS NOT NULL THEN
+        UPDATE bills SET status = 'Paid' WHERE id = NEW.bill_id;
+    ELSE
+        rem_payment := NEW.amount;
+        FOR bill_rec IN 
+            SELECT id, amount FROM bills 
+            WHERE customer_id = NEW.customer_id AND status = 'Pending' 
+            ORDER BY created_at ASC
+        LOOP
+            IF rem_payment >= bill_rec.amount THEN
+                UPDATE bills SET status = 'Paid' WHERE id = bill_rec.id;
+                rem_payment := rem_payment - bill_rec.amount;
+            ELSE
+                EXIT;
+            END IF;
+        END LOOP;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- NOTE: handle_inventory_deduction() trigger was REMOVED.
+-- Inventory deductions are now handled client-side by
+-- syncBatchDeliveries() in lib/automation.ts to support
+-- offline-first batch sync and avoid double-deduction.
+
+-- Function: Sync product to inventory
+CREATE OR REPLACE FUNCTION sync_product_to_inventory()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE inventory SET name = NEW.name, vol = NEW.size, count = NEW.stock, unit = NEW.unit WHERE product_id = NEW.id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function: Auto-calculate delivery cost on insert/update
+CREATE OR REPLACE FUNCTION calculate_delivery_cost()
+RETURNS TRIGGER AS $$
+DECLARE
+    milk_price DECIMAL(10,2) := 0;
+    total DECIMAL(10,2) := 0;
+    misc_item JSONB;
+    item_price DECIMAL(10,2);
+BEGIN
+    IF (NEW.delivered = TRUE) THEN
+        IF (NEW.total_cost IS NULL OR NEW.total_cost = 0) THEN
+            IF NEW.product_id IS NOT NULL THEN
+                SELECT price INTO milk_price FROM products WHERE id = NEW.product_id;
+            END IF;
+
+            total := COALESCE(NEW.milk_qty, 0) * COALESCE(milk_price, 0);
+
+            IF NEW.misc_items IS NOT NULL AND jsonb_typeof(NEW.misc_items) = 'array' THEN
+                FOR misc_item IN SELECT * FROM jsonb_array_elements(NEW.misc_items)
+                LOOP
+                    SELECT price INTO item_price FROM products WHERE name = misc_item->>'name';
+                    total := total + (CAST(misc_item->>'qty' AS INTEGER) * COALESCE(item_price, 0));
+                END LOOP;
+            END IF;
+
+            NEW.total_cost := total;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ─── 2. ATTACH TRIGGERS ───────────────────
+
+-- Audit: updated_at (Only for core tables to reduce clutter)
+-- Tables: customers, deliveries, bills, payments, products
+DROP TRIGGER IF EXISTS tr_update_cust_at ON customers;
+CREATE TRIGGER tr_update_cust_at BEFORE UPDATE ON customers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS tr_update_del_at ON deliveries;
+CREATE TRIGGER tr_update_del_at BEFORE UPDATE ON deliveries FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS tr_update_bill_at ON bills;
+CREATE TRIGGER tr_update_bill_at BEFORE UPDATE ON bills FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS tr_update_pay_at ON payments;
+CREATE TRIGGER tr_update_pay_at BEFORE UPDATE ON payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS tr_update_prod_at ON products;
+CREATE TRIGGER tr_update_prod_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Business Logic: Settlement, Product Sync & Cost Calculation
+DROP TRIGGER IF EXISTS tr_payment_settlement ON payments;
+CREATE TRIGGER tr_payment_settlement AFTER INSERT ON payments FOR EACH ROW EXECUTE FUNCTION handle_payment_settlement();
+
+-- NOTE: tr_inventory_deduction intentionally NOT created.
+-- Inventory deductions are handled client-side by syncBatchDeliveries().
+DROP TRIGGER IF EXISTS tr_inventory_deduction ON deliveries;
+
+DROP TRIGGER IF EXISTS tr_product_inventory_sync ON products;
+CREATE TRIGGER tr_product_inventory_sync AFTER UPDATE ON products FOR EACH ROW EXECUTE FUNCTION sync_product_to_inventory();
+
+DROP TRIGGER IF EXISTS tr_calculate_delivery_cost ON deliveries;
+CREATE TRIGGER tr_calculate_delivery_cost BEFORE INSERT OR UPDATE ON deliveries FOR EACH ROW EXECUTE FUNCTION calculate_delivery_cost();
+INSERT INTO system_settings (key, value)
+VALUES ('general', '{"payment":{"upi_id":"milkow@ybl","payee_name":"Milkow Distributor","currency_code":"INR"}}'::jsonb)
+ON CONFLICT DO NOTHING;
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Milk, ArrowRight, Mail, Lock, ShieldCheck, Sparkles, Building2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -150,9 +151,17 @@ export default function LoginPage() {
                         </>
                      )}
                   </button>
-               </form>
+                </form>
 
-            </div>
+                <div className="flex justify-center mt-6 pt-4 border-t border-zinc-100">
+                   <Link
+                      href="/view-bill"
+                      className="text-xs font-bold text-zinc-500 hover:text-primary transition-colors flex items-center gap-1 active:scale-95"
+                   >
+                      Looking for your bill? View Client Bill
+                   </Link>
+                </div>
+             </div>
 
             {/* Copyright */}
             <p className="text-center mt-10 text-zinc-400 text-[10px] font-medium tracking-wide uppercase">

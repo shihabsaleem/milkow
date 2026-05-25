@@ -8,7 +8,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   
-  if (!user || pathname === "/login") return null;
+  if (!user || pathname === "/login" || pathname.startsWith("/view-bill")) return null;
 
   const navItems = [
     { icon: Home, label: "Home", href: "/" },

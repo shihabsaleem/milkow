@@ -9,7 +9,7 @@ import CustomSelect from "@/components/ui/CustomSelect";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import * as T from "@/types/database";
 
-type PipelineStage = { label: string; value: number; unit: string; id: number; productId?: string | number };
+type PipelineStage = { label: string; value: number; unit: string; id: number; productId?: string | number; loaded: number };
 
 export default function InventoryPage() {
   const [date, setDate] = useState(() => {
@@ -100,7 +100,7 @@ export default function InventoryPage() {
     ]);
     if (prods) setProducts(prods as T.Product[]);
     // Note: mapping 'inventory' to pipeline for this view
-    if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
+    if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id, loaded: p.loaded || 0 })));
     
     if (settings && settings.value) {
       const dbDailyPrices = settings.value as any;
@@ -139,12 +139,23 @@ export default function InventoryPage() {
       };
 
       if (editingIndex !== null && products[editingIndex].id) {
+        const oldStock = products[editingIndex].stock || 0;
+        const newStock = productToSave.stock;
+        const delta = newStock - oldStock;
+
         await supabase.from('products').update(productToSave).eq('id', products[editingIndex].id);
+
+        // Find the current inventory loaded value to adjust it by delta
+        const { data: invItem } = await supabase.from('inventory').select('loaded').eq('product_id', products[editingIndex].id).single();
+        const currentLoaded = invItem?.loaded || 0;
+        const newLoaded = Math.max(0, currentLoaded + delta);
+
         // Also update inventory name and count if it exists
         await supabase.from('inventory').update({
           name: productToSave.name,
           unit: productToSave.unit,
-          count: productToSave.stock
+          count: productToSave.stock,
+          loaded: newLoaded
         }).eq('product_id', products[editingIndex].id);
       } else {
         const { data: insertedProduct, error: insertError } = await supabase.from('products').insert(productToSave).select().single();
@@ -154,7 +165,7 @@ export default function InventoryPage() {
             name: insertedProduct.name,
             unit: insertedProduct.unit,
             count: productToSave.stock,
-            loaded: Math.floor(productToSave.stock / 2),
+            loaded: productToSave.stock,
             vol: insertedProduct.size
           });
         }
@@ -208,24 +219,30 @@ export default function InventoryPage() {
   const updatePipelineValue = async (id: number, newValue: string) => {
     const numValue = parseInt(newValue) || 0;
 
+    const stage = pipeline.find(p => p.id === id);
+    if (!stage) return;
+
+    const currentCount = stage.value;
+    const currentLoaded = stage.loaded || 0;
+    const delta = numValue - currentCount;
+    const newLoaded = Math.max(0, currentLoaded + delta);
+
     // 1. Optimistic UI update
-    setPipeline(prev => prev.map(p => p.id === id ? { ...p, value: numValue } : p));
+    setPipeline(prev => prev.map(p => p.id === id ? { ...p, value: numValue, loaded: newLoaded } : p));
 
     try {
       // 2. Sync to Supabase (update both count AND loaded so dashboard stays in sync)
-      const { error } = await supabase.from('inventory').update({ count: numValue, loaded: numValue }).eq('id', id);
+      const { error } = await supabase.from('inventory').update({ count: numValue, loaded: newLoaded }).eq('id', id);
       if (error) throw error;
 
       // 3. Update linked Product stock
-      const stage = pipeline.find(p => p.id === id);
-      if (stage?.productId) {
+      if (stage.productId) {
         await supabase.from('products').update({ stock: numValue }).eq('id', stage.productId);
       }
     } catch (err) {
       console.error(err);
       // Revert if failed (fetch data again)
-      const { data } = await supabase.from('inventory').select('*').not('product_id', 'is', null);
-      if (data) setPipeline((data as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id })));
+      await fetchData(true);
     }
   };
 

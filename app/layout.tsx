@@ -26,6 +26,10 @@ export const metadata: Metadata = {
     title: "Milkow",
   },
   formatDetection: { telephone: false },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export const viewport: Viewport = {

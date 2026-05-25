@@ -118,9 +118,9 @@ export default function PublicBillPage() {
           <Image
             src="/assets/logo.svg"
             alt="Milkow Logo"
-            width={192  }
+            width={120}
             height={32}
-            className="object-contain w-[192] h-auto mb-1"
+            className="object-contain w-[120] h-auto mb-1"
             priority
           />
          

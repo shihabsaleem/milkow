@@ -255,3 +255,51 @@ END $$;
 --   WHERE (c.past_outstanding + COALESCE(b.total_billed, 0) - COALESCE(py.total_paid, 0)) < 0
 --     AND p.notes IN ('Full Settlement from Billing', 'Full Settlement from Profile')
 -- );
+
+
+-- ─── RPC FUNCTIONS ────────────────────────
+-- Public-facing bill retrieval by phone number
+CREATE OR REPLACE FUNCTION get_customer_bill_by_phone(phone_input text)
+RETURNS TABLE (
+  customer_name text,
+  phone text,
+  area_name text,
+  current_balance numeric,
+  upi_id text,
+  payee_name text,
+  currency_code text
+)
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  general_settings jsonb;
+  pay_upi text := 'milkow@ybl';
+  pay_name text := 'Milkow Distributor';
+  pay_curr text := 'INR';
+BEGIN
+  -- Fetch general payment settings (UPI details)
+  SELECT value INTO general_settings FROM system_settings WHERE key = 'general';
+  IF general_settings IS NOT NULL AND general_settings ? 'payment' THEN
+    pay_upi := COALESCE((general_settings->'payment'->>'upi_id'), pay_upi);
+    pay_name := COALESCE((general_settings->'payment'->>'payee_name'), pay_name);
+    pay_curr := COALESCE((general_settings->'payment'->>'currency_code'), pay_curr);
+  END IF;
+
+  RETURN QUERY
+  SELECT 
+    cf.name::text AS customer_name,
+    c.phone::text AS phone,
+    COALESCE(a.name::text, 'No Area') AS area_name,
+    cf.current_balance::numeric AS current_balance,
+    pay_upi AS upi_id,
+    pay_name AS payee_name,
+    pay_curr AS currency_code
+  FROM customer_financials cf
+  JOIN customers c ON c.id = cf.id
+  LEFT JOIN areas a ON a.id = cf.area_id
+  WHERE c.phone = phone_input
+     OR (length(phone_input) >= 10 AND c.phone LIKE '%' || right(phone_input, 10));
+END;
+$$ LANGUAGE plpgsql;
+

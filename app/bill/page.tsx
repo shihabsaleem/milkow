@@ -99,7 +99,7 @@ export default function PublicBillPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-slate-50/50 text-zinc-850 flex flex-col items-center justify-between p-6 font-sans relative">
+    <div className="min-h-dvh w-full bg-slate-50/50 text-zinc-850 flex flex-col items-center justify-between p-4 sm:p-6 font-sans relative">
       
       {/* Header */}
       <header className="w-full max-w-md flex justify-end items-center z-10 pt-2">
@@ -109,7 +109,7 @@ export default function PublicBillPage() {
       </header>
 
       {/* Main Container */}
-      <main className="w-full max-w-md flex-1 flex flex-col justify-center py-12 z-10">
+      <main className="w-full max-w-md flex-1 flex flex-col justify-center py-6 sm:py-12 z-10">
         
         {/* Brand Logo */}
         <div className="flex flex-col items-center mb-6">
@@ -118,7 +118,7 @@ export default function PublicBillPage() {
             alt="Milkow Logo"
             width={120}
             height={32}
-            className="object-contain w-[120] h-auto mb-1"
+            className="object-contain w-[120px] h-auto mb-1"
             priority
           />
          
@@ -254,7 +254,7 @@ export default function PublicBillPage() {
               className="flex flex-col gap-4"
             >
               {/* Receipt Ticket Container */}
-              <div className="bg-white border border-zinc-200/80 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.03)] overflow-hidden p-6 relative">
+              <div className="bg-white border border-zinc-200/80 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.03)] overflow-hidden p-5 sm:p-6 relative">
                 
                 {/* Back Button */}
                 <button

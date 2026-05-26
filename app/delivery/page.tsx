@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, PackagePlus, PackageSearch, Search, Minus, Plus, ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight } from "lucide-react";
+import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import { deductInventoryOnDelivery, restoreInventoryOnUndelivery, syncBatchDeliveries } from "@/lib/automation";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import Modal from "@/components/ui/Modal";
@@ -12,6 +14,15 @@ import * as T from "@/types/database";
 type DeliveryWithCustomer = T.Delivery & { customer: T.Customer };
 
 export default function DeliveryPage() {
+   const router = useRouter();
+   const { user, loading } = useAuth();
+
+   useEffect(() => {
+      if (!loading && !user) {
+         router.push("/404");
+      }
+   }, [user, loading, router]);
+
    const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [serverDeliveries, setServerDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [isSyncing, setIsSyncing] = useState(false);

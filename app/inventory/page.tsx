@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Plus, ChevronRight, X, Calendar as CalendarIcon, Droplet, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import CustomSelect from "@/components/ui/CustomSelect";
 import PullToRefresh from "@/components/ui/PullToRefresh";
@@ -12,6 +14,15 @@ import * as T from "@/types/database";
 type PipelineStage = { label: string; value: number; unit: string; id: number; productId?: string | number; loaded: number };
 
 export default function InventoryPage() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/404");
+    }
+  }, [user, loading, router]);
+
   const [date, setDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

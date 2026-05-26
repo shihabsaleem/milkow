@@ -16,7 +16,7 @@ export default function UserProfilePage() {
 
    useEffect(() => {
       if (!loading && !user) {
-         router.push("/login");
+         router.push("/404");
       }
    }, [user, loading, router]);
 

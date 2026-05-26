@@ -6,6 +6,7 @@ import { Plus, Search, MapPin, ChevronRight, X, ListOrdered } from "lucide-react
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
 import { checkAndRunAutomations } from "@/lib/automation";
@@ -14,6 +15,14 @@ import PullToRefresh from "@/components/ui/PullToRefresh";
 
 export default function CustomersPage() {
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/404");
+    }
+  }, [user, loading, router]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customers, setCustomers] = useState<(T.Customer & { area: T.Area; financials?: T.CustomerFinancials })[]>([]);

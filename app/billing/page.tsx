@@ -4,13 +4,23 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
 import { QrCode, MessageCircle, Wallet2, CheckCircle2, X, Check, MapPin, Search, Share2, ChevronDown } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import Modal from "@/components/ui/Modal";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import * as T from "@/types/database";
 
 export default function BillingPage() {
+   const router = useRouter();
+   const { user, loading } = useAuth();
+
+   useEffect(() => {
+      if (!loading && !user) {
+         router.push("/404");
+      }
+   }, [user, loading, router]);
+
    const searchParams = useSearchParams();
    const qrRef = useRef<HTMLDivElement>(null);
 

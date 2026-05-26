@@ -75,7 +75,7 @@ Track stock levels in real-time. Features "Auto-Deduction" where marking a deliv
 ### 👤 System Settings (`/profile`)
 Configure business details (UPI ID, Payee Name) and security. Changing the PIN here automatically updates the user's Supabase Auth login password.
 
-### 🧾 Public Billing Portal (`/view-bill`)
+### 🧾 Public Billing Portal (`/bill`)
 A secure, minimalist, light-themed public-facing portal allowing customers to check their outstanding bills and payment QR code simply by entering their registered phone number. Requires no user login.
 
 ---
@@ -114,7 +114,7 @@ The background tasks and automated data manipulations are handled centrally in `
 - **Authentication**: Secured via Supabase Auth.
 - **RLS (Row Level Security)**: All tables are protected. Only authenticated users can view or modify data.
 - **PIN Security**: The administrative PIN is synced with the Supabase account password for unified security.
-- **Public Data Access**: The `/view-bill` portal uses a `SECURITY DEFINER` Postgres RPC function (`get_customer_bill_by_phone`) to securely fetch specific customer financial data and payment settings for unauthenticated users, completely avoiding the need for exposed service role keys.
+- **Public Data Access**: The `/bill` portal uses a `SECURITY DEFINER` Postgres RPC function (`get_customer_bill_by_phone`) to securely fetch specific customer financial data and payment settings for unauthenticated users, completely avoiding the need for exposed service role keys.
 
 ---
 

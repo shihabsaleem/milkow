@@ -155,7 +155,7 @@ export default function LoginPage() {
 
                 <div className="flex justify-center mt-6 pt-4 border-t border-zinc-100">
                    <Link
-                      href="/view-bill"
+                      href="/bill"
                       className="text-xs font-bold text-zinc-500 hover:text-primary transition-colors flex items-center gap-1 active:scale-95"
                    >
                       Looking for your bill? View Client Bill

@@ -82,10 +82,29 @@ export default function LoginPage() {
                <div className="absolute -inset-1 bg-linear-to-br from-primary/20 to-emerald-400/20 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-70 transition-opacity -z-10" />
                <div className="absolute inset-0 bg-white/60 rounded-[2.5rem] -z-10 backdrop-blur-3xl" />
 
-               <div className="text-center mb-8">
-                  <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Welcome Back</h2>
-                  <p className="text-xs font-medium text-zinc-500 mt-1.5">Sign in securely to your dashboard</p>
-               </div>
+                <div className="text-center mb-8">
+                   <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Welcome Back</h2>
+                   <p className="text-xs font-medium text-zinc-500 mt-1.5">Sign in securely to your dashboard</p>
+
+                   {/* Credentials Hint */}
+                   <div className="mt-5 p-3.5 bg-slate-50/70 border border-zinc-100 rounded-2xl text-left text-[11px] text-zinc-500 flex flex-col gap-2 shadow-inner">
+                      <span className="font-bold text-zinc-700 tracking-wide uppercase text-[9px]">Demo Logins (click to fill):</span>
+                      <button
+                         type="button"
+                         onClick={() => { setEmail("admin@milkow.com"); setPassword("password123"); }}
+                         className="text-left hover:text-primary transition-colors flex items-center gap-1.5 py-0.5 group/demo"
+                      >
+                         🔑 <span className="font-bold text-zinc-700 group-hover/demo:text-primary">Admin:</span> <code className="bg-white border border-zinc-100 px-1.5 py-0.5 rounded text-primary font-black">admin@milkow.com</code>
+                      </button>
+                      <button
+                         type="button"
+                         onClick={() => { setEmail("driver@milkow.com"); setPassword("password123"); }}
+                         className="text-left hover:text-primary transition-colors flex items-center gap-1.5 py-0.5 group/demo"
+                      >
+                         🔑 <span className="font-bold text-zinc-700 group-hover/demo:text-primary">Driver:</span> <code className="bg-white border border-zinc-100 px-1.5 py-0.5 rounded text-primary font-black">driver@milkow.com</code>
+                      </button>
+                   </div>
+                </div>
 
                <form onSubmit={handleLogin} className="flex flex-col gap-5">
                   <div className="flex flex-col gap-1.5 relative group/input">

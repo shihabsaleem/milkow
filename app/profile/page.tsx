@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Save, LogOut, X, Plus } from "lucide-react";
+import { ArrowLeft, Save, LogOut, X, Plus, Shield, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,14 +12,15 @@ import * as T from "@/types/database";
 
 export default function UserProfilePage() {
    const router = useRouter();
-   const { logout, user, loading } = useAuth();
+   const { logout, user, loading, role } = useAuth();
 
    useEffect(() => {
       if (!loading && !user) {
-         router.push("/404");
+         router.push("/login");
       }
    }, [user, loading, router]);
 
+   // Admin specific states
    const [adminName, setAdminName] = useState("Sayas R.");
    const [payeeName, setPayeeName] = useState("");
    const [upiId, setUpiId] = useState("");
@@ -32,6 +33,13 @@ export default function UserProfilePage() {
    const [routeSuccess, setRouteSuccess] = useState(false);
    const listEndRef = useRef<HTMLDivElement>(null);
 
+   // Team management states
+   const [profiles, setProfiles] = useState<any[]>([]);
+   const [loadingProfiles, setLoadingProfiles] = useState(false);
+
+   // Driver specific states
+   const [driverName, setDriverName] = useState("");
+
    useEffect(() => {
       if (routeSuccess) {
          const timer = setTimeout(() => setRouteSuccess(false), 2000);
@@ -39,38 +47,90 @@ export default function UserProfilePage() {
       }
    }, [routeSuccess]);
 
+   // Load roles/profiles
+   const fetchProfiles = useCallback(async () => {
+      if (!user || role !== 'admin') return;
+      setLoadingProfiles(true);
+      try {
+         const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('name', { ascending: true });
+         if (error) throw error;
+         if (data) setProfiles(data);
+      } catch (err) {
+         console.error("Error fetching profiles:", err);
+      } finally {
+         setLoadingProfiles(false);
+      }
+   }, [role, user]);
+
    // Load current settings from Supabase
    const fetchSettings = useCallback(async (silent = false) => {
-      const { data } = await supabase.from('system_settings').select('*').eq('key', 'general').single();
-      if (data) {
-         const val = data.value as T.Settings;
-         setAdminName(val.system_user?.name || "Sayas R.");
-         setPin(val.system_user?.pin || "");
-         setPayeeName(val.payment?.payee_name || "");
-         setUpiId(val.payment?.upi_id || "");
+      if (!user) return;
+
+      // Fetch personal profile details first
+      const { data: myProfile } = await supabase
+         .from('profiles')
+         .select('*')
+         .eq('id', user.id)
+         .single();
+      
+      if (myProfile) {
+         setDriverName(myProfile.name || user.email?.split('@')[0] || "Driver");
+         if (role === 'admin') {
+            setAdminName(myProfile.name || "Sayas R.");
+         }
       }
 
-      const { data: areaData } = await supabase.from('areas').select('*').order('name', { ascending: true });
-      if (areaData) setAreas(areaData as T.Area[]);
-   }, []);
+      if (role === 'admin') {
+         const { data } = await supabase.from('system_settings').select('*').eq('key', 'general').single();
+         if (data) {
+            const val = data.value as T.Settings;
+            if (val.system_user?.name && !myProfile?.name) {
+               setAdminName(val.system_user.name);
+            }
+            setPin(val.system_user?.pin || "");
+            setPayeeName(val.payment?.payee_name || "");
+            setUpiId(val.payment?.upi_id || "");
+         }
+
+         const { data: areaData } = await supabase.from('areas').select('*').order('name', { ascending: true });
+         if (areaData) setAreas(areaData as T.Area[]);
+         
+         fetchProfiles();
+      }
+   }, [role, user, fetchProfiles]);
 
    useEffect(() => {
       fetchSettings();
+      if (!user) return;
+      
       const sub = supabase.channel('profile_settings')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, () => fetchSettings(true))
          .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => fetchSettings(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchSettings(true))
          .subscribe();
       return () => { sub.unsubscribe(); };
-   }, [fetchSettings]);
+   }, [fetchSettings, user]);
 
    const handleSave = async () => {
       try {
+         // Save settings
          await supabase.from('system_settings').upsert({
             key: 'general',
             value: {
                payment: { payee_name: payeeName, upi_id: upiId, currency_code: "INR" },
                system_user: { name: adminName, pin: pin }
             }
+         });
+
+         // Update admin profile name
+         await supabase.from('profiles').update({ name: adminName }).eq('id', user?.id);
+
+         // Update user metadata in auth.users too
+         await supabase.auth.updateUser({
+            data: { name: adminName }
          });
 
          // Also update the actual Supabase login password if PIN is provided
@@ -85,6 +145,32 @@ export default function UserProfilePage() {
       } catch (e: unknown) {
          const err = e as Error;
          console.error("Failed to save settings:", err.message);
+      }
+   };
+
+   const handleDriverSave = async () => {
+      try {
+         await supabase.from('profiles').update({ name: driverName }).eq('id', user?.id);
+         await supabase.auth.updateUser({
+            data: { name: driverName }
+         });
+         setIsSaved(true);
+         setTimeout(() => setIsSaved(false), 2000);
+      } catch (e: unknown) {
+         console.error("Failed to save profile:", e);
+      }
+   };
+
+   const updateProfileRole = async (profileId: string, newRole: 'admin' | 'driver') => {
+      try {
+         const { error } = await supabase
+            .from('profiles')
+            .update({ role: newRole })
+            .eq('id', profileId);
+         if (error) throw error;
+         setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, role: newRole } : p));
+      } catch (err) {
+         console.error("Error updating profile role:", err);
       }
    };
 
@@ -103,7 +189,6 @@ export default function UserProfilePage() {
 
          setNewRoute('');
          setRouteSuccess(true);
-         // Scroll to bottom after state update
          setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       } catch (e: unknown) {
          const err = e as Error;
@@ -127,8 +212,8 @@ export default function UserProfilePage() {
 
    const handleLogout = async () => {
       await logout();
-      // Clear the session cookie
       document.cookie = "milkow_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      router.push("/login");
    };
 
    if (loading || !user) {
@@ -139,6 +224,8 @@ export default function UserProfilePage() {
       );
    }
 
+   const profileName = role === 'admin' ? adminName : driverName;
+
    return (
       <PullToRefresh onRefresh={() => fetchSettings(true)} className="bg-slate-50 pb-32">
          {/* HEADER */}
@@ -148,8 +235,8 @@ export default function UserProfilePage() {
                   <ArrowLeft size={20} />
                </button>
                <div>
-                  <h1 className="text-lg font-bold">System Profile</h1>
-                  <p className="text-xs text-zinc-500">Edit business & security details</p>
+                  <h1 className="text-lg font-bold">{role === 'admin' ? "System Profile" : "Driver Profile"}</h1>
+                  <p className="text-xs text-zinc-500">{role === 'admin' ? "Edit business & security details" : "Update your delivery personal details"}</p>
                </div>
             </div>
          </header>
@@ -158,154 +245,238 @@ export default function UserProfilePage() {
             {/* Profile Picture */}
             <div className="flex flex-col items-center gap-4 mt-4">
                <div className="h-28 w-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-xl relative group bg-primary flex items-center justify-center">
-                  <span className="text-white text-4xl font-black">{adminName.charAt(0)}</span>
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                     <p className="text-white text-[10px] font-bold uppercase tracking-widest">Change</p>
-                  </div>
+                  <span className="text-white text-4xl font-black">{profileName.charAt(0).toUpperCase()}</span>
                </div>
                <div className="text-center">
-                  <h2 className="text-2xl font-black text-zinc-900">{adminName}</h2>
-                  <p className="text-[11px] font-bold tracking-widest uppercase text-primary bg-primary/10 px-3 py-1 rounded-lg mt-1 inline-block">System Owner</p>
+                  <h2 className="text-2xl font-black text-zinc-900">{profileName}</h2>
+                  <p className="text-[11px] font-bold tracking-widest uppercase text-primary bg-primary/10 px-3 py-1 rounded-lg mt-1 inline-block">
+                     {role === 'admin' ? "System Owner" : "Driver"}
+                  </p>
                </div>
             </div>
 
-            {/* Editable Settings Blocks */}
-            <div className="flex flex-col gap-6">
+            {role === 'admin' ? (
+               /* ADMIN VIEW */
+               <div className="flex flex-col gap-6">
+                  {/* Account Security Section */}
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
+                     <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
+                        Security & Account
+                     </h3>
 
-               {/* Account Security Section */}
-               <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
-                  <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-                     Security & Account
-                  </h3>
+                     <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Full Name</label>
+                        <input
+                           type="text"
+                           value={adminName}
+                           onChange={(e) => setAdminName(e.target.value)}
+                           className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                           placeholder="Your full name"
+                        />
+                     </div>
 
-                  <div className="flex flex-col gap-1.5">
-                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Full Name</label>
-                     <input
-                        type="text"
-                        value={adminName}
-                        onChange={(e) => setAdminName(e.target.value)}
-                        className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        placeholder="Your full name"
-                     />
+                     <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Security PIN / Password</label>
+                        <input
+                           type="password"
+                           value={pin}
+                           onChange={(e) => setPin(e.target.value)}
+                           className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                           placeholder="••••••"
+                        />
+                        <p className="text-[9px] text-zinc-400 mt-0.5 pl-1 italic">Used for logging into the dashboard</p>
+                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Security PIN / Password</label>
-                     <input
-                        type="password"
-                        value={pin}
-                        onChange={(e) => setPin(e.target.value)}
-                        className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        placeholder="••••••"
-                     />
-                     <p className="text-[9px] text-zinc-400 mt-0.5 pl-1 italic">Used for logging into the dashboard</p>
-                  </div>
-               </div>
+                  {/* Business & Payment Section */}
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
+                     <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                        Business & Payment Setup
+                     </h3>
 
-               {/* Business & Payment Section */}
-               <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
-                  <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                     Business & Payment Setup
-                  </h3>
+                     <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">UPI Payee Name</label>
+                        <input
+                           type="text"
+                           value={payeeName}
+                           onChange={(e) => setPayeeName(e.target.value)}
+                           className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        />
+                     </div>
 
-                  <div className="flex flex-col gap-1.5">
-                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">UPI Payee Name</label>
-                     <input
-                        type="text"
-                        value={payeeName}
-                        onChange={(e) => setPayeeName(e.target.value)}
-                        className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                     />
+                     <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">UPI ID (VPA)</label>
+                        <input
+                           type="text"
+                           value={upiId}
+                           onChange={(e) => setUpiId(e.target.value)}
+                           className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        />
+                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">UPI ID (VPA)</label>
-                     <input
-                        type="text"
-                        value={upiId}
-                        onChange={(e) => setUpiId(e.target.value)}
-                        className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                     />
-                  </div>
-               </div>
+                  {/* Delivery Routes Section */}
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
+                     <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                        Delivery Routes
+                     </h3>
 
-               {/* Delivery Routes Section */}
-               <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
-                  <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                     Delivery Routes
-                  </h3>
-
-                  <div className="flex flex-col gap-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
-                     <AnimatePresence initial={false}>
-                        {areas.map((area) => (
-                           <motion.div
-                              key={area.id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center justify-between bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3"
-                           >
-                              <span className="text-sm font-bold text-zinc-900">{area.name}</span>
-                              <button
-                                 onClick={() => removeRoute(area.id)}
-                                 className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors"
+                     <div className="flex flex-col gap-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                        <AnimatePresence initial={false}>
+                           {areas.map((area) => (
+                              <motion.div
+                                 key={area.id}
+                                 initial={{ opacity: 0, x: -10 }}
+                                 animate={{ opacity: 1, x: 0 }}
+                                 exit={{ opacity: 0, scale: 0.95 }}
+                                 className="flex items-center justify-between bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3"
                               >
-                                 <X size={16} />
-                              </button>
-                           </motion.div>
-                        ))}
-                     </AnimatePresence>
-                     <div ref={listEndRef} />
+                                 <span className="text-sm font-bold text-zinc-900">{area.name}</span>
+                                 <button
+                                    onClick={() => removeRoute(area.id)}
+                                    className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors"
+                                 >
+                                    <X size={16} />
+                                 </button>
+                              </motion.div>
+                           ))}
+                        </AnimatePresence>
+                        <div ref={listEndRef} />
+                     </div>
+
+                     <div className="flex items-center gap-2 mt-2">
+                        <input
+                           type="text"
+                           value={newRoute}
+                           onChange={(e) => setNewRoute(e.target.value)}
+                           onKeyDown={(e) => {
+                              if (e.key === 'Enter') addRoute();
+                           }}
+                           disabled={isAddingRoute}
+                           placeholder="Add new route..."
+                           className="flex-1 bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
+                        />
+                        <motion.button
+                           whileTap={{ scale: 0.9 }}
+                           onClick={addRoute}
+                           disabled={!newRoute.trim() || isAddingRoute}
+                           className={`p-3 rounded-xl transition-all flex items-center justify-center min-w-[48px] ${routeSuccess ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
+                              'bg-primary text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed'
+                              }`}
+                        >
+                           {isAddingRoute ? (
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                           ) : routeSuccess ? (
+                              <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }}>
+                                 <Plus size={20} className="rotate-45" />
+                              </motion.div>
+                           ) : (
+                              <Plus size={20} />
+                           )}
+                        </motion.button>
+                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-2">
-                     <input
-                        type="text"
-                        value={newRoute}
-                        onChange={(e) => setNewRoute(e.target.value)}
-                        onKeyDown={(e) => {
-                           if (e.key === 'Enter') addRoute();
-                        }}
-                        disabled={isAddingRoute}
-                        placeholder="Add new route..."
-                        className="flex-1 bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
-                     />
-                     <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={addRoute}
-                        disabled={!newRoute.trim() || isAddingRoute}
-                        className={`p-3 rounded-xl transition-all flex items-center justify-center min-w-[48px] ${routeSuccess ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
-                           'bg-primary text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed'
-                           }`}
-                     >
-                        {isAddingRoute ? (
-                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : routeSuccess ? (
-                           <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }}>
-                              <Plus size={20} className="rotate-45" />
-                           </motion.div>
-                        ) : (
-                           <Plus size={20} />
-                        )}
-                     </motion.button>
+                  {/* Manage Team & Roles Section */}
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
+                     <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                        Manage Team & Roles
+                     </h3>
+                     {loadingProfiles ? (
+                        <div className="flex items-center justify-center py-4">
+                           <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        </div>
+                     ) : (
+                        <div className="flex flex-col gap-3">
+                           {profiles.map((prof) => (
+                              <div key={prof.id} className="flex items-center justify-between bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3">
+                                 <div className="flex flex-col text-left">
+                                    <span className="text-sm font-bold text-zinc-900 flex items-center gap-1.5">
+                                       {prof.name || 'No Name'}
+                                       {prof.role === 'admin' ? (
+                                          <Shield size={12} className="text-indigo-500" />
+                                       ) : (
+                                          <User size={12} className="text-zinc-400" />
+                                       )}
+                                    </span>
+                                    <span className="text-[10px] font-semibold text-zinc-400">{prof.email || 'No Email'}</span>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                    <select
+                                       value={prof.role}
+                                       onChange={(e) => updateProfileRole(prof.id, e.target.value as 'admin' | 'driver')}
+                                       disabled={prof.id === user.id}
+                                       className="bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-zinc-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    >
+                                       <option value="admin">Admin</option>
+                                       <option value="driver">Driver</option>
+                                    </select>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     )}
                   </div>
+
+                  <button
+                     onClick={handleSave}
+                     className={`w-full text-white font-bold py-4 rounded-xl mt-2 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 ${isSaved ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-primary shadow-primary/20'}`}
+                  >
+                     <Save size={18} /> {isSaved ? "Profile Updated!" : "Save All Changes"}
+                  </button>
+
+                  <button onClick={handleLogout} className="w-full bg-rose-50 text-rose-600 font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm border border-rose-100 flex items-center justify-center gap-2">
+                     <LogOut size={18} /> Sign Out of Milkow
+                  </button>
                </div>
+            ) : (
+               /* DRIVER VIEW */
+               <div className="flex flex-col gap-6">
+                  {/* Driver Personal Information */}
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
+                     <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
+                        Personal Information
+                     </h3>
 
-               <button
-                  onClick={handleSave}
-                  className={`w-full text-white font-bold py-4 rounded-xl mt-2 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 ${isSaved ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-primary shadow-primary/20'}`}
-               >
-                  <Save size={18} /> {isSaved ? "Profile Updated!" : "Save All Changes"}
-               </button>
+                     <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Full Name</label>
+                        <input
+                           type="text"
+                           value={driverName}
+                           onChange={(e) => setDriverName(e.target.value)}
+                           className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                           placeholder="Your full name"
+                        />
+                     </div>
 
-               <button onClick={handleLogout} className="w-full bg-rose-50 text-rose-600 font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm border border-rose-100 flex items-center justify-center gap-2">
-                  <LogOut size={18} /> Sign Out of Milkow
-               </button>
+                     <div className="flex flex-col gap-1.5 opacity-60">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Email Address</label>
+                        <input
+                           type="text"
+                           value={user.email || ""}
+                           disabled
+                           className="w-full bg-slate-100 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-500 cursor-not-allowed"
+                        />
+                     </div>
+                  </div>
 
-            </div>
+                  <button
+                     onClick={handleDriverSave}
+                     className={`w-full text-white font-bold py-4 rounded-xl mt-2 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 ${isSaved ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-primary shadow-primary/20'}`}
+                  >
+                     <Save size={18} /> {isSaved ? "Profile Updated!" : "Save Profile Details"}
+                  </button>
+
+                  <button onClick={handleLogout} className="w-full bg-rose-50 text-rose-600 font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm border border-rose-100 flex items-center justify-center gap-2">
+                     <LogOut size={18} /> Sign Out of Milkow
+                  </button>
+               </div>
+            )}
          </main>
       </PullToRefresh>
    );

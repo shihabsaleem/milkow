@@ -8,7 +8,8 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   
-  if (!user || pathname === "/login" || pathname.startsWith("/bill")) return null;
+
+  if (!user || pathname === "/login" || pathname === "/bill" || pathname === "/bill/") return null;
 
   const navItems = [
     { icon: Home, label: "Home", href: "/" },

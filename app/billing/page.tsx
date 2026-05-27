@@ -109,6 +109,7 @@ export default function BillingPage() {
          .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchData)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchData)
          .subscribe();
 
       return () => { sub.unsubscribe(); };

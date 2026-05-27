@@ -30,7 +30,11 @@ export default function CustomerProfilePage() {
    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [areas, setAreas] = useState<T.Area[]>([]);
-   const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "" });
+   const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "", outstanding_type: "credit" });
+   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+   const [paymentAmount, setPaymentAmount] = useState("");
+   const [paymentMethod, setPaymentMethod] = useState("Cash");
+   const [paymentNotes, setPaymentNotes] = useState("");
 
    const fetchData = useCallback(async (silent = false) => {
       if (!customerIdParam) return;
@@ -70,12 +74,14 @@ export default function CustomerProfilePage() {
 
       if (custData) {
          setCustomer(custData as (T.Customer & { area: T.Area }));
+         const outstandingVal = parseFloat(custData.past_outstanding?.toString() || "0");
          setEditForm({
             name: custData.name,
             phone: custData.phone,
             area_id: custData.area_id?.toString() || "",
             frequency: custData.frequency,
-            outstanding: custData.past_outstanding?.toString() || "0"
+            outstanding: Math.abs(outstandingVal).toString(),
+            outstanding_type: outstandingVal < 0 ? "advance" : "credit"
          });
       }
       if (!silent) setIsLoading(false);
@@ -88,6 +94,7 @@ export default function CustomerProfilePage() {
          .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchData)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchData)
          .subscribe();
 
       return () => { sub.unsubscribe(); };
@@ -143,12 +150,14 @@ export default function CustomerProfilePage() {
       if (!customer || !editForm.name || !editForm.phone || !editForm.area_id) return;
       try {
          setIsLoading(true);
+         const amt = parseFloat(editForm.outstanding) || 0;
+         const finalOutstanding = editForm.outstanding_type === "advance" ? -Math.abs(amt) : Math.abs(amt);
          await supabase.from('customers').update({
             name: editForm.name,
             phone: editForm.phone,
             area_id: parseInt(editForm.area_id),
             frequency: editForm.frequency,
-            past_outstanding: parseFloat(editForm.outstanding) || 0
+            past_outstanding: finalOutstanding
          }).eq('id', customer.id);
          setIsEditModalOpen(false);
          await fetchData();
@@ -271,6 +280,71 @@ export default function CustomerProfilePage() {
             runMarkAsPaid();
          }
       });
+   };
+
+   const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string) => {
+      if (!customer) return;
+      try {
+         setIsLoading(true);
+
+         if (Number(customer.past_outstanding) > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customer.id,
+               amount: Number(customer.past_outstanding),
+               type: 'Opening Balance',
+               status: 'Pending',
+               notes: 'Converted from static Past Outstanding for settlement',
+               created_at: new Date().toISOString(),
+            });
+
+            await supabase.from('customers').update({
+               past_outstanding: 0
+            }).eq('id', customer.id);
+         }
+
+         if (unbilledDeliveries.length > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customer.id,
+               amount: currentDeliveriesAmount,
+               type: 'Spot',
+               status: 'Pending',
+               created_at: new Date().toISOString(),
+            });
+
+            const ids = unbilledDeliveries.map(d => d.id);
+            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
+         }
+
+         await supabase.from('payments').insert({
+            customer_id: customer.id,
+            amount: amountVal,
+            method: methodVal as any,
+            payment_date: new Date().toISOString(),
+            notes: notesVal || 'Custom Payment from Profile'
+         });
+
+         await fetchData();
+         setIsPaymentModalOpen(false);
+         setModalConfig({
+            isOpen: true,
+            title: "Payment Recorded",
+            message: `Successfully recorded payment of ₹${amountVal.toFixed(2)} using ${methodVal}.`,
+            type: 'success',
+            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+            confirmText: "Great"
+         });
+      } catch (err) {
+         console.error("Failed to record payment:", err);
+         setModalConfig({
+            isOpen: true,
+            title: "Payment Failed",
+            message: "Failed to record payment. Please check your connection and try again.",
+            type: 'danger',
+            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+         });
+      } finally {
+         setIsLoading(false);
+      }
    };
 
    const changeMonth = (delta: number) => {
@@ -657,16 +731,27 @@ export default function CustomerProfilePage() {
                      </div>
 
                      <div className="flex flex-col sm:flex-row gap-3">
-
                         {grandTotalAmount > 0 && (
                            <button
                               onClick={handleMarkAsPaid}
-                              className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                              className="flex-1 bg-white text-zinc-900 border border-zinc-200 py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
                            >
                               <Receipt size={18} />
-                              Settle & Mark Paid
+                              Settle Full
                            </button>
                         )}
+                        <button
+                           onClick={() => {
+                              setPaymentAmount(grandTotalAmount > 0 ? grandTotalAmount.toString() : "");
+                              setPaymentMethod("Cash");
+                              setPaymentNotes("");
+                              setIsPaymentModalOpen(true);
+                           }}
+                           className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                        >
+                           <Receipt size={18} />
+                           Record Payment
+                        </button>
                      </div>
                   </div>
                </div>
@@ -713,8 +798,93 @@ export default function CustomerProfilePage() {
                            value={editForm.frequency}
                            onChange={val => setEditForm({ ...editForm, frequency: val })}
                         />
-                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Outstanding (₹)</label><input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                        <div className="grid grid-cols-2 gap-3"> <CustomSelect
+                               label="Type"
+                               options={[
+                                  { value: "credit", label: "Credit" },
+                                  { value: "advance", label: "Advance" }
+                               ]}
+                               value={editForm.outstanding_type}
+                               onChange={val => setEditForm({ ...editForm, outstanding_type: val })}
+                            />
+                            <div className="flex flex-col gap-1.5">
+                               <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                                  {editForm.outstanding_type === "advance" ? "Past Advance (₹)" : "Past Outstanding (₹)"}
+                               </label>
+                               <input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" />
+                            </div>
+                           
+                         </div>
                         <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Save Changes</button>
+                     </form>
+                  </motion.div>
+               </div>
+            )}
+            {isPaymentModalOpen && (
+               <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6 text-zinc-900">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+                     <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const amt = parseFloat(paymentAmount);
+                        if (isNaN(amt) || amt <= 0) return;
+                        runRecordPayment(amt, paymentMethod, paymentNotes);
+                     }} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Payment Amount (₹)</label>
+                           <input
+                              autoFocus
+                              type="number"
+                              step="0.01"
+                              required
+                              placeholder="0.00"
+                              value={paymentAmount}
+                              onChange={e => setPaymentAmount(e.target.value)}
+                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all font-bold"
+                           />
+                           {(() => {
+                              const amt = parseFloat(paymentAmount) || 0;
+                              const diff = amt - grandTotalAmount;
+                              if (amt <= 0) return null;
+                              if (Math.abs(diff) < 0.01) {
+                                 return <span className="text-[11px] font-bold text-emerald-600">Full Settlement</span>;
+                              } else if (diff > 0) {
+                                 return <span className="text-[11px] font-bold text-emerald-600">₹{diff.toFixed(2)} will be added as Advance</span>;
+                              } else {
+                                 return <span className="text-[11px] font-bold text-amber-600">₹{Math.abs(diff).toFixed(2)} will remain as Credit (Outstanding)</span>;
+                              }
+                           })()}
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Payment Method</label>
+                           <CustomSelect
+                              options={[
+                                 { value: "Cash", label: "Cash" },
+                                 { value: "UPI", label: "UPI" },
+                                 { value: "Bank Transfer", label: "Bank Transfer" },
+                                 { value: "Other", label: "Other" }
+                              ]}
+                              value={paymentMethod}
+                              onChange={val => setPaymentMethod(val)}
+                           />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Notes / Remarks</label>
+                           <input
+                              placeholder="Optional remarks"
+                              value={paymentNotes}
+                              onChange={e => setPaymentNotes(e.target.value)}
+                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                           />
+                        </div>
+                        <button
+                           type="submit"
+                           disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}
+                           className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 transition-all shadow-xl"
+                        >
+                           Record Payment
+                        </button>
                      </form>
                   </motion.div>
                </div>

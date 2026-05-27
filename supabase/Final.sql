@@ -370,23 +370,23 @@ DECLARE
     item_price DECIMAL(10,2);
 BEGIN
     IF (NEW.delivered = TRUE) THEN
-        IF (NEW.total_cost IS NULL OR NEW.total_cost = 0) THEN
-            IF NEW.product_id IS NOT NULL THEN
-                SELECT price INTO milk_price FROM products WHERE id = NEW.product_id;
-            END IF;
-
-            total := COALESCE(NEW.milk_qty, 0) * COALESCE(milk_price, 0);
-
-            IF NEW.misc_items IS NOT NULL AND jsonb_typeof(NEW.misc_items) = 'array' THEN
-                FOR misc_item IN SELECT * FROM jsonb_array_elements(NEW.misc_items)
-                LOOP
-                    SELECT price INTO item_price FROM products WHERE name = misc_item->>'name';
-                    total := total + (CAST(misc_item->>'qty' AS INTEGER) * COALESCE(item_price, 0));
-                END LOOP;
-            END IF;
-
-            NEW.total_cost := total;
+        IF NEW.product_id IS NOT NULL THEN
+            SELECT price INTO milk_price FROM products WHERE id = NEW.product_id;
         END IF;
+
+        total := COALESCE(NEW.milk_qty, 0) * COALESCE(milk_price, 0);
+
+        IF NEW.misc_items IS NOT NULL AND jsonb_typeof(NEW.misc_items) = 'array' THEN
+            FOR misc_item IN SELECT * FROM jsonb_array_elements(NEW.misc_items)
+            LOOP
+                SELECT price INTO item_price FROM products WHERE name = misc_item->>'name';
+                total := total + (CAST(misc_item->>'qty' AS INTEGER) * COALESCE(item_price, 0));
+            END LOOP;
+        END IF;
+
+        NEW.total_cost := total;
+    ELSE
+        NEW.total_cost := 0;
     END IF;
     RETURN NEW;
 END;

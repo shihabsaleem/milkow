@@ -133,6 +133,7 @@ export default function Dashboard() {
     const billsSub = supabase.channel('bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchDashboardData).subscribe();
     const custSub = supabase.channel('cust').on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchDashboardData).subscribe();
     const setSub = supabase.channel('sets').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchDashboardData).subscribe();
+    const paySub = supabase.channel('payments').on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchDashboardData).subscribe();
 
     return () => {
       invSub.unsubscribe();
@@ -140,6 +141,7 @@ export default function Dashboard() {
       billsSub.unsubscribe();
       custSub.unsubscribe();
       setSub.unsubscribe();
+      paySub.unsubscribe();
     };
   }, [fetchDashboardData]);
 

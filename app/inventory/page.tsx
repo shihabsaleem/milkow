@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { closeShift } from "@/lib/automation";
 import Modal from "@/components/ui/Modal";
 import CustomSelect from "@/components/ui/CustomSelect";
 import PullToRefresh from "@/components/ui/PullToRefresh";
@@ -260,33 +261,9 @@ export default function InventoryPage() {
   const handleCloseShiftSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // 1. Store Prices & Shift Log
-      const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
-      const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
-      const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
-
-      // Save it grouped by Date -> Shift
-      const todayData = dailyPrices[date] || {};
-      todayData[closingShift] = {
-        prices: currentPrices,
-        closed_at: new Date().toISOString()
-      };
-
-      await supabase.from('system_settings').upsert({
-        key: 'daily_prices',
-        value: { ...dailyPrices, [date]: todayData }
-      });
-
-      // 2. Reset stock levels to zero
-      const productIds = products.map(p => p.id).filter(id => id);
-      const inventoryIds = pipeline.map(p => p.id).filter(id => id);
-      
-      if (productIds.length > 0) {
-        await supabase.from('products').update({ stock: 0 }).in('id', productIds);
-      }
-      if (inventoryIds.length > 0) {
-        await supabase.from('inventory').update({ count: 0, loaded: 0 }).in('id', inventoryIds);
-      }
+      // Use the centralized automation function so Delivery & Inventory stay in sync
+      const shiftString = closingShift as 'Morning Only' | 'Evening Only';
+      await closeShift(shiftString, date);
 
       // Refresh data
       await fetchData(true);

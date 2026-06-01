@@ -83,13 +83,12 @@ export default function DeliveryPage() {
       ]);
 
       if (settingsData) {
-         // const settings = (settingsData as any).value || {};
-         // if (shift === 'morning') {
-         //    setIsShiftClosed(settings.lastMorningClose === today);
-         // } else {
-         //    setIsShiftClosed(settings.lastEveningClose === today);
-         // }
-         setIsShiftClosed(false); // TEMPORARILY ENABLED FOR TESTING
+         const settings = (settingsData as any).value || {};
+         if (shift === 'morning') {
+            setIsShiftClosed(settings.lastMorningClose === today);
+         } else {
+            setIsShiftClosed(settings.lastEveningClose === today);
+         }
       } else {
          setIsShiftClosed(false);
       }

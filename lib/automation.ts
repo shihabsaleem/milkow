@@ -319,8 +319,8 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
 // 4. SHIFT CLOSE — AUTO BILL DELIVERED ITEMS
 // ─────────────────────────────────────────────
 
-export async function closeShift(shift: 'Morning Only' | 'Evening Only', targetDate?: string): Promise<{ ran: boolean; count: number; message: string }> {
-  const dateStr = targetDate || todayStr();
+export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promise<{ ran: boolean; count: number; message: string }> {
+  const today = todayStr();
   const settingsKey = shift === 'Morning Only' ? 'lastMorningClose' : 'lastEveningClose';
 
   try {
@@ -332,20 +332,15 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only', targetD
       .maybeSingle();
 
     const settings = (settingsData as any)?.value || {};
-
-    const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').maybeSingle();
-    const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
-    const isDailyPricesClosed = !!dailyPrices[dateStr]?.[shift];
-
-    if (settings[settingsKey] === dateStr && isDailyPricesClosed) {
-      return { ran: false, count: 0, message: `${shift} already closed for ${dateStr}` };
+    if (settings[settingsKey] === today) {
+      return { ran: false, count: 0, message: `${shift} already closed for ${today}` };
     }
 
     // Find all delivered+unbilled deliveries for this shift today
     const { data: unbilled, error } = await supabase
       .from('deliveries')
-      .select('id')
-      .eq('delivery_date', dateStr)
+      .select('id, customer_id, total_cost')
+      .eq('delivery_date', today)
       .eq('shift', shift)
       .eq('delivered', true)
       .eq('billed', false);
@@ -356,60 +351,42 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only', targetD
       // Still stamp the timestamp so we don't re-check repeatedly
       await supabase.from('system_settings').upsert({
         key: 'automation',
-        value: { ...settings, [settingsKey]: dateStr }
+        value: { ...settings, [settingsKey]: today }
       });
-    } else {
-      const ids = unbilled.map((d: any) => d.id);
-      const { error: updateError } = await supabase
-        .from('deliveries')
-        .update({ billed: true })
-        .in('id', ids);
-
-      if (updateError) throw updateError;
+      return { ran: false, count: 0, message: `No unbilled deliveries for ${shift} on ${today}.` };
     }
 
-    // --- INVENTORY RESET & DAILY PRICES ARCHIVE ---
-    // 1. Store Prices & Shift Log
-    if (!isDailyPricesClosed) {
-      const { data: productsData } = await supabase.from('products').select('*');
-      const productsList = productsData || [];
-      const currentPrices = productsList.reduce((acc: any, p: any) => ({ ...acc, [p.name]: p.price }), {});
-      
-      const todayData = dailyPrices[dateStr] || {};
-      todayData[shift] = {
-        prices: currentPrices,
-        closed_at: new Date().toISOString()
-      };
+    // 1. Create Bills for the delivered items
+    const billsToCreate = unbilled.map((d: any) => ({
+      customer_id: d.customer_id,
+      type: 'Monthly',
+      amount: d.total_cost || 0,
+      status: 'Pending',
+      created_at: new Date().toISOString(),
+    }));
 
-      await supabase.from('system_settings').upsert({
-        key: 'daily_prices',
-        value: { ...dailyPrices, [dateStr]: todayData }
-      });
-
-      // 2. Reset stock levels to zero
-      const productIds = productsList.map((p: any) => p.id).filter((id: any) => id);
-      const { data: pipelineData } = await supabase.from('inventory').select('id');
-      const pipelineList = pipelineData || [];
-      const inventoryIds = pipelineList.map((p: any) => p.id).filter((id: any) => id);
-      
-      if (productIds.length > 0) {
-        await supabase.from('products').update({ stock: 0 }).in('id', productIds);
-      }
-      if (inventoryIds.length > 0) {
-        await supabase.from('inventory').update({ count: 0, loaded: 0 }).in('id', inventoryIds);
-      }
+    if (billsToCreate.length > 0) {
+      const { error: insertError } = await supabase.from('bills').insert(billsToCreate);
+      if (insertError) throw insertError;
     }
-    // --- END INVENTORY RESET ---
+
+    // 2. Mark deliveries as billed
+    const ids = unbilled.map((d: any) => d.id);
+    const { error: updateError } = await supabase
+      .from('deliveries')
+      .update({ billed: true })
+      .in('id', ids);
+
+    if (updateError) throw updateError;
 
     // Stamp close time
     await supabase.from('system_settings').upsert({
       key: 'automation',
-      value: { ...settings, [settingsKey]: dateStr }
+      value: { ...settings, [settingsKey]: today }
     });
 
-    const billedCount = unbilled?.length || 0;
-    console.log(`[Automation] ✅ ${shift} closed — ${billedCount} deliveries marked as billed.`);
-    return { ran: true, count: billedCount, message: `${shift} closed: ${billedCount} deliveries billed.` };
+    console.log(`[Automation] ✅ ${shift} closed — ${ids.length} deliveries marked as billed.`);
+    return { ran: true, count: ids.length, message: `${shift} closed: ${ids.length} deliveries billed.` };
   } catch (err: any) {
     const errorMsg = err?.message || String(err);
     console.error(`[Automation] ❌ Shift close failed (${shift}):`, errorMsg);
@@ -430,16 +407,29 @@ export async function checkAndRunAutomations(): Promise<void> {
     console.log("[Automation] 🚀 Running daily checks (Supabase)...");
     await resetDailyRoute();
 
-    const hour = new Date().getHours();
+    const { data: autoData } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
+    const autoVal = (autoData?.value as T.AutomationSettings) || {};
+    
+    const autoCloseEnabled = autoVal.autoCloseEnabled ?? true;
+    const morningTime = autoVal.morningCloseTime ?? "12:00";
+    const eveningTime = autoVal.eveningCloseTime ?? "22:00";
 
-    // Morning shift closes at 12pm (noon)
-    if (hour >= 12) {
-      await closeShift('Morning Only');
-    }
+    const d = new Date();
+    const currentMins = d.getHours() * 60 + d.getMinutes();
 
-    // Evening shift closes at 10pm
-    if (hour >= 22) {
-      await closeShift('Evening Only');
+    const parseMins = (timeStr: string) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return (h || 0) * 60 + (m || 0);
+    };
+
+    if (autoCloseEnabled) {
+      if (currentMins >= parseMins(morningTime)) {
+        await closeShift('Morning Only');
+      }
+
+      if (currentMins >= parseMins(eveningTime)) {
+        await closeShift('Evening Only');
+      }
     }
   } finally {
     isRunning = false;

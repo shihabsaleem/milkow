@@ -146,7 +146,7 @@ export default function LoginPage() {
                         <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                      ) : (
                         <>
-                           Sign In Securely
+                           Sign in
                            <ArrowRight size={18} className="group-hover/btn:translate-x-1 group-hover/btn:scale-110 transition-all" />
                         </>
                      )}

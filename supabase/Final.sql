@@ -428,3 +428,11 @@ INSERT INTO system_settings (key, value)
 VALUES ('general', '{"payment":{"upi_id":"milkow@ybl","payee_name":"Milkow Distributor","currency_code":"INR"}}'::jsonb)
 ON CONFLICT DO NOTHING;
 
+INSERT INTO system_settings (key, value)
+VALUES (
+  'automation',
+  '{"autoCloseEnabled": true, "morningCloseTime": "12:00", "eveningCloseTime": "22:00"}'::jsonb
+)
+ON CONFLICT (key) DO UPDATE 
+SET value = system_settings.value || '{"autoCloseEnabled": true, "morningCloseTime": "12:00", "eveningCloseTime": "22:00"}'::jsonb;
+

@@ -15,6 +15,9 @@ export interface Admin {
 export interface AutomationSettings {
   lastRouteReset: string;
   lastBillGeneration: string;
+  autoCloseEnabled?: boolean;
+  morningCloseTime?: string;
+  eveningCloseTime?: string;
 }
 
 export interface Settings {

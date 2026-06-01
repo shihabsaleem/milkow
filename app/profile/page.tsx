@@ -26,6 +26,10 @@ export default function UserProfilePage() {
    const [pin, setPin] = useState("");
    const [isSaved, setIsSaved] = useState(false);
 
+   const [autoCloseEnabled, setAutoCloseEnabled] = useState(true);
+   const [morningCloseTime, setMorningCloseTime] = useState("12:00");
+   const [eveningCloseTime, setEveningCloseTime] = useState("22:00");
+
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [newRoute, setNewRoute] = useState("");
    const [isAddingRoute, setIsAddingRoute] = useState(false);
@@ -48,6 +52,14 @@ export default function UserProfilePage() {
          setPin(val.system_user?.pin || "");
          setPayeeName(val.payment?.payee_name || "");
          setUpiId(val.payment?.upi_id || "");
+      }
+
+      const { data: autoData } = await supabase.from('system_settings').select('*').eq('key', 'automation').maybeSingle();
+      if (autoData && autoData.value) {
+         const autoVal = autoData.value as T.AutomationSettings;
+         setAutoCloseEnabled(autoVal.autoCloseEnabled ?? true);
+         setMorningCloseTime(autoVal.morningCloseTime ?? "12:00");
+         setEveningCloseTime(autoVal.eveningCloseTime ?? "22:00");
       }
 
       const { data: areaData } = await supabase.from('areas').select('*').order('name', { ascending: true });
@@ -78,6 +90,19 @@ export default function UserProfilePage() {
             const { error: authError } = await supabase.auth.updateUser({ password: pin });
             if (authError) throw authError;
          }
+
+         // Save Automation Settings
+         const { data: autoData } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
+         const existingAuto = (autoData?.value as T.AutomationSettings) || { lastRouteReset: '', lastBillGeneration: '' };
+         await supabase.from('system_settings').upsert({
+            key: 'automation',
+            value: {
+               ...existingAuto,
+               autoCloseEnabled,
+               morningCloseTime,
+               eveningCloseTime
+            }
+         });
 
          setIsSaved(true);
          setPin("");
@@ -231,6 +256,61 @@ export default function UserProfilePage() {
                   </div>
                </div>
 
+               {/* Automation Settings Section */}
+               <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
+                  <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                     Automation & Shifts
+                  </h3>
+
+                  <div className="flex items-center justify-between">
+                     <div className="flex flex-col">
+                        <label className="text-sm font-bold text-zinc-900">Auto-Close Shifts</label>
+                        <p className="text-[10px] text-zinc-400">Automatically blocks deliveries and generates bills</p>
+                     </div>
+                     <button
+                        onClick={() => setAutoCloseEnabled(!autoCloseEnabled)}
+                        className={`w-12 h-6 rounded-full p-1 transition-colors ${autoCloseEnabled ? 'bg-emerald-500' : 'bg-zinc-200'}`}
+                     >
+                        <motion.div
+                           className="w-4 h-4 bg-white rounded-full shadow-sm"
+                           animate={{ x: autoCloseEnabled ? 24 : 0 }}
+                           transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        />
+                     </button>
+                  </div>
+
+                  <AnimatePresence>
+                     {autoCloseEnabled && (
+                        <motion.div
+                           initial={{ height: 0, opacity: 0 }}
+                           animate={{ height: "auto", opacity: 1 }}
+                           exit={{ height: 0, opacity: 0 }}
+                           className="flex flex-col gap-4 overflow-hidden"
+                        >
+                           <div className="flex flex-col gap-1.5 pt-2 border-t border-zinc-50">
+                              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Morning Auto-Close Time</label>
+                              <input
+                                 type="time"
+                                 value={morningCloseTime}
+                                 onChange={(e) => setMorningCloseTime(e.target.value)}
+                                 className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                              />
+                           </div>
+                           <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Evening Auto-Close Time</label>
+                              <input
+                                 type="time"
+                                 value={eveningCloseTime}
+                                 onChange={(e) => setEveningCloseTime(e.target.value)}
+                                 className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                              />
+                           </div>
+                        </motion.div>
+                     )}
+                  </AnimatePresence>
+               </div>
+
                {/* Delivery Routes Section */}
                <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
                   <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
@@ -301,8 +381,8 @@ export default function UserProfilePage() {
                   <Save size={18} /> {isSaved ? "Profile Updated!" : "Save All Changes"}
                </button>
 
-               <button onClick={handleLogout} className="w-full bg-rose-50 text-rose-600 font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm border border-rose-100 flex items-center justify-center gap-2">
-                  <LogOut size={18} /> Sign Out of Milkow
+               <button onClick={handleLogout} className="w-full bg-rose-600 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm border border-rose-100 flex items-center justify-center gap-2">
+                  <LogOut size={18} /> Sign Out
                </button>
 
             </div>

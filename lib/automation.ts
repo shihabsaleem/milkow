@@ -356,31 +356,12 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
       return { ran: false, count: 0, message: `No unbilled deliveries for ${shift} on ${today}.` };
     }
 
-    // 1. Fetch prices
-    const { data: productsData } = await supabase.from('products').select('*');
-    const productsList = productsData as T.Product[] | null;
-    const prices: Record<string, number> = {};
-    productsList?.forEach(p => {
-      prices[p.id] = p.price;
-      prices[p.name] = p.price;
-    });
-
-    // 2. Create Bills for the delivered items
+    // 2. Create Bills for the delivered items using pre-calculated total_cost
     const billsToCreate = unbilled.map((d: any) => {
-      const qty = d.milk_qty || 0;
-      const unitPrice = prices[d.product_id || ""] || 0;
-      let totalAmount = qty * unitPrice;
-      const miscItems = d.misc_items || [];
-
-      miscItems.forEach((item: any) => {
-        const itemPrice = prices[item.name] || 0;
-        totalAmount += item.qty * itemPrice;
-      });
-
       return {
         customer_id: d.customer_id,
         type: 'Spot',
-        amount: totalAmount,
+        amount: Number(d.total_cost) || 0,
         status: 'Pending',
         created_at: new Date().toISOString(),
       };

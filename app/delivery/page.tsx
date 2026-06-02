@@ -58,6 +58,8 @@ export default function DeliveryPage() {
       title: string;
       message: string;
       type: 'danger' | 'info' | 'success';
+      showDontShowAgain?: boolean;
+      onConfirm?: (dontShow?: boolean) => void;
    }>({
       isOpen: false,
       title: "",
@@ -191,7 +193,7 @@ export default function DeliveryPage() {
          await fetchData();
          setIsPaymentModalOpen(false);
          setSelectedCustomerForPayment(null);
-         
+
          setModalConfig({
             isOpen: true,
             title: "Payment Recorded",
@@ -284,12 +286,12 @@ export default function DeliveryPage() {
          const currentMilkConsumed = (cd.delivered && cd.product_id === prodId) ? cd.milk_qty : 0;
          available -= (currentMilkConsumed - initialMilkConsumed);
 
-         const initialMiscQty = initial.delivered 
-             ? (initial.misc_items || []).find((i: any) => i.name === prod.name)?.qty || 0 
-             : 0;
-         const currentMiscQty = cd.delivered 
-             ? (cd.misc_items || []).find((i: any) => i.name === prod.name)?.qty || 0 
-             : 0;
+         const initialMiscQty = initial.delivered
+            ? (initial.misc_items || []).find((i: any) => i.name === prod.name)?.qty || 0
+            : 0;
+         const currentMiscQty = cd.delivered
+            ? (cd.misc_items || []).find((i: any) => i.name === prod.name)?.qty || 0
+            : 0;
          available -= (currentMiscQty - initialMiscQty);
       });
 
@@ -298,7 +300,20 @@ export default function DeliveryPage() {
 
    const toggleDelivery = async (id: string) => {
       if (isShiftClosed) {
-         setModalConfig({ isOpen: true, title: "Shift Closed", message: `The ${shift} shift is closed for today.`, type: 'info' });
+         const skip = localStorage.getItem('skip_shift_closed_modal') === 'true';
+         if (!skip) {
+            setModalConfig({
+               isOpen: true,
+               title: "Shift Closed",
+               message: `The ${shift} shift is closed for today.`,
+               type: 'info',
+               showDontShowAgain: true,
+               onConfirm: (dontShow) => {
+                  if (dontShow) localStorage.setItem('skip_shift_closed_modal', 'true');
+                  setModalConfig(prev => ({ ...prev, isOpen: false }));
+               }
+            });
+         }
          return;
       }
       const stop = deliveries.find(d => d.id === id);
@@ -312,7 +327,7 @@ export default function DeliveryPage() {
 
          const getTempAvail = (prodId: string) => {
             if (!tempAvailable.has(prodId)) {
-                tempAvailable.set(prodId, getAvailableStockById(prodId));
+               tempAvailable.set(prodId, getAvailableStockById(prodId));
             }
             return tempAvailable.get(prodId)!;
          };
@@ -373,16 +388,16 @@ export default function DeliveryPage() {
       if (stop.delivered && delta > 0) {
          const prod = products.find(p => p.name === productName);
          if (prod) {
-             const available = getAvailableStockById(prod.id);
-             if (available < delta) {
-                setModalConfig({
-                   isOpen: true,
-                   title: "Out of Stock",
-                   message: `Cannot add ${productName}. Insufficient stock.`,
-                   type: 'danger'
-                });
-                return;
-             }
+            const available = getAvailableStockById(prod.id);
+            if (available < delta) {
+               setModalConfig({
+                  isOpen: true,
+                  title: "Out of Stock",
+                  message: `Cannot add ${productName}. Insufficient stock.`,
+                  type: 'danger'
+               });
+               return;
+            }
          }
       }
 
@@ -404,7 +419,20 @@ export default function DeliveryPage() {
 
    const updateMilkQty = async (stopId: string, delta: number) => {
       if (isShiftClosed) {
-         setModalConfig({ isOpen: true, title: "Shift Closed", message: `The ${shift} shift is closed for today.`, type: 'info' });
+         const skip = localStorage.getItem('skip_shift_closed_modal') === 'true';
+         if (!skip) {
+            setModalConfig({
+               isOpen: true,
+               title: "Shift Closed",
+               message: `The ${shift} shift is closed for today.`,
+               type: 'info',
+               showDontShowAgain: true,
+               onConfirm: (dontShow) => {
+                  if (dontShow) localStorage.setItem('skip_shift_closed_modal', 'true');
+                  setModalConfig(prev => ({ ...prev, isOpen: false }));
+               }
+            });
+         }
          return;
       }
       const stop = deliveries.find(d => d.id === stopId);
@@ -558,11 +586,11 @@ export default function DeliveryPage() {
                         <Sunset size={15} strokeWidth={2.5} /><span>Evening</span>
                      </button>
                   </div>
-                  
+
                   {/* Dev Options Menu */}
                   <div className="relative">
-                     <button 
-                        onClick={() => setIsDevMenuOpen(!isDevMenuOpen)} 
+                     <button
+                        onClick={() => setIsDevMenuOpen(!isDevMenuOpen)}
                         className="h-11 w-11 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-600 hover:bg-zinc-100 transition-colors"
                      >
                         <MoreVertical size={20} />
@@ -592,9 +620,13 @@ export default function DeliveryPage() {
                                           const val = data.value as any;
                                           delete val.lastMorningClose;
                                           delete val.lastEveningClose;
-                                          await supabase.from('system_settings').update({value: val}).eq('key', 'automation');
-                                          alert('Shift reset successfully!');
-                                          window.location.reload();
+                                          const { error } = await supabase.from('system_settings').update({ value: val }).eq('key', 'automation');
+                                          if (error) {
+                                             alert('Reset failed: ' + error.message);
+                                          } else {
+                                             alert('Shift reset successfully!');
+                                             window.location.reload();
+                                          }
                                        }
                                     }}
                                     className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors"
@@ -654,19 +686,19 @@ export default function DeliveryPage() {
                                  </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                 <button onClick={(e) => { 
-                                    e.stopPropagation(); 
+                                 <button onClick={(e) => {
+                                    e.stopPropagation();
                                     setSelectedCustomerForPayment(delivery.customer_id);
                                     setPaymentAmount("");
                                     setPaymentMethod("Cash");
                                     setPaymentNotes("");
                                     setPaymentTotalDue(null);
                                     setIsPaymentModalOpen(true);
-                                    supabase.from('customers').select('past_outstanding').eq('id', delivery.customer_id).single().then(async ({data: c}: any) => {
-                                        const past = Number(c?.past_outstanding) || 0;
-                                        const {data: unbilled} = await supabase.from('deliveries').select('total_cost').eq('customer_id', delivery.customer_id).eq('delivered', true).eq('billed', false);
-                                        const spot = (unbilled||[]).reduce((a:number, b:any) => a + (Number(b.total_cost)||0), 0);
-                                        setPaymentTotalDue(past + spot);
+                                    supabase.from('customers').select('past_outstanding').eq('id', delivery.customer_id).single().then(async ({ data: c }: any) => {
+                                       const past = Number(c?.past_outstanding) || 0;
+                                       const { data: unbilled } = await supabase.from('deliveries').select('total_cost').eq('customer_id', delivery.customer_id).eq('delivered', true).eq('billed', false);
+                                       const spot = (unbilled || []).reduce((a: number, b: any) => a + (Number(b.total_cost) || 0), 0);
+                                       setPaymentTotalDue(past + spot);
                                     });
                                  }} className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"><Wallet2 size={18} strokeWidth={2.5} /></button>
                                  <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
@@ -752,7 +784,7 @@ export default function DeliveryPage() {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6 text-zinc-900">
                      <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
-                     
+
                      {paymentTotalDue !== null ? (
                         <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center justify-between">
                            <span className="text-orange-800 text-xs font-bold uppercase tracking-widest">Total Outstanding</span>
@@ -883,11 +915,18 @@ export default function DeliveryPage() {
          <Modal
             isOpen={modalConfig.isOpen}
             onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
-            onConfirm={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+            onConfirm={(dontShow) => {
+               if (modalConfig.onConfirm) {
+                  modalConfig.onConfirm(dontShow);
+               } else {
+                  setModalConfig(prev => ({ ...prev, isOpen: false }));
+               }
+            }}
             title={modalConfig.title}
             message={modalConfig.message}
             type={modalConfig.type}
             confirmText="Okay"
+            showDontShowAgain={modalConfig.showDontShowAgain}
          />
       </PullToRefresh>
    );

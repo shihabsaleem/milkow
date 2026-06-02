@@ -98,6 +98,7 @@ export default function CustomersPage() {
     onConfirm: () => void;
     type: 'danger' | 'info' | 'success';
     confirmText?: string;
+    showDontShowAgain?: boolean;
   }>({
     isOpen: false,
     title: "",
@@ -337,6 +338,7 @@ export default function CustomersPage() {
         message={modalConfig.message}
         type={modalConfig.type}
         confirmText={modalConfig.confirmText}
+        showDontShowAgain={modalConfig.showDontShowAgain}
       />
     </PullToRefresh>
   );

@@ -30,7 +30,7 @@ export default function CustomerProfilePage() {
    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [areas, setAreas] = useState<T.Area[]>([]);
-   const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "", outstanding_type: "credit" });
+   const [editForm, setEditForm] = useState({ name: "", phone: "", area_id: "", frequency: "Morning Only", outstanding: "", outstanding_type: "credit", default_product_id: "", default_qty: "1" });
    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
    const [paymentAmount, setPaymentAmount] = useState("");
    const [paymentMethod, setPaymentMethod] = useState("Cash");
@@ -81,7 +81,9 @@ export default function CustomerProfilePage() {
             area_id: custData.area_id?.toString() || "",
             frequency: custData.frequency,
             outstanding: Math.abs(outstandingVal).toString(),
-            outstanding_type: outstandingVal < 0 ? "advance" : "credit"
+            outstanding_type: outstandingVal < 0 ? "advance" : "credit",
+            default_product_id: custData.default_product_id?.toString() || "",
+            default_qty: custData.default_qty?.toString() || "1"
          });
       }
       if (!silent) setIsLoading(false);
@@ -157,7 +159,9 @@ export default function CustomerProfilePage() {
             phone: editForm.phone,
             area_id: parseInt(editForm.area_id),
             frequency: editForm.frequency,
-            past_outstanding: finalOutstanding
+            past_outstanding: finalOutstanding,
+            default_product_id: editForm.default_product_id || null,
+            default_qty: parseInt(editForm.default_qty) || 1
          }).eq('id', customer.id);
          setIsEditModalOpen(false);
          await fetchData();
@@ -798,6 +802,25 @@ export default function CustomerProfilePage() {
                            value={editForm.frequency}
                            onChange={val => setEditForm({ ...editForm, frequency: val })}
                         />
+                        <div className="grid grid-cols-2 gap-3">
+                           <CustomSelect
+                              label="Daily Product"
+                              options={products.map(p => ({ value: p.id, label: `${p.name} (${p.size})` }))}
+                              value={editForm.default_product_id}
+                              onChange={val => setEditForm({ ...editForm, default_product_id: val })}
+                              placeholder="Select Product"
+                           />
+                           <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Daily Qty</label>
+                              <input
+                                 type="number"
+                                 placeholder="1"
+                                 value={editForm.default_qty}
+                                 onChange={e => setEditForm({ ...editForm, default_qty: e.target.value })}
+                                 className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                              />
+                           </div>
+                        </div>
                         <div className="grid grid-cols-2 gap-3"> <CustomSelect
                                label="Type"
                                options={[

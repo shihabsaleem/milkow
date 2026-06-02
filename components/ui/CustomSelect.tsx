@@ -65,7 +65,7 @@ export default function CustomSelect({
   }, [isOpen]);
 
   return (
-    <div className={`relative ${fullWidth ? "w-full" : "w-fit"} ${isOpen ? "z-[100]" : "z-10"} ${className}`} ref={containerRef}>
+    <div className={`relative ${fullWidth ? "w-full" : "w-fit"} ${isOpen ? "z-100" : "z-10"} ${className}`} ref={containerRef}>
       {label && (
         <label className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5 block">
           {label}
@@ -96,7 +96,7 @@ export default function CustomSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: dropUp ? 5 : -5, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className={`absolute left-0 right-0 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-2'} bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden z-[110] min-w-[200px]`}
+            className={`absolute left-0 right-0 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-2'} bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden z-110 min-w-[200px]`}
           >
             {/* Hard-capped max height to ensure it fits and forces scrollbar on small screens */}
             <div className="py-1 overflow-y-auto max-h-[160px] overscroll-contain">

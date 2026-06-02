@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2 } from "lucide-react";
+import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2, MoreVertical } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -45,6 +45,7 @@ export default function DeliveryPage() {
    const [editSeqVal, setEditSeqVal] = useState("");
    const [manualShift, setManualShift] = useState<'morning' | 'evening' | null>(null);
    const [isLoading, setIsLoading] = useState(true);
+   const [isDevMenuOpen, setIsDevMenuOpen] = useState(false);
 
    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
    const [paymentAmount, setPaymentAmount] = useState("");
@@ -545,15 +546,58 @@ export default function DeliveryPage() {
                   </div>
                </div>
 
-               {/* Morning / Evening Toggle */}
-               <div className="grid grid-cols-2 p-1 rounded-2xl bg-[#EBEBEF] relative h-11">
-                  <motion.div layout className="absolute inset-y-1 rounded-xl shadow-sm z-0 bg-white" style={{ left: shift === 'morning' ? '4px' : '50%', width: 'calc(50% - 4px)' }} transition={{ type: 'spring', stiffness: 450, damping: 35 }} />
-                  <button onClick={() => setManualShift('morning')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-xl transition-all text-sm font-bold ${shift === 'morning' ? 'text-primary' : 'text-[#A1A1AA]'}`}>
-                     <Sunrise size={15} strokeWidth={2.5} /><span>Morning</span>
-                  </button>
-                  <button onClick={() => setManualShift('evening')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-xl transition-all text-sm font-bold ${shift === 'evening' ? 'text-primary' : 'text-[#A1A1AA]'}`}>
-                     <Sunset size={15} strokeWidth={2.5} /><span>Evening</span>
-                  </button>
+               <div className="flex items-center gap-2">
+                  {/* Morning / Evening Toggle */}
+                  <div className="flex-1 grid grid-cols-2 p-1 rounded-2xl bg-[#EBEBEF] relative h-11">
+                     <motion.div layout className="absolute inset-y-1 rounded-xl shadow-sm z-0 bg-white" style={{ left: shift === 'morning' ? '4px' : '50%', width: 'calc(50% - 4px)' }} transition={{ type: 'spring', stiffness: 450, damping: 35 }} />
+                     <button onClick={() => setManualShift('morning')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-xl transition-all text-sm font-bold ${shift === 'morning' ? 'text-primary' : 'text-[#A1A1AA]'}`}>
+                        <Sunrise size={15} strokeWidth={2.5} /><span>Morning</span>
+                     </button>
+                     <button onClick={() => setManualShift('evening')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-xl transition-all text-sm font-bold ${shift === 'evening' ? 'text-primary' : 'text-[#A1A1AA]'}`}>
+                        <Sunset size={15} strokeWidth={2.5} /><span>Evening</span>
+                     </button>
+                  </div>
+                  
+                  {/* Dev Options Menu */}
+                  <div className="relative">
+                     <button 
+                        onClick={() => setIsDevMenuOpen(!isDevMenuOpen)} 
+                        className="h-11 w-11 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-600 hover:bg-zinc-100 transition-colors"
+                     >
+                        <MoreVertical size={20} />
+                     </button>
+                     <AnimatePresence>
+                        {isDevMenuOpen && (
+                           <>
+                              <div className="fixed inset-0 z-40" onClick={() => setIsDevMenuOpen(false)} />
+                              <motion.div
+                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                 className="absolute right-0 mt-3 w-48 bg-white border border-zinc-200 shadow-xl rounded-2xl overflow-hidden z-50 p-2"
+                              >
+                                 <button
+                                    onClick={async () => {
+                                       setIsDevMenuOpen(false);
+                                       const { data } = await supabase.from('system_settings').select('value').eq('key', 'automation').single();
+                                       if (data) {
+                                          const val = data.value as any;
+                                          delete val.lastMorningClose;
+                                          delete val.lastEveningClose;
+                                          await supabase.from('system_settings').update({value: val}).eq('key', 'automation');
+                                          alert('Shift reset successfully!');
+                                          window.location.reload();
+                                       }
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                                 >
+                                    Reset Shift
+                                 </button>
+                              </motion.div>
+                           </>
+                        )}
+                     </AnimatePresence>
+                  </div>
                </div>
             </div>
          </header>

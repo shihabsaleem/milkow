@@ -356,21 +356,42 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
       return { ran: false, count: 0, message: `No unbilled deliveries for ${shift} on ${today}.` };
     }
 
-    // 1. Create Bills for the delivered items
-    const billsToCreate = unbilled.map((d: any) => ({
-      customer_id: d.customer_id,
-      type: 'Monthly',
-      amount: d.total_cost || 0,
-      status: 'Pending',
-      created_at: new Date().toISOString(),
-    }));
+    // 1. Fetch prices
+    const { data: productsData } = await supabase.from('products').select('*');
+    const productsList = productsData as T.Product[] | null;
+    const prices: Record<string, number> = {};
+    productsList?.forEach(p => {
+      prices[p.id] = p.price;
+      prices[p.name] = p.price;
+    });
+
+    // 2. Create Bills for the delivered items
+    const billsToCreate = unbilled.map((d: any) => {
+      const qty = d.milk_qty || 0;
+      const unitPrice = prices[d.product_id || ""] || 0;
+      let totalAmount = qty * unitPrice;
+      const miscItems = d.misc_items || [];
+
+      miscItems.forEach((item: any) => {
+        const itemPrice = prices[item.name] || 0;
+        totalAmount += item.qty * itemPrice;
+      });
+
+      return {
+        customer_id: d.customer_id,
+        type: 'Spot',
+        amount: totalAmount,
+        status: 'Pending',
+        created_at: new Date().toISOString(),
+      };
+    });
 
     if (billsToCreate.length > 0) {
       const { error: insertError } = await supabase.from('bills').insert(billsToCreate);
       if (insertError) throw insertError;
     }
 
-    // 2. Mark deliveries as billed
+    // 3. Mark deliveries as billed AND update their total_cost
     const ids = unbilled.map((d: any) => d.id);
     const { error: updateError } = await supabase
       .from('deliveries')
@@ -446,20 +467,39 @@ export async function syncBatchDeliveries(
 ): Promise<void> {
   if (changedDeliveries.length === 0) return;
 
-  // 1. Bulk Update deliveries
-  const dbUpdates = changedDeliveries.map(d => ({
-    id: d.id,
-    customer_id: d.customer_id,
-    delivery_date: d.delivery_date,
-    shift: d.shift,
-    product_id: d.product_id,
-    milk_qty: d.milk_qty,
-    misc_items: d.misc_items,
-    delivered: d.delivered,
-    sequence_no: d.sequence_no,
-    inventory_deducted: d.delivered,
-    billed: d.billed
-  }));
+  // 1. Fetch all products to get stock levels and name maps
+  const { data: productsData } = await supabase.from('products').select('*');
+  const products = (productsData || []) as T.Product[];
+  const productByName = new Map(products.map(p => [p.name, p]));
+  const productById = new Map(products.map(p => [p.id, p]));
+
+  // 2. Bulk Update deliveries
+  const dbUpdates = changedDeliveries.map(d => {
+    // Calculate total cost
+    const mainProd = productById.get(d.product_id || "");
+    const mainPrice = mainProd ? mainProd.price : 0;
+    let total = (d.milk_qty || 0) * mainPrice;
+    
+    (d.misc_items || []).forEach((item: any) => {
+      const p = productByName.get(item.name);
+      if (p) total += (item.qty || 0) * p.price;
+    });
+
+    return {
+      id: d.id,
+      customer_id: d.customer_id,
+      delivery_date: d.delivery_date,
+      shift: d.shift,
+      product_id: d.product_id,
+      milk_qty: d.milk_qty,
+      misc_items: d.misc_items,
+      delivered: d.delivered,
+      sequence_no: d.sequence_no,
+      inventory_deducted: d.delivered,
+      billed: d.billed,
+      total_cost: total
+    };
+  });
 
   const { error: upsertError } = await supabase
     .from('deliveries')
@@ -468,12 +508,6 @@ export async function syncBatchDeliveries(
   if (upsertError) {
     throw upsertError;
   }
-
-  // 2. Fetch all products to get stock levels and name maps
-  const { data: productsData } = await supabase.from('products').select('*');
-  const products = (productsData || []) as T.Product[];
-  const productByName = new Map(products.map(p => [p.name, p]));
-  const productById = new Map(products.map(p => [p.id, p]));
 
   // Calculate net changes for each product ID
   // Positive delta: ADD back to stock (restoring undelivered)

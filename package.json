@@ -16,6 +16,7 @@
     "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.0",
+    "dotenv": "^17.4.2",
     "framer-motion": "^12.38.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.8.0",

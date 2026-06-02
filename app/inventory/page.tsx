@@ -11,7 +11,7 @@ import CustomSelect from "@/components/ui/CustomSelect";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import * as T from "@/types/database";
 
-type PipelineStage = { label: string; value: number; unit: string; id: number; productId?: string | number; loaded: number };
+type PipelineStage = { label: string; value: number | string; unit: string; id: number; productId?: string | number; loaded: number };
 
 export default function InventoryPage() {
   const router = useRouter();
@@ -111,7 +111,7 @@ export default function InventoryPage() {
     ]);
     if (prods) setProducts(prods as T.Product[]);
     // Note: mapping 'inventory' to pipeline for this view
-    if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id, loaded: p.loaded || 0 })));
+    if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count === 0 ? "" : p.count, unit: p.unit, id: p.id, productId: p.product_id, loaded: p.loaded || 0 })));
     
     if (settings && settings.value) {
       const dbDailyPrices = settings.value as any;
@@ -228,27 +228,28 @@ export default function InventoryPage() {
   };
 
   const updatePipelineValue = async (id: number, newValue: string) => {
-    const numValue = parseInt(newValue) || 0;
+    const uiValue = newValue === "" ? "" : parseInt(newValue);
+    const dbValue = newValue === "" || isNaN(uiValue as number) ? 0 : (uiValue as number);
 
     const stage = pipeline.find(p => p.id === id);
     if (!stage) return;
 
-    const currentCount = stage.value;
+    const currentCount = Number(stage.value) || 0;
     const currentLoaded = stage.loaded || 0;
-    const delta = numValue - currentCount;
+    const delta = dbValue - currentCount;
     const newLoaded = Math.max(0, currentLoaded + delta);
 
     // 1. Optimistic UI update
-    setPipeline(prev => prev.map(p => p.id === id ? { ...p, value: numValue, loaded: newLoaded } : p));
+    setPipeline(prev => prev.map(p => p.id === id ? { ...p, value: uiValue !== null && uiValue !== undefined && !isNaN(uiValue as number) ? uiValue : "", loaded: newLoaded } : p));
 
     try {
       // 2. Sync to Supabase (update both count AND loaded so dashboard stays in sync)
-      const { error } = await supabase.from('inventory').update({ count: numValue, loaded: newLoaded }).eq('id', id);
+      const { error } = await supabase.from('inventory').update({ count: dbValue, loaded: newLoaded }).eq('id', id);
       if (error) throw error;
 
       // 3. Update linked Product stock
       if (stage.productId) {
-        await supabase.from('products').update({ stock: numValue }).eq('id', stage.productId);
+        await supabase.from('products').update({ stock: dbValue }).eq('id', stage.productId);
       }
     } catch (err) {
       console.error(err);
@@ -340,7 +341,7 @@ export default function InventoryPage() {
               pipeline.map((stage, i) => (
                 <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5 group relative">
                   <div className="text-primary"><Droplet size={20} /></div>
-                  <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none" /><span className="text-[13px] font-medium ml-2 shrink-0 text-zinc-400">{stage.unit}</span></div></div>
+                  <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" placeholder="0" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} onFocus={(e) => e.target.select()} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none placeholder:text-zinc-300" /><span className="text-[13px] font-medium ml-2 shrink-0 text-zinc-400">{stage.unit}</span></div></div>
                 </div>
               ))
             )}

@@ -46,6 +46,7 @@ export default function BillingPage() {
    const [paymentMethod, setPaymentMethod] = useState("Cash");
    const [paymentNotes, setPaymentNotes] = useState("");
    const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<string | null>(null);
+   const [paymentTotalDue, setPaymentTotalDue] = useState<number | null>(null);
 
    const fetchData = async (silent = false) => {
       if (!silent) setIsLoading(true);
@@ -618,6 +619,7 @@ export default function BillingPage() {
                               setPaymentAmount(bill.amount.toString());
                               setPaymentMethod("Cash");
                               setPaymentNotes("");
+                              setPaymentTotalDue(bill.amount);
                               setIsPaymentModalOpen(true);
                            }} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-primary text-white active:scale-95"><Wallet2 size={14} /> Record</button>
                            <button onClick={() => handleMarkAsPaid(bill.id)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-emerald-50 text-emerald-600 border active:scale-95"><CheckCircle2 size={14} /> Settle</button>
@@ -680,6 +682,16 @@ export default function BillingPage() {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6 text-zinc-900">
                      <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+                     
+                     {paymentTotalDue !== null ? (
+                        <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center justify-between">
+                           <span className="text-orange-800 text-xs font-bold uppercase tracking-widest">Total Outstanding</span>
+                           <span className="text-orange-600 font-black text-lg">₹{paymentTotalDue.toFixed(2)}</span>
+                        </div>
+                     ) : (
+                        <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex items-center justify-center animate-pulse h-14" />
+                     )}
+
                      <form onSubmit={(e) => {
                         e.preventDefault();
                         const amt = parseFloat(paymentAmount);

@@ -30,22 +30,42 @@ export default function CustomSelect({
   fullWidth = true,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      
+      // Drop up if there's less than 200px below and more space above
+      if (spaceBelow < 200 && rect.top > spaceBelow) {
+        setDropUp(true);
+      } else {
+        setDropUp(false);
+      }
+    }
+  }, [isOpen]);
+
   return (
-    <div className={`relative ${fullWidth ? "w-full" : "w-fit"} ${className}`} ref={containerRef}>
+    <div className={`relative ${fullWidth ? "w-full" : "w-fit"} ${isOpen ? "z-[100]" : "z-10"} ${className}`} ref={containerRef}>
       {label && (
         <label className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5 block">
           {label}
@@ -54,6 +74,7 @@ export default function CustomSelect({
       
       <button
         type="button"
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm transition-all focus:ring-2 focus:ring-primary/20 ${
           fullWidth ? "w-full" : ""
@@ -64,20 +85,21 @@ export default function CustomSelect({
         </span>
         <ChevronDown
           size={16}
-          className={`text-zinc-400 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+          className={`text-zinc-400 transition-transform duration-300 ${isOpen ? (dropUp ? "rotate-0" : "rotate-180") : ""}`}
         />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 5, scale: 0.98 }}
+            initial={{ opacity: 0, y: dropUp ? 5 : -5, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 5, scale: 0.98 }}
+            exit={{ opacity: 0, y: dropUp ? 5 : -5, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute left-0 right-0 mt-2 bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden z-110 min-w-[200px]"
+            className={`absolute left-0 right-0 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-2'} bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden z-[110] min-w-[200px]`}
           >
-            <div className="py-1 max-h-60 overflow-y-auto no-scrollbar">
+            {/* Hard-capped max height to ensure it fits and forces scrollbar on small screens */}
+            <div className="py-1 overflow-y-auto max-h-[160px] overscroll-contain">
               {options.length > 0 ? (
                 options.map((option) => (
                   <button
@@ -112,3 +134,4 @@ export default function CustomSelect({
     </div>
   );
 }
+

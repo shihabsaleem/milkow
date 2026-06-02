@@ -139,7 +139,7 @@ export async function deductInventoryOnDelivery(
           .from('products')
           .update({ stock: Math.max(0, (prod.stock || 0) - milkQty) })
           .eq('id', prod.id);
-        
+
         // Also update the linked inventory pipeline record if it exists
         // NOTE: Only deduct from product stock, NOT from 'loaded' — loaded is a static snapshot until shift close
       }
@@ -202,7 +202,7 @@ export async function restoreInventoryOnUndelivery(
           .from('products')
           .update({ stock: (prod.stock || 0) + milkQty })
           .eq('id', prod.id);
-        
+
         // Also update the linked inventory pipeline record if it exists
         // NOTE: Only restore product stock, NOT 'loaded' — loaded is a static snapshot until shift close
       }
@@ -430,10 +430,10 @@ export async function checkAndRunAutomations(): Promise<void> {
 
     const { data: autoData } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
     const autoVal = (autoData?.value as T.AutomationSettings) || {};
-    
+
     const autoCloseEnabled = autoVal.autoCloseEnabled ?? true;
-    const morningTime = autoVal.morningCloseTime ?? "12:00";
-    const eveningTime = autoVal.eveningCloseTime ?? "22:00";
+    const morningTime = autoVal.morningCloseTime ?? "14:00";
+    const eveningTime = autoVal.eveningCloseTime ?? "23:59";
 
     const d = new Date();
     const currentMins = d.getHours() * 60 + d.getMinutes();
@@ -479,7 +479,7 @@ export async function syncBatchDeliveries(
     const mainProd = productById.get(d.product_id || "");
     const mainPrice = mainProd ? mainProd.price : 0;
     let total = (d.milk_qty || 0) * mainPrice;
-    
+
     (d.misc_items || []).forEach((item: any) => {
       const p = productByName.get(item.name);
       if (p) total += (item.qty || 0) * p.price;

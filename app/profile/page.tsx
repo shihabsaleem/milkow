@@ -27,8 +27,8 @@ export default function UserProfilePage() {
    const [isSaved, setIsSaved] = useState(false);
 
    const [autoCloseEnabled, setAutoCloseEnabled] = useState(true);
-   const [morningCloseTime, setMorningCloseTime] = useState("12:00");
-   const [eveningCloseTime, setEveningCloseTime] = useState("22:00");
+   const [morningCloseTime, setMorningCloseTime] = useState("14:00");
+   const [eveningCloseTime, setEveningCloseTime] = useState("23:59");
 
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [newRoute, setNewRoute] = useState("");
@@ -58,8 +58,8 @@ export default function UserProfilePage() {
       if (autoData && autoData.value) {
          const autoVal = autoData.value as T.AutomationSettings;
          setAutoCloseEnabled(autoVal.autoCloseEnabled ?? true);
-         setMorningCloseTime(autoVal.morningCloseTime ?? "12:00");
-         setEveningCloseTime(autoVal.eveningCloseTime ?? "22:00");
+         setMorningCloseTime(autoVal.morningCloseTime ?? "14:00");
+         setEveningCloseTime(autoVal.eveningCloseTime ?? "23:59");
       }
 
       const { data: areaData } = await supabase.from('areas').select('*').order('name', { ascending: true });

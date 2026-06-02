@@ -41,6 +41,8 @@ export default function Dashboard() {
   const [toCollectAmount, setToCollectAmount] = useState(0);
   const [advanceAmount, setAdvanceAmount] = useState(0);
   const [customerCount, setCustomerCount] = useState(0);
+  const [dailySales, setDailySales] = useState(0);
+  const [dailyPayments, setDailyPayments] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,18 +68,20 @@ export default function Dashboard() {
 
     const [
       { data: invData },
-      { data: delData },
+      { data: allDelData },
       { data: prodsData },
       { data: financialsData },
       { count: custCount },
-      { data: setsData }
+      { data: setsData },
+      { data: paymentsData }
     ] = await Promise.all([
       supabase.from('inventory').select('*'),
-      supabase.from('deliveries').select('*').eq('delivered', true).eq('delivery_date', date).eq('shift', dbShift),
+      supabase.from('deliveries').select('*').eq('delivered', true).eq('delivery_date', date),
       supabase.from('products').select('*'),
       supabase.from('customer_financials').select('*'),
       supabase.from('customers').select('*', { count: 'exact', head: true }),
-      supabase.from('system_settings').select('value').eq('key', 'general').single()
+      supabase.from('system_settings').select('value').eq('key', 'general').single(),
+      supabase.from('payments').select('amount').like('payment_date', `${date}%`)
     ]);
 
     if (invData) setInventory(invData as T.InventoryItem[]);
@@ -88,6 +92,16 @@ export default function Dashboard() {
       if (val) setAdminName(val.system_user?.name || "Sayas R.");
     }
 
+    if (paymentsData) {
+      const paySum = paymentsData.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+      setDailyPayments(paySum);
+    }
+
+    if (allDelData) {
+      const salesSum = allDelData.reduce((sum: number, d: any) => sum + (Number(d.total_cost) || 0), 0);
+      setDailySales(salesSum);
+    }
+
     if (financialsData) {
       const financials = financialsData as T.CustomerFinancials[];
       const debt = financials.reduce((sum, f) => sum + (f.current_balance > 0 ? f.current_balance : 0), 0);
@@ -95,6 +109,8 @@ export default function Dashboard() {
       setToCollectAmount(debt);
       setAdvanceAmount(credit);
     }
+
+    const delData = (allDelData || []).filter((d: any) => d.shift === dbShift);
 
     if (delData && prodsData) {
       const productsMap = new Map<string, T.Product>(prodsData.map((p: any) => [p.id, p as T.Product]));
@@ -245,11 +261,15 @@ export default function Dashboard() {
               <>
                 <div className="h-[120px] rounded-2xl bg-zinc-200 animate-pulse" />
                 <div className="h-[120px] rounded-2xl bg-zinc-200 animate-pulse" />
+                <div className="h-[120px] rounded-2xl bg-zinc-200 animate-pulse" />
+                <div className="h-[120px] rounded-2xl bg-zinc-200 animate-pulse" />
               </>
             ) : (
               <>
                 <FinanceCard amount={`₹${toCollectAmount.toLocaleString()}`} label="To Collect" badge={`${customerCount} Customers`} type="green" />
                 <FinanceCard amount={`₹${advanceAmount.toLocaleString()}`} label="Customer Advances" badge="Total Credit" type="green" />
+                <FinanceCard amount={`₹${dailySales.toLocaleString()}`} label="Daily Sales" badge={fmtDate(date)} type="blue" />
+                <FinanceCard amount={`₹${dailyPayments.toLocaleString()}`} label="Daily Payments" badge="Received Today" type="blue" />
               </>
             )}
           </div>

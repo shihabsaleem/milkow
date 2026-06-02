@@ -432,7 +432,7 @@ export async function checkAndRunAutomations(): Promise<void> {
     const autoVal = (autoData?.value as T.AutomationSettings) || {};
 
     const autoCloseEnabled = autoVal.autoCloseEnabled ?? true;
-    const morningTime = autoVal.morningCloseTime ?? "14:00";
+    const morningTime = autoVal.morningCloseTime ?? "23:59";
     const eveningTime = autoVal.eveningCloseTime ?? "23:59";
 
     const d = new Date();

@@ -75,7 +75,7 @@ export default function Dashboard() {
       { data: setsData },
       { data: paymentsData }
     ] = await Promise.all([
-      supabase.from('inventory').select('*'),
+      supabase.from('inventory').select('*').not('product_id', 'is', null),
       supabase.from('deliveries').select('*').eq('delivered', true).eq('delivery_date', date),
       supabase.from('products').select('*'),
       supabase.from('customer_financials').select('*'),

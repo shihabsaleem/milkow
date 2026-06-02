@@ -621,7 +621,7 @@ export default function CustomerProfilePage() {
                    <div className="max-w-2xl mx-auto w-full px-5 py-2">
                       <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-                            <div><h3 className="text-lg sm:text-xl font-black text-zinc-900">Monthly Ledger</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
+                            <div><h3 className="text-lg sm:text-xl font-black text-zinc-900">Delivery History</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
                             <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Deliveries</span></div>
                          </div>
                          <div className="flex flex-col gap-3">
@@ -638,7 +638,7 @@ export default function CustomerProfilePage() {
                                               <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                               <span className="text-base sm:text-lg leading-none">{day}</span>
                                            </div>
-                                           <p className="text-[11px] sm:text-xs font-bold text-zinc-400 italic tracking-tight">No delivery record scheduled</p>
+                                           <p className="text-[11px] sm:text-xs font-bold text-zinc-400 italic tracking-tight">No deliveries scheduled</p>
                                         </div>
                                         <div className="text-right shrink-0 ml-2">
                                            <p className="font-black text-[13px] sm:text-sm text-zinc-300">₹0</p>
@@ -698,7 +698,7 @@ export default function CustomerProfilePage() {
                             })}
                             {deliveries.filter(d => d.delivered).length === 0 && (
                                <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
-                                  <p className="font-bold">No successful deliveries yet</p>
+                                  <p className="font-bold">No deliveries recorded</p>
                                   <p className="text-[10px] uppercase tracking-widest">For {monthName} {yearName}</p>
                                </div>
                             )}
@@ -711,12 +711,12 @@ export default function CustomerProfilePage() {
                    <div className="max-w-2xl mx-auto w-full px-5 py-2">
                       <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
                          <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg sm:text-xl font-black text-zinc-900">Payment Statement</h3>
+                            <h3 className="text-lg sm:text-xl font-black text-zinc-900">Payment History</h3>
                             <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-primary/5 text-primary rounded-xl border border-primary/10">{payments.length} Records</span>
                          </div>
                          {payments.length === 0 ? (
                             <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
-                               <p className="font-bold">No payments recorded yet</p>
+                               <p className="font-bold">No payments found</p>
                                <p className="text-[10px] uppercase tracking-widest">All payments will appear here</p>
                             </div>
                          ) : (
@@ -743,7 +743,7 @@ export default function CustomerProfilePage() {
                                         </div>
                                         <div className="text-right shrink-0 ml-2">
                                            <p className="font-black text-sm text-emerald-600">+₹{Number(p.amount).toFixed(2)}</p>
-                                           <p className="text-[9px] font-bold text-zinc-400 uppercase">Paid</p>
+                                           <p className="text-[9px] font-bold text-zinc-400 uppercase">Received</p>
                                         </div>
                                      </div>
                                   );
@@ -771,13 +771,13 @@ export default function CustomerProfilePage() {
                   <div className="flex items-center justify-between mb-8 relative z-10">
                      <h3 className="text-sm font-black uppercase tracking-widest text-primary">Financial Summary</h3>
                      <span className={`text-[10px] font-bold  tracking-widest px-3 py-1 rounded-lg ${grandTotalAmount < 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-primary-dim/20 text-primary border border-primary/20'}`}>
-                        {grandTotalAmount < 0 ? 'Advance Account' : 'Credit Account'}
+                        {grandTotalAmount < 0 ? 'Advance Balance' : 'Credit Balance'}
                      </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-8 mb-8 relative z-10">
                      <div className="flex flex-col gap-2">
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Past Outstanding</p>
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Previous Balance</p>
                         <div className="flex flex-col gap-1">
                            <p className={`text-lg font-black ${billsBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>₹{Math.abs(billsBalance).toFixed(2)}</p>
                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md w-fit ${billsBalance > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
@@ -786,7 +786,7 @@ export default function CustomerProfilePage() {
                         </div>
                      </div>
                      <div className="flex flex-col gap-2">
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Current Month</p>
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Current Month (Unbilled)</p>
                         <div className="flex flex-col gap-1">
                            <p className="text-lg font-black text-primary">₹{currentDeliveriesAmount.toFixed(2)}</p>
                            <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md w-fit bg-white/5 text-zinc-400">

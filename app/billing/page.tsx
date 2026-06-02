@@ -41,6 +41,12 @@ export default function BillingPage() {
    const [showToast, setShowToast] = useState(false);
    const [isLoading, setIsLoading] = useState(true);
 
+   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+   const [paymentAmount, setPaymentAmount] = useState("");
+   const [paymentMethod, setPaymentMethod] = useState("Cash");
+   const [paymentNotes, setPaymentNotes] = useState("");
+   const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<string | null>(null);
+
    const fetchData = async (silent = false) => {
       if (!silent) setIsLoading(true);
       const [
@@ -148,6 +154,83 @@ export default function BillingPage() {
    });
 
    const [dontShowAgain, setDontShowAgain] = useState(false);
+
+   const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string) => {
+      if (!selectedCustomerForPayment) return;
+      try {
+         setIsLoading(true);
+         const customerId = selectedCustomerForPayment;
+
+         const [
+            { data: customer },
+            { data: unbilledDeliveries },
+         ] = await Promise.all([
+            supabase.from('customers').select('*').eq('id', customerId).single(),
+            supabase.from('deliveries').select('*').eq('customer_id', customerId).eq('delivered', true).eq('billed', false),
+         ]);
+
+         if (!customer) return;
+
+         const pastOutstanding = Number(customer.past_outstanding) || 0;
+         const unbilledAmount = (unbilledDeliveries || []).reduce((acc: number, d: any) => acc + (Number(d.total_cost) || 0), 0);
+
+         if (pastOutstanding > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customerId,
+               amount: pastOutstanding,
+               type: 'Opening Balance',
+               status: 'Pending',
+               notes: 'Converted for settlement',
+               created_at: new Date().toISOString()
+            });
+            await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
+         }
+
+         if (unbilledDeliveries && unbilledDeliveries.length > 0 && unbilledAmount > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customerId,
+               amount: unbilledAmount,
+               type: 'Spot',
+               status: 'Pending',
+               created_at: new Date().toISOString()
+            });
+            const ids = unbilledDeliveries.map((d: any) => d.id);
+            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
+         }
+
+         await supabase.from('payments').insert({
+            customer_id: customerId,
+            amount: amountVal,
+            method: methodVal as any,
+            payment_date: new Date().toISOString(),
+            notes: notesVal || 'Custom Payment from Billing'
+         });
+
+         await fetchData();
+         setIsPaymentModalOpen(false);
+         setSelectedCustomerForPayment(null);
+         
+         setModalConfig({
+            isOpen: true,
+            title: "Payment Recorded",
+            message: `Successfully recorded payment of ₹${amountVal.toFixed(2)} using ${methodVal}.`,
+            type: 'success',
+            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+            confirmText: "Great"
+         });
+      } catch (err) {
+         console.error("Failed to record payment:", err);
+         setModalConfig({
+            isOpen: true,
+            title: "Payment Failed",
+            message: "Failed to record payment. Please check your connection and try again.",
+            type: 'danger',
+            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+         });
+      } finally {
+         setIsLoading(false);
+      }
+   };
 
    const runMarkAsPaid = async (id: string) => {
       try {
@@ -528,9 +611,16 @@ export default function BillingPage() {
                            </div>
                            <div className="flex flex-col items-end"><span className="font-black text-lg text-primary">₹{Number(bill.amount).toFixed(2)}</span></div>
                         </div>
-                        <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">
-                           <button onClick={() => setSelectedInvoice(bill)} className="flex-1 rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all bg-primary text-white active:scale-95"><QrCode size={16} /> Collect</button>
-                           <button onClick={() => handleMarkAsPaid(bill.id)} className="flex-1 rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all bg-emerald-50 text-emerald-600 border active:scale-95"><CheckCircle2 size={16} /> Mark Paid</button>
+                        <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-zinc-100">
+                           <button onClick={() => setSelectedInvoice(bill)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-zinc-100 text-zinc-700 active:scale-95"><QrCode size={14} /> Share</button>
+                           <button onClick={() => {
+                              setSelectedCustomerForPayment(bill.customer_id);
+                              setPaymentAmount(bill.amount.toString());
+                              setPaymentMethod("Cash");
+                              setPaymentNotes("");
+                              setIsPaymentModalOpen(true);
+                           }} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-primary text-white active:scale-95"><Wallet2 size={14} /> Record</button>
+                           <button onClick={() => handleMarkAsPaid(bill.id)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-emerald-50 text-emerald-600 border active:scale-95"><CheckCircle2 size={14} /> Settle</button>
                         </div>
                      </div>
                   );
@@ -582,6 +672,65 @@ export default function BillingPage() {
 
          <AnimatePresence>
             {showToast && (<motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-110 bg-emerald-600 text-white px-6 py-3 rounded-full font-medium text-xs shadow-xl flex items-center gap-2"><CheckCircle2 size={16} />Payment Recorded Successfully</motion.div>)}
+         </AnimatePresence>
+
+         <AnimatePresence>
+            {isPaymentModalOpen && (
+               <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6 text-zinc-900">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+                     <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const amt = parseFloat(paymentAmount);
+                        if (isNaN(amt) || amt <= 0) return;
+                        runRecordPayment(amt, paymentMethod, paymentNotes);
+                     }} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Payment Amount (₹)</label>
+                           <input
+                              autoFocus
+                              type="number"
+                              step="0.01"
+                              required
+                              placeholder="0.00"
+                              value={paymentAmount}
+                              onChange={e => setPaymentAmount(e.target.value)}
+                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all font-bold"
+                           />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Payment Method</label>
+                           <div className="grid grid-cols-2 gap-2">
+                              {['Cash', 'UPI', 'Bank Transfer', 'Other'].map(method => (
+                                 <button
+                                    type="button"
+                                    key={method}
+                                    onClick={() => setPaymentMethod(method)}
+                                    className={`py-2 text-sm font-bold rounded-xl border transition-all ${paymentMethod === method ? 'bg-primary/5 border-primary/30 text-primary' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                 >
+                                    {method}
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Notes (Optional)</label>
+                           <input
+                              type="text"
+                              placeholder="e.g. Cleared past dues"
+                              value={paymentNotes}
+                              onChange={e => setPaymentNotes(e.target.value)}
+                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                           />
+                        </div>
+                        <button disabled={isLoading} type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl disabled:opacity-50">
+                           {isLoading ? "Saving..." : "Record Payment"}
+                        </button>
+                     </form>
+                  </motion.div>
+               </div>
+            )}
          </AnimatePresence>
 
          <Modal

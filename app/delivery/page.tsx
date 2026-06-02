@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus } from "lucide-react";
+import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -45,6 +45,12 @@ export default function DeliveryPage() {
    const [editSeqVal, setEditSeqVal] = useState("");
    const [manualShift, setManualShift] = useState<'morning' | 'evening' | null>(null);
    const [isLoading, setIsLoading] = useState(true);
+
+   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+   const [paymentAmount, setPaymentAmount] = useState("");
+   const [paymentMethod, setPaymentMethod] = useState("Cash");
+   const [paymentNotes, setPaymentNotes] = useState("");
+   const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<string | null>(null);
    const [modalConfig, setModalConfig] = useState<{
       isOpen: boolean;
       title: string;
@@ -127,6 +133,80 @@ export default function DeliveryPage() {
          }
       }
       setIsLoading(false);
+   };
+
+   const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string) => {
+      if (!selectedCustomerForPayment) return;
+      try {
+         setIsLoading(true);
+         const customerId = selectedCustomerForPayment;
+
+         const [
+            { data: customer },
+            { data: unbilledDeliveries },
+         ] = await Promise.all([
+            supabase.from('customers').select('*').eq('id', customerId).single(),
+            supabase.from('deliveries').select('*').eq('customer_id', customerId).eq('delivered', true).eq('billed', false),
+         ]);
+
+         if (!customer) return;
+
+         const pastOutstanding = Number(customer.past_outstanding) || 0;
+         const unbilledAmount = (unbilledDeliveries || []).reduce((acc: number, d: any) => acc + (Number(d.total_cost) || 0), 0);
+
+         if (pastOutstanding > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customerId,
+               amount: pastOutstanding,
+               type: 'Opening Balance',
+               status: 'Pending',
+               notes: 'Converted for settlement',
+               created_at: new Date().toISOString()
+            });
+            await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
+         }
+
+         if (unbilledDeliveries && unbilledDeliveries.length > 0 && unbilledAmount > 0) {
+            await supabase.from('bills').insert({
+               customer_id: customerId,
+               amount: unbilledAmount,
+               type: 'Spot',
+               status: 'Pending',
+               created_at: new Date().toISOString()
+            });
+            const ids = unbilledDeliveries.map((d: any) => d.id);
+            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
+         }
+
+         await supabase.from('payments').insert({
+            customer_id: customerId,
+            amount: amountVal,
+            method: methodVal as any,
+            payment_date: new Date().toISOString(),
+            notes: notesVal || 'Custom Payment from Delivery'
+         });
+
+         await fetchData();
+         setIsPaymentModalOpen(false);
+         setSelectedCustomerForPayment(null);
+         
+         setModalConfig({
+            isOpen: true,
+            title: "Payment Recorded",
+            message: `Successfully recorded payment of ₹${amountVal.toFixed(2)} using ${methodVal}.`,
+            type: 'success'
+         });
+      } catch (err) {
+         console.error("Failed to record payment:", err);
+         setModalConfig({
+            isOpen: true,
+            title: "Payment Failed",
+            message: "Failed to record payment. Please check your connection and try again.",
+            type: 'danger'
+         });
+      } finally {
+         setIsLoading(false);
+      }
    };
 
    // 1. DATA LOAD & SYNC
@@ -521,7 +601,17 @@ export default function DeliveryPage() {
                                     })()}
                                  </div>
                               </div>
-                              <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
+                              <div className="flex items-center gap-2">
+                                 <button onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    setSelectedCustomerForPayment(delivery.customer_id);
+                                    setPaymentAmount("");
+                                    setPaymentMethod("Cash");
+                                    setPaymentNotes("");
+                                    setIsPaymentModalOpen(true);
+                                 }} className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"><Wallet2 size={18} strokeWidth={2.5} /></button>
+                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
+                              </div>
                            </div>
                            {!isExpanded && activeItems.length > 0 && (
                               <div className="mt-3 flex flex-wrap gap-2 mb-2">
@@ -594,6 +684,65 @@ export default function DeliveryPage() {
                      <button onClick={() => setExpandedStopId(null)} className="w-full bg-primary text-white py-4 rounded-2xl font-bold mt-8 shadow-xl">Done</button>
                   </motion.div>
                </motion.div>
+            )}
+         </AnimatePresence>
+
+         <AnimatePresence>
+            {isPaymentModalOpen && (
+               <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6 text-zinc-900">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+                     <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const amt = parseFloat(paymentAmount);
+                        if (isNaN(amt) || amt <= 0) return;
+                        runRecordPayment(amt, paymentMethod, paymentNotes);
+                     }} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Payment Amount (₹)</label>
+                           <input
+                              autoFocus
+                              type="number"
+                              step="0.01"
+                              required
+                              placeholder="0.00"
+                              value={paymentAmount}
+                              onChange={e => setPaymentAmount(e.target.value)}
+                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all font-bold"
+                           />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Payment Method</label>
+                           <div className="grid grid-cols-2 gap-2">
+                              {['Cash', 'UPI', 'Bank Transfer', 'Other'].map(method => (
+                                 <button
+                                    type="button"
+                                    key={method}
+                                    onClick={() => setPaymentMethod(method)}
+                                    className={`py-2 text-sm font-bold rounded-xl border transition-all ${paymentMethod === method ? 'bg-primary/5 border-primary/30 text-primary' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                 >
+                                    {method}
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Notes (Optional)</label>
+                           <input
+                              type="text"
+                              placeholder="e.g. Received at door"
+                              value={paymentNotes}
+                              onChange={e => setPaymentNotes(e.target.value)}
+                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                           />
+                        </div>
+                        <button disabled={isLoading} type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl disabled:opacity-50">
+                           {isLoading ? "Saving..." : "Record Payment"}
+                        </button>
+                     </form>
+                  </motion.div>
+               </div>
             )}
          </AnimatePresence>
 

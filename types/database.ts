@@ -114,5 +114,5 @@ export interface CustomerFinancials {
   total_billed: number;
   total_paid: number;
   current_balance: number;
-  account_status: 'Credit/Advance' | 'Debt';
+  account_status: 'Advance' | 'Credit';
 }

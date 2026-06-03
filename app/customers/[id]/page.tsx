@@ -577,13 +577,13 @@ export default function CustomerProfilePage() {
                         <div className="grid grid-cols-2 gap-2 sm:gap-3">
                            <div className="bg-slate-50 rounded-2xl p-3 sm:p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
                            <div
-                              className={`rounded-2xl p-3 sm:p-4 border cursor-pointer transition-all ${financials?.account_status === 'Credit/Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`}
+                              className={`rounded-2xl p-3 sm:p-4 border cursor-pointer transition-all ${financials?.account_status === 'Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`}
                               onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
                            >
-                              <div className={`flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2 opacity-80 ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
-                                 <Receipt size={12} /> {financials?.account_status === 'Credit/Advance' ? 'Advance' : 'Balance'}
+                              <div className={`flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2 opacity-80 ${financials?.account_status === 'Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                                 <Receipt size={12} /> {financials?.account_status === 'Advance' ? 'Advance' : 'Balance'}
                               </div>
-                              <p className={`text-[13px] sm:text-sm font-black ${financials?.account_status === 'Credit/Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                              <p className={`text-[13px] sm:text-sm font-black ${financials?.account_status === 'Advance' ? 'text-emerald-600' : 'text-primary'}`}>
                                  {financials ? `₹${Math.abs(financials.current_balance).toFixed(2)}` : '₹0.00'}
                               </p>
                            </div>

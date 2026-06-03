@@ -212,43 +212,16 @@ ALTER TABLE payments        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
 -- ─── POLICIES ─────────────────────────────
--- Full access for authenticated users on all tables
-DO $$
-DECLARE
-    t text;
-BEGIN
-    FOR t IN (
-        SELECT table_name
-        FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-    ) LOOP
-        EXECUTE format('DROP POLICY IF EXISTS "Full access" ON %I', t);
-        EXECUTE format(
-            'CREATE POLICY "Full access" ON %I FOR ALL USING (auth.role() = ''authenticated'')', t
-        );
-    END LOOP;
-END $$;
-
--- Additional fine‑grained RLS policies
--- Customers: owners can read/write their own rows
-CREATE POLICY "Customer owner" ON customers
-FOR ALL USING (auth.uid() = id)
-WITH CHECK (auth.uid() = id);
-
--- Deliveries: owners can read/write their own rows
-CREATE POLICY "Delivery owner" ON deliveries
-FOR ALL USING (auth.uid() = customer_id)
-WITH CHECK (auth.uid() = customer_id);
-
--- Bills: owners can read/write their own rows
-CREATE POLICY "Bill owner" ON bills
-FOR ALL USING (auth.uid() = customer_id)
-WITH CHECK (auth.uid() = customer_id);
-
--- Payments: owners can read/write their own rows
-CREATE POLICY "Payment owner" ON payments
-FOR ALL USING (auth.uid() = customer_id)
-WITH CHECK (auth.uid() = customer_id);
+-- ─── POLICIES ─────────────────────────────
+-- Allow all authenticated users (admins) full access to all tables
+CREATE POLICY "Admin access areas" ON areas FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access products" ON products FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access customers" ON customers FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access inventory" ON inventory FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access deliveries" ON deliveries FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access bills" ON bills FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access payments" ON payments FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access system_settings" ON system_settings FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 
 -- ─── DATA INTEGRITY — ONE-TIME FIXES ──────
@@ -436,3 +409,6 @@ VALUES (
 ON CONFLICT (key) DO UPDATE 
 SET value = system_settings.value || '{"autoCloseEnabled": true, "morningCloseTime": "12:00", "eveningCloseTime": "22:00"}'::jsonb;
 
+INSERT INTO system_settings (key, value)
+VALUES ('daily_prices', '{}'::jsonb)
+ON CONFLICT DO NOTHING;

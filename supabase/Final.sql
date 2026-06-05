@@ -212,7 +212,25 @@ ALTER TABLE payments        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
 -- ─── POLICIES ─────────────────────────────
--- ─── POLICIES ─────────────────────────────
+-- First, ensure any temporary public policies are removed
+DROP POLICY IF EXISTS "Public access areas" ON areas;
+DROP POLICY IF EXISTS "Public access products" ON products;
+DROP POLICY IF EXISTS "Public access customers" ON customers;
+DROP POLICY IF EXISTS "Public access inventory" ON inventory;
+DROP POLICY IF EXISTS "Public access deliveries" ON deliveries;
+DROP POLICY IF EXISTS "Public access bills" ON bills;
+DROP POLICY IF EXISTS "Public access payments" ON payments;
+
+-- Then, drop any existing admin policies to avoid duplication errors
+DROP POLICY IF EXISTS "Admin access areas" ON areas;
+DROP POLICY IF EXISTS "Admin access products" ON products;
+DROP POLICY IF EXISTS "Admin access customers" ON customers;
+DROP POLICY IF EXISTS "Admin access inventory" ON inventory;
+DROP POLICY IF EXISTS "Admin access deliveries" ON deliveries;
+DROP POLICY IF EXISTS "Admin access bills" ON bills;
+DROP POLICY IF EXISTS "Admin access payments" ON payments;
+DROP POLICY IF EXISTS "Admin access system_settings" ON system_settings;
+
 -- Allow all authenticated users (admins) full access to all tables
 CREATE POLICY "Admin access areas" ON areas FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Admin access products" ON products FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');

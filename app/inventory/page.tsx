@@ -111,7 +111,9 @@ export default function InventoryPage() {
     ]);
     if (prods) setProducts(prods as T.Product[]);
     // Note: mapping 'inventory' to pipeline for this view
-    if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count === 0 ? "" : p.count, unit: p.unit, id: p.id, productId: p.product_id, loaded: p.loaded || 0 })));
+    if (pipes) {
+      setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count === 0 ? "" : p.count, unit: p.unit, id: p.id, productId: p.product_id, loaded: p.loaded || 0 })));
+    }
     
     if (settings && settings.value) {
       const dbDailyPrices = settings.value as any;

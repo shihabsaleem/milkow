@@ -158,7 +158,7 @@ export default function BillingPage() {
    const [dontShowAgain, setDontShowAgain] = useState(false);
 
    const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string) => {
-      if (!selectedCustomerForPayment) return;
+      if (!selectedCustomerForPayment || isLoading) return;
       try {
          setIsLoading(true);
          await recordPayment(selectedCustomerForPayment, amountVal, methodVal, notesVal || 'Custom Payment from Billing');
@@ -190,6 +190,7 @@ export default function BillingPage() {
    };
 
    const runMarkAsPaid = async (id: string) => {
+      if (isLoading) return;
       try {
          const entry = bills.find(b => b.id === id);
          if (!entry) return;

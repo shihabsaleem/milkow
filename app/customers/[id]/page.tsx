@@ -257,7 +257,7 @@ export default function CustomerProfilePage() {
    };
 
    const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string) => {
-      if (!customer) return;
+      if (!customer || isLoading) return;
       try {
          setIsLoading(true);
 
@@ -915,10 +915,10 @@ export default function CustomerProfilePage() {
                         </div>
                         <button
                            type="submit"
-                           disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}
+                           disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || isLoading}
                            className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 transition-all shadow-xl"
                         >
-                           Record Payment
+                           {isLoading ? "Recording..." : "Record Payment"}
                         </button>
                      </form>
                   </motion.div>

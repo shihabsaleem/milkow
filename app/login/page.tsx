@@ -1,47 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useLoginLogic } from "@/hooks/useLoginLogic";
 import Image from "next/image";
 import Link from "next/link";
-import { Milk, ArrowRight, Mail, Lock, ShieldCheck, Sparkles, Building2 } from "lucide-react";
+import { Mail, Lock, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
-   const router = useRouter();
-   const { user, loading } = useAuth();
-   const [email, setEmail] = useState("");
-   const [password, setPassword] = useState("");
-   const [isLoading, setIsLoading] = useState(false);
-   const [error, setError] = useState("");
-
-   useEffect(() => {
-      if (!loading && user) {
-         router.push("/");
-      }
-   }, [user, loading, router]);
-
-   const handleLogin = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setIsLoading(true);
-      setError("");
-
-      try {
-         const { error: authError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-         });
-
-         if (authError) throw authError;
-         router.push("/");
-      } catch (err: any) {
-         setError(err.message || "Invalid credentials. Please try again.");
-      } finally {
-         setIsLoading(false);
-      }
-   };
+   const {
+      email,
+      setEmail,
+      password,
+      setPassword,
+      isLoading,
+      error,
+      handleLogin
+   } = useLoginLogic();
 
    return (
       <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden">

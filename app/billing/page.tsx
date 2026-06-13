@@ -11,6 +11,7 @@ import Modal from "@/components/ui/Modal";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import * as T from "@/types/database";
 import { recordPayment, settleAllDues } from "@/lib/financials";
+import { useBillingLogic } from "@/hooks/useBillingLogic";
 
 export default function BillingPage() {
    const router = useRouter();
@@ -25,11 +26,23 @@ export default function BillingPage() {
    const searchParams = useSearchParams();
    const qrRef = useRef<HTMLDivElement>(null);
 
+   const {
+      bills,
+      routesList,
+      paymentSettings,
+      isLoading,
+      setIsLoading,
+      showToast,
+      modalConfig,
+      setModalConfig,
+      fetchData,
+      handleMarkAsPaid,
+      handleShareCard,
+      handleWhatsAppShare
+   } = useBillingLogic(qrRef);
+
    const [searchTerm, setSearchTerm] = useState("");
    const [selectedInvoice, setSelectedInvoice] = useState<(T.Bill & { customer: T.Customer }) | null>(null);
-   const [bills, setBills] = useState<(T.Bill & { customer: T.Customer })[]>([]);
-   const [products, setProducts] = useState<T.Product[]>([]);
-   const [routesList, setRoutesList] = useState<T.Area[]>([]);
    const [selectedRoute, setSelectedRoute] = useState<number | "">(() => {
       if (typeof window !== "undefined") {
          const saved = localStorage.getItem('milkow_selected_route');
@@ -37,92 +50,7 @@ export default function BillingPage() {
       }
       return "";
    });
-   const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
-   const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
-   const [showToast, setShowToast] = useState(false);
-   const [isLoading, setIsLoading] = useState(true);
-
-   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-   const [paymentAmount, setPaymentAmount] = useState("");
-   const [paymentMethod, setPaymentMethod] = useState("Cash");
-   const [paymentNotes, setPaymentNotes] = useState("");
-   const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<string | null>(null);
-   const [paymentTotalDue, setPaymentTotalDue] = useState<number | null>(null);
-
-   const fetchData = async (silent = false) => {
-      if (!silent) setIsLoading(true);
-      const [
-         { data: routeSets },
-         { data: financialsData },
-         { data: productList },
-         { data: unbilledData },
-         { data: settingsData },
-         { data: customersData }
-      ] = await Promise.all([
-         supabase.from('areas').select('*').order('name', { ascending: true }),
-         supabase.from('customer_financials').select('*'),
-         supabase.from('products').select('*'),
-         supabase.from('deliveries').select('*, customers(*)').eq('delivered', true).eq('billed', false),
-         supabase.from('system_settings').select('value').eq('key', 'general').single(),
-         supabase.from('customers').select('id, phone')
-      ]);
-
-      if (routeSets) setRoutesList(routeSets as T.Area[]);
-
-      const prods = (productList || []) as T.Product[];
-      setProducts(prods);
-      const prices: Record<string, number> = {};
-      prods.forEach(p => { prices[p.id] = p.price; prices[p.name] = p.price; });
-
-      const customersMap = new Map((customersData || []).map((c: any) => [c.id, c]));
-
-      // Combine with financials
-      const combinedBills: (T.Bill & { customer: T.Customer })[] = [];
-      (financialsData || []).forEach((fin: any) => {
-         const grandTotal = fin.current_balance;
-         const cDetail = customersMap.get(fin.id) as any;
-
-         if (grandTotal > 0) {
-            combinedBills.push({
-               id: `TOTAL-${fin.id.slice(0, 8)}`,
-               customer_id: fin.id,
-               amount: grandTotal,
-               type: 'Ledger' as any,
-               status: 'Pending',
-               created_at: new Date().toISOString(),
-               customer: {
-                  id: fin.id,
-                  name: fin.name,
-                  phone: cDetail?.phone || null,
-                  area_id: fin.area_id || null
-               } as any
-            });
-         }
-      });
-
-      setBills(combinedBills);
-
-      if (settingsData) {
-         const general = settingsData.value as { payment?: T.PaymentSetup };
-         if (general?.payment) setPaymentSettings(general.payment);
-      }
-      if (!silent) setIsLoading(false);
-   };
-
-   // 1. DATA LOAD & SYNC
-   useEffect(() => {
-      fetchData();
-
-      const sub = supabase.channel('bills_page')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchData)
-         .subscribe();
-
-      return () => { sub.unsubscribe(); };
-   }, []);
-
+   
    useEffect(() => {
       localStorage.setItem('milkow_selected_route', selectedRoute.toString());
    }, [selectedRoute]);
@@ -132,30 +60,21 @@ export default function BillingPage() {
       if (search) setSearchTerm(search);
    }, [searchParams]);
 
+   const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
+
+   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+   const [paymentAmount, setPaymentAmount] = useState("");
+   const [paymentMethod, setPaymentMethod] = useState("Cash");
+   const [paymentNotes, setPaymentNotes] = useState("");
+   const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<string | null>(null);
+   const [paymentTotalDue, setPaymentTotalDue] = useState<number | null>(null);
+
    const filteredBills = bills.filter((bill) => {
       const matchesSearch = bill.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
          bill.id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRoute = selectedRoute === "" || bill.customer?.area_id === selectedRoute;
       return matchesSearch && matchesRoute && bill.status !== 'Paid';
    });
-
-   const [modalConfig, setModalConfig] = useState<{
-      isOpen: boolean;
-      title: string;
-      message: string;
-      onConfirm: (dontShowAgain?: boolean) => void;
-      type: 'danger' | 'info' | 'success';
-      confirmText?: string;
-      showDontShowAgain?: boolean;
-   }>({
-      isOpen: false,
-      title: "",
-      message: "",
-      onConfirm: () => { },
-      type: 'info'
-   });
-
-   const [dontShowAgain, setDontShowAgain] = useState(false);
 
    const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string) => {
       if (!selectedCustomerForPayment || isLoading) return;
@@ -187,213 +106,6 @@ export default function BillingPage() {
       } finally {
          setIsLoading(false);
       }
-   };
-
-   const runMarkAsPaid = async (id: string) => {
-      if (isLoading) return;
-      try {
-         const entry = bills.find(b => b.id === id);
-         if (!entry) return;
-
-         await settleAllDues(entry.customer_id, 'Cash', 'Full Settlement from Billing');
-
-         setShowToast(true);
-         setTimeout(() => setShowToast(false), 3000);
-         await fetchData();
-      } catch (err) {
-         console.error("Failed to mark as paid:", err);
-      }
-      setSelectedInvoice(null);
-   };
-
-   const handleMarkAsPaid = (id: string) => {
-      const skip = localStorage.getItem('skip_billing_confirm') === 'true';
-      if (skip) {
-         runMarkAsPaid(id);
-         return;
-      }
-
-      const entry = bills.find(b => b.id === id);
-      if (!entry) return;
-
-      setModalConfig({
-         isOpen: true,
-         title: "Confirm Payment",
-         message: `Mark the full balance of ₹${Number(entry.amount).toFixed(2)} for ${entry.customer?.name} as paid in cash?`,
-         type: 'success',
-         confirmText: "Yes, Mark Paid",
-         showDontShowAgain: true,
-         onConfirm: (dontShow) => {
-            if (dontShow) localStorage.setItem('skip_billing_confirm', 'true');
-            setModalConfig(prev => ({ ...prev, isOpen: false }));
-            runMarkAsPaid(id);
-         }
-      });
-   };
-
-   const getPaymentCardFile = async (invoice: T.Bill & { customer: T.Customer }) => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return null;
-
-      // High-res for sharing (9:16 aspect ratio)
-      const width = 1080;
-      const height = 1920;
-      canvas.width = width;
-      canvas.height = height;
-
-      // 1. Background (Premium Deep Navy)
-      const bgGradient = ctx.createLinearGradient(0, 0, width, height);
-      bgGradient.addColorStop(0, "#050044");
-      bgGradient.addColorStop(1, "#020024");
-      ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, width, height);
-
-      // Add subtle decorative accents
-      ctx.globalAlpha = 0.15;
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath(); ctx.arc(width * 0.9, height * 0.1, 500, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(width * 0.1, height * 0.9, 400, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 1.0;
-
-      // 2. Main Card Body (Receipt Style)
-      const cardX = 80;
-      const cardY = 120;
-      const cardW = width - 160;
-      const cardH = 1600; // Card spans from y=120 to y=1720
-      const radius = 80;
-
-      // Card Shadow
-      ctx.shadowColor = "rgba(0,0,0,0.4)";
-      ctx.shadowBlur = 60;
-      ctx.shadowOffsetY = 30;
-      ctx.fillStyle = "#FFFFFF";
-      ctx.beginPath();
-      ctx.roundRect(cardX, cardY, cardW, cardH, radius);
-      ctx.fill();
-      ctx.shadowColor = "transparent";
-
-      // 3. Logo & Brand Header
-      const logo = new Image();
-      logo.src = "/assets/logo.svg";
-      await new Promise((resolve) => { logo.onload = resolve; logo.onerror = resolve; });
-      if (logo.complete && logo.naturalWidth > 0) {
-         const logoWidth = 260;
-         const logoHeight = logo.naturalHeight * (logoWidth / logo.naturalWidth);
-         ctx.drawImage(logo, (width / 2) - (logoWidth / 2), cardY + 80, logoWidth, logoHeight);
-      }
-
-      // 4. Amount Section
-      ctx.fillStyle = "#94A3B8";
-      ctx.font = "500 36px Geist, Inter, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("TOTAL PAYABLE", width / 2, cardY + 300);
-
-      ctx.fillStyle = "#050044";
-      ctx.font = "900 120px Geist, Inter, sans-serif";
-      const formattedAmount = `₹${Number(invoice.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      ctx.fillText(formattedAmount, width / 2, cardY + 440);
-
-      // Divider Line
-      ctx.strokeStyle = "#F1F5F9";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(cardX + 100, cardY + 540);
-      ctx.lineTo(cardX + cardW - 100, cardY + 540);
-      ctx.stroke();
-
-      // 5. Customer Details
-      ctx.textAlign = "left";
-      ctx.fillStyle = "#64748B";
-      ctx.font = "bold 30px Geist, Inter, sans-serif";
-      ctx.fillText("BILL TO", cardX + 100, cardY + 620);
-
-      ctx.fillStyle = "#1E293B";
-      ctx.font = "900 50px Geist, Inter, sans-serif";
-      ctx.fillText(invoice.customer?.name || "Customer", cardX + 100, cardY + 695);
-
-      const phone = invoice.customer?.phone || "";
-      const routeId = invoice.customer?.area_id;
-      const routeName = routesList.find(r => r.id === routeId)?.name || "";
-
-      let detailsText = "";
-      if (phone && routeName) {
-         detailsText = `${phone}   ·   ${routeName}`;
-      } else {
-         detailsText = phone || routeName || "";
-      }
-
-      if (detailsText) {
-         ctx.fillStyle = "#64748B";
-         ctx.font = "600 32px Geist, Inter, sans-serif";
-         ctx.fillText(detailsText, cardX + 100, cardY + 760);
-      }
-
-      // 6. QR Code Section
-      const qrSize = 540;
-      const qrX = (width / 2) - (qrSize / 2);
-      const qrY = cardY + 840;
-
-      // QR Frame/Container
-      ctx.fillStyle = "#F8FAFC";
-      ctx.beginPath();
-      ctx.roundRect(qrX - 40, qrY - 40, qrSize + 80, qrSize + 80, 60);
-      ctx.fill();
-
-      // Decorative border for QR
-      ctx.strokeStyle = "#E2E8F0";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      const uiQrCanvas = qrRef.current?.querySelector("canvas");
-      if (uiQrCanvas) {
-         ctx.drawImage(uiQrCanvas, qrX, qrY, qrSize, qrSize);
-      }
-
-      // 7. Payment Instructions
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#050044";
-      ctx.font = "bold 38px Geist, Inter, sans-serif";
-      ctx.fillText("Scan with any UPI App", width / 2, cardY + 1475);
-
-      if (paymentSettings?.upi_id) {
-         ctx.fillStyle = "#64748B";
-         ctx.font = "600 30px Geist, Inter, sans-serif";
-         ctx.fillText(`UPI ID: ${paymentSettings.upi_id}`, width / 2, cardY + 1535);
-      }
-
-      // 8. Bottom Branding
-      ctx.fillStyle = "rgba(255,255,255,0.6)";
-      ctx.font = "bold 32px Geist, Inter, sans-serif";
-      ctx.fillText("Fresh Milk, Delivered with Love.", width / 2, 1860);
-
-      const dataUrl = canvas.toDataURL("image/png", 0.95);
-      const blob = await (await fetch(dataUrl)).blob();
-      return new File([blob], `Milkow_Bill_${invoice.customer?.name}.png`, { type: "image/png" });
-   };
-
-   const handleShareCard = async () => {
-      if (!selectedInvoice) return;
-      try {
-         const file = await getPaymentCardFile(selectedInvoice);
-         if (!file) return;
-         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: `Payment Card for ${selectedInvoice.customer?.name}`, text: `Hi ${selectedInvoice.customer?.name}, your payment card is ready.` });
-         } else {
-            const dataUrl = URL.createObjectURL(file);
-            const link = document.createElement("a"); link.href = dataUrl; link.download = `Milkow_Card_${selectedInvoice.customer?.name}.png`; link.click();
-         }
-      } catch (e) { console.error(e); }
-   };
-
-   const handleWhatsAppShare = async (invoice: (T.Bill & { customer: T.Customer })) => {
-      if (!paymentSettings) return;
-      const amount = Number(invoice.amount).toFixed(2);
-      const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
-      const message = `Hi ${invoice.customer?.name}, your bill for ${invoice.type} is ₹${amount}. You can pay using the attached QR or this link: ${upiLink}`;
-
-      const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`;
-      window.open(url, "_blank");
    };
 
    return (
@@ -501,7 +213,7 @@ export default function BillingPage() {
                               setPaymentTotalDue(bill.amount);
                               setIsPaymentModalOpen(true);
                            }} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-primary text-white active:scale-95"><Wallet2 size={14} /> Record</button>
-                           <button onClick={() => handleMarkAsPaid(bill.id)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-emerald-50 text-emerald-600 border active:scale-95"><CheckCircle2 size={14} /> Settle</button>
+                           <button onClick={() => handleMarkAsPaid(bill.id, setSelectedInvoice)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-emerald-50 text-emerald-600 border active:scale-95"><CheckCircle2 size={14} /> Settle</button>
                         </div>
                      </div>
                   );
@@ -542,9 +254,9 @@ export default function BillingPage() {
                      <div className="w-full flex flex-col gap-3 mt-4">
                         <div className="flex gap-2">
                            <button onClick={() => handleWhatsAppShare(selectedInvoice)} className="flex-1 bg-[#E8F8EF] text-[#1E7E4E] py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><MessageCircle size={18} /> WhatsApp</button>
-                           <button onClick={handleShareCard} className="flex-1 bg-primary text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><Share2 size={18} /> Share Card</button>
+                           <button onClick={() => handleShareCard(selectedInvoice)} className="flex-1 bg-primary text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><Share2 size={18} /> Share Card</button>
                         </div>
-                        <button onClick={() => handleMarkAsPaid(selectedInvoice.id)} className="w-full bg-zinc-100 text-zinc-500 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><Wallet2 size={18} /> Manual Confirmation</button>
+                        <button onClick={() => handleMarkAsPaid(selectedInvoice.id, setSelectedInvoice)} className="w-full bg-zinc-100 text-zinc-500 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><Wallet2 size={18} /> Manual Confirmation</button>
                      </div>
                   </motion.div>
                </motion.div>

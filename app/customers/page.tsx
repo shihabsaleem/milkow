@@ -1,190 +1,37 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, Search, MapPin, ChevronRight, X, ListOrdered } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
 import Modal from "@/components/ui/Modal";
-import * as T from "@/types/database";
-import { checkAndRunAutomations } from "@/lib/automation";
 import CustomSelect from "@/components/ui/CustomSelect";
 import PullToRefresh from "@/components/ui/PullToRefresh";
+import { Plus, Search, MapPin, ChevronRight, X, ListOrdered } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useCustomersLogic } from "@/hooks/useCustomersLogic";
 
 export default function CustomersPage() {
-  const router = useRouter();
-  const { user, loading } = useAuth();
+  const {
+    router,
+    searchTerm,
+    setSearchTerm,
+    isModalOpen,
+    setIsModalOpen,
+    customers,
+    areas,
+    selectedAreaId,
+    setSelectedAreaId,
+    newCustomer,
+    setNewCustomer,
+    products,
+    isLoading,
+    isSubmitting,
+    modalConfig,
+    setModalConfig,
+    filteredCustomers,
+    handleAddCustomer,
+    fetchData
+  } = useCustomersLogic();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/404");
-    }
-  }, [user, loading, router]);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [customers, setCustomers] = useState<(T.Customer & { area: T.Area; financials?: T.CustomerFinancials })[]>([]);
-  const [areas, setAreas] = useState<T.Area[]>([]);
-  const [selectedAreaId, setSelectedAreaId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem('milkow_selected_route');
-      return saved === null ? "" : saved;
-    }
-    return "";
-  });
-  const [newCustomer, setNewCustomer] = useState({
-    name: "",
-    phone: "",
-    area_id: "",
-    frequency: "Morning Only",
-    outstanding: "",
-    default_qty: "1",
-    default_product_id: ""
-  });
-  const [products, setProducts] = useState<T.Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchData = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    const [
-      { data: custs },
-      { data: areaList },
-      { data: productList },
-      { data: financialData }
-    ] = await Promise.all([
-      supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true }),
-      supabase.from('areas').select('*').order('name', { ascending: true }),
-      supabase.from('products').select('*').order('name', { ascending: true }),
-      supabase.from('customer_financials').select('*')
-    ]);
-
-    if (custs) {
-      const merged = (custs as any[]).map(c => ({
-        ...c,
-        financials: (financialData as T.CustomerFinancials[] || []).find(f => f.id === c.id)
-      }));
-      setCustomers(merged);
-    }
-    if (areaList) setAreas(areaList as T.Area[]);
-    if (productList) setProducts(productList as T.Product[]);
-    if (!silent) setIsLoading(false);
-  }, []);
-
-  // 1. DATA LOAD & SYNC
-  useEffect(() => {
-    fetchData();
-
-    const sub = supabase.channel('cust_list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchData)
-      .subscribe();
-
-    return () => { sub.unsubscribe(); };
-  }, [fetchData]);
-
-  useEffect(() => {
-    localStorage.setItem('milkow_selected_route', selectedAreaId);
-  }, [selectedAreaId]);
-
-  const [modalConfig, setModalConfig] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    type: 'danger' | 'info' | 'success';
-    confirmText?: string;
-    showDontShowAgain?: boolean;
-  }>({
-    isOpen: false,
-    title: "",
-    message: "",
-    onConfirm: () => { },
-    type: 'info'
-  });
-
-  const handleAddCustomer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCustomer.name || !newCustomer.phone || !newCustomer.area_id) return;
-    try {
-      setIsSubmitting(true);
-
-      // 1. Auto-append at end of route: last delivery_order + 1000
-      const { data: lastCustomer } = await supabase
-        .from('customers')
-        .select('delivery_order')
-        .eq('area_id', parseInt(newCustomer.area_id))
-        .order('delivery_order', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const newOrder = lastCustomer ? Number(lastCustomer.delivery_order) + 1000 : 1000;
-
-      // 2. Insert with the new delivery_order
-      const { error: insertError } = await supabase.from('customers').insert({
-        name: newCustomer.name,
-        phone: newCustomer.phone,
-        area_id: parseInt(newCustomer.area_id),
-        frequency: newCustomer.frequency,
-        status: 'Active',
-        default_qty: parseInt(newCustomer.default_qty) || 1,
-        default_product_id: newCustomer.default_product_id || null,
-        past_outstanding: parseFloat(newCustomer.outstanding) || 0,
-        delivery_order: newOrder
-      });
-
-      if (insertError) {
-        console.error("Insert error:", insertError);
-        throw insertError;
-      }
-
-      // 🚀 Sync route immediately
-      await checkAndRunAutomations();
-
-      setIsModalOpen(false);
-      setNewCustomer({
-        name: "",
-        phone: "",
-        area_id: "",
-        frequency: "Morning Only",
-        outstanding: "",
-        default_qty: "1",
-        default_product_id: ""
-      });
-      await fetchData();
-
-      setModalConfig({
-        isOpen: true,
-        title: "Registration Success",
-        message: `${newCustomer.name} has been added to the system successfully!`,
-        type: 'success',
-        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-        confirmText: "Great"
-      });
-    } catch (err: any) {
-      console.error("Failed to add customer:", err);
-      setModalConfig({
-        isOpen: true,
-        title: "Registration Failed",
-        message: err.message || "Something went wrong while adding the customer. Please try again.",
-        type: 'danger',
-        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-        confirmText: "Try Again"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const filteredCustomers = customers.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone.includes(searchTerm);
-    const matchesArea = selectedAreaId === "" || c.area_id?.toString() === selectedAreaId;
-    return matchesSearch && matchesArea;
-  });
 
   return (
     <PullToRefresh onRefresh={() => fetchData(true)} className="bg-zinc-50/50 pb-32">

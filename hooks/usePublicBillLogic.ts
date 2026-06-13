@@ -1,22 +1,16 @@
 import { useState } from "react";
-import { getPublicBill } from "@/app/bill/actions";
-
-export interface BillData {
-  customer_name: string;
-  phone: string;
-  area_name: string;
-  current_balance: number;
-  upi_id: string;
-  payee_name: string;
-  currency_code: string;
-}
+import { getPublicBill, FullLedgerResponse } from "@/app/bill/actions";
+import * as T from "@/types/database";
 
 export function usePublicBillLogic() {
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [billData, setBillData] = useState<BillData | null>(null);
+  const [billData, setBillData] = useState<FullLedgerResponse | null>(null);
   const [copied, setCopied] = useState(false);
+  
+  // View options
+  const [viewDate, setViewDate] = useState(new Date());
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, "");
@@ -42,7 +36,7 @@ export function usePublicBillLogic() {
         setError(res.error);
         setBillData(null);
       } else if (res.success && res.data) {
-        setBillData(res.data as BillData);
+        setBillData(res.data);
       }
     } catch (err) {
       setError("Failed to fetch bill details. Please check your connection.");
@@ -58,8 +52,8 @@ export function usePublicBillLogic() {
   };
 
   const copyUpiId = () => {
-    if (!billData) return;
-    navigator.clipboard.writeText(billData.upi_id);
+    if (!billData || !billData.settings?.payment) return;
+    navigator.clipboard.writeText(billData.settings.payment.upi_id);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -67,7 +61,8 @@ export function usePublicBillLogic() {
   const shareBillLink = async () => {
     if (!billData) return;
     const url = typeof window !== "undefined" ? window.location.href : "";
-    const text = `Hi, view your latest milk bill outstanding balance of ₹${billData.current_balance.toFixed(2)} on Milkow.`;
+    const balance = billData.financials.current_balance;
+    const text = `Hi, view your latest milk bill outstanding balance of ₹${balance.toFixed(2)} on Milkow.`;
 
     try {
       if (navigator.share) {
@@ -86,10 +81,49 @@ export function usePublicBillLogic() {
   };
 
   const getUpiLink = () => {
-    if (!billData) return "";
-    const { upi_id, payee_name, currency_code } = billData;
-    return `upi://pay?pa=${upi_id}&pn=${encodeURIComponent(payee_name)}&am=${billData.current_balance.toFixed(2)}&cu=${currency_code}`;
+    if (!billData || !billData.settings?.payment) return "";
+    const payment = billData.settings.payment;
+    const balance = billData.financials.current_balance;
+    return `upi://pay?pa=${payment.upi_id}&pn=${encodeURIComponent(payment.payee_name)}&am=${balance.toFixed(2)}&cu=${payment.currency_code}`;
   };
+
+  // Helper functions for Ledger View
+  const changeMonth = (delta: number) => {
+    const newDate = new Date(viewDate);
+    newDate.setMonth(newDate.getMonth() + delta);
+    setViewDate(newDate);
+  };
+
+  const calculateDeliveryTotal = (d: T.Delivery & { total_cost?: number }) => {
+    if (d.total_cost != null && d.total_cost > 0) return Number(d.total_cost);
+
+    if (!billData) return 0;
+    
+    // We recreate the price map from the fetched products
+    const prices: Record<string, number> = {};
+    billData.products.forEach(p => prices[p.name] = Number(p.price));
+    const milkPrice = prices[Object.keys(prices).find(n => n.toLowerCase().includes('milk')) || ''] || 50;
+
+    const product = billData.products.find(p => p.id === d.product_id);
+    const basePrice = product ? Number(product.price) : milkPrice;
+    
+    let total = (Number(d.milk_qty) || 0) * basePrice;
+    const extras = (d.misc_items as any[]) || [];
+    extras.forEach((item: any) => {
+       const itemPrice = prices[item.name] || 0;
+       total += (item.qty || 0) * itemPrice;
+    });
+    return total;
+  };
+
+  const monthName = viewDate.toLocaleString('default', { month: 'long' });
+  const yearName = viewDate.getFullYear();
+
+  // Month filtering logic
+  const filteredDeliveries = billData?.deliveries?.filter(d => {
+    const dDate = new Date(d.delivery_date);
+    return dDate.getMonth() === viewDate.getMonth() && dDate.getFullYear() === viewDate.getFullYear();
+  }) || [];
 
   return {
     phone,
@@ -97,11 +131,17 @@ export function usePublicBillLogic() {
     error,
     billData,
     copied,
+    viewDate,
+    monthName,
+    yearName,
+    filteredDeliveries,
     handlePhoneChange,
     handleSearch,
     handleReset,
     copyUpiId,
     shareBillLink,
-    getUpiLink
+    getUpiLink,
+    changeMonth,
+    calculateDeliveryTotal
   };
 }

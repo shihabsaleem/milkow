@@ -1,20 +1,29 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
-import type { CustomerBill } from "@/types/supabase";
+import * as T from "@/types/database";
 
-export async function getPublicBill(phone: string): Promise<{ success?: boolean; data?: CustomerBill; error?: string }> {
+export type FullLedgerResponse = {
+  customer: T.Customer & { area_name: string };
+  financials: T.CustomerFinancials;
+  settings: { payment?: T.PaymentSetup };
+  bills: T.Bill[];
+  deliveries: T.Delivery[];
+  unbilled: T.Delivery[];
+  payments: T.Payment[];
+  products: T.Product[];
+};
+
+export async function getPublicBill(phone: string): Promise<{ success?: boolean; data?: FullLedgerResponse; error?: string }> {
   const sanitizedPhone = phone.trim();
   
-  // Basic validation: ensure digits only and suitable length
   const digitsOnly = sanitizedPhone.replace(/\D/g, "");
   if (!digitsOnly || digitsOnly.length < 10) {
     return { error: "Please enter a valid 10-digit mobile number." };
   }
 
   try {
-    // Invoke the PostgreSQL security definer RPC function in Supabase
-    const { data, error } = await supabase.rpc("get_customer_bill_by_phone", {
+    const { data, error } = await supabase.rpc("get_full_customer_ledger_by_phone", {
       phone_input: digitsOnly,
     });
 
@@ -23,24 +32,13 @@ export async function getPublicBill(phone: string): Promise<{ success?: boolean;
       return { error: "An error occurred while fetching your bill. Please try again." };
     }
 
-    if (!data || data.length === 0) {
+    if (!data) {
       return { error: "No customer found with this phone number. Please verify the digits or contact the administrator." };
     }
 
-    // Since RPC returns a list of rows, we grab the first matching result
-    const bill = data[0];
-
     return {
       success: true,
-      data: {
-        customer_name: bill.customer_name,
-        phone: bill.phone,
-        area_name: bill.area_name,
-        current_balance: Number(bill.current_balance),
-        upi_id: bill.upi_id,
-        payee_name: bill.payee_name,
-        currency_code: bill.currency_code,
-      },
+      data: data as FullLedgerResponse,
     };
   } catch (error) {
     console.error("Public bill retrieval failed:", error);

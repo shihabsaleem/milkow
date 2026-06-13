@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
 import { syncBatchDeliveries } from "@/lib/automation";
@@ -9,6 +9,7 @@ export function useDeliveryLogic() {
    const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [serverDeliveries, setServerDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [isSyncing, setIsSyncing] = useState(false);
+   const isSubmitting = useRef(false);
    const [isShiftClosed, setIsShiftClosed] = useState(false);
    const [isStagingCollapsed, setIsStagingCollapsed] = useState(false);
    const [products, setProducts] = useState<T.Product[]>([]);
@@ -344,7 +345,8 @@ export function useDeliveryLogic() {
    };
 
    const handleSync = async () => {
-      if (changedDeliveries.length === 0) return;
+      if (changedDeliveries.length === 0 || isSubmitting.current) return;
+      isSubmitting.current = true;
       setIsSyncing(true);
       try {
          await syncBatchDeliveries(changedDeliveries, serverDeliveries);
@@ -372,6 +374,7 @@ export function useDeliveryLogic() {
             type: 'danger'
          });
       } finally {
+         isSubmitting.current = false;
          setIsSyncing(false);
       }
    };

@@ -247,46 +247,59 @@ CREATE POLICY "Admin access system_settings" ON system_settings FOR ALL USING (a
 
 -- ─── RPC FUNCTIONS ────────────────────────
 -- Public-facing bill retrieval by phone number
-CREATE OR REPLACE FUNCTION get_customer_bill_by_phone(phone_input text)
-RETURNS TABLE (
-  customer_name text,
-  phone text,
-  area_name text,
-  current_balance numeric,
-  upi_id text,
-  payee_name text,
-  currency_code text
-)
+CREATE OR REPLACE FUNCTION get_full_customer_ledger_by_phone(phone_input text)
+RETURNS jsonb
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
+  target_customer record;
+  target_financials record;
   general_settings jsonb;
-  pay_upi text := 'milkow@ybl';
-  pay_name text := 'Milkow Distributor';
-  pay_curr text := 'INR';
+  bills_data jsonb;
+  deliveries_data jsonb;
+  unbilled_data jsonb;
+  payments_data jsonb;
+  products_data jsonb;
+  result jsonb;
 BEGIN
-  SELECT value INTO general_settings FROM system_settings WHERE key = 'general';
-  IF general_settings IS NOT NULL AND general_settings ? 'payment' THEN
-    pay_upi := COALESCE((general_settings->'payment'->>'upi_id'), pay_upi);
-    pay_name := COALESCE((general_settings->'payment'->>'payee_name'), pay_name);
-    pay_curr := COALESCE((general_settings->'payment'->>'currency_code'), pay_curr);
+  -- 1. Find Customer
+  SELECT c.*, a.name as area_name INTO target_customer
+  FROM customers c
+  LEFT JOIN areas a ON a.id = c.area_id
+  WHERE c.phone = phone_input OR (length(phone_input) >= 10 AND c.phone LIKE '%' || right(phone_input, 10))
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
   END IF;
 
-  RETURN QUERY
-  SELECT 
-    cf.name::text AS customer_name,
-    c.phone::text AS phone,
-    COALESCE(a.name::text, 'No Area') AS area_name,
-    cf.current_balance::numeric AS current_balance,
-    pay_upi AS upi_id,
-    pay_name AS payee_name,
-    pay_curr AS currency_code
-  FROM customer_financials cf
-  JOIN customers c ON c.id = cf.id
-  LEFT JOIN areas a ON a.id = cf.area_id
-  WHERE c.phone = phone_input
-     OR (length(phone_input) >= 10 AND c.phone LIKE '%' || right(phone_input, 10));
+  -- 2. Find Financials
+  SELECT * INTO target_financials FROM customer_financials WHERE id = target_customer.id;
+
+  -- 3. Find Settings
+  SELECT value INTO general_settings FROM system_settings WHERE key = 'general';
+
+  -- 4. Get Data
+  SELECT jsonb_agg(row_to_json(b)) INTO bills_data FROM bills b WHERE customer_id = target_customer.id;
+  SELECT jsonb_agg(row_to_json(d)) INTO deliveries_data FROM deliveries d WHERE customer_id = target_customer.id AND delivery_date >= date_trunc('month', CURRENT_DATE);
+  SELECT jsonb_agg(row_to_json(u)) INTO unbilled_data FROM deliveries u WHERE customer_id = target_customer.id AND delivered = true AND billed = false;
+  SELECT jsonb_agg(row_to_json(p)) INTO payments_data FROM payments p WHERE customer_id = target_customer.id;
+  SELECT jsonb_agg(row_to_json(pr)) INTO products_data FROM products pr;
+
+  -- Assemble Response
+  result := jsonb_build_object(
+    'customer', row_to_json(target_customer),
+    'financials', row_to_json(target_financials),
+    'settings', general_settings,
+    'bills', COALESCE(bills_data, '[]'::jsonb),
+    'deliveries', COALESCE(deliveries_data, '[]'::jsonb),
+    'unbilled', COALESCE(unbilled_data, '[]'::jsonb),
+    'payments', COALESCE(payments_data, '[]'::jsonb),
+    'products', COALESCE(products_data, '[]'::jsonb)
+  );
+
+  RETURN result;
 END;
 $$ LANGUAGE plpgsql;
 

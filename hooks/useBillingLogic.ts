@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
 import { recordPayment, settleAllDues } from "@/lib/financials";
@@ -25,6 +25,8 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       onConfirm: () => { },
       type: 'info'
    });
+
+   const isSubmitting = useRef(false);
 
    const fetchData = async (silent = false) => {
       if (!silent) setIsLoading(true);
@@ -97,10 +99,16 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
    }, []);
 
    const runMarkAsPaid = async (id: string, setSelectedInvoice: (val: null) => void) => {
-      if (isLoading) return;
+      if (isLoading || isSubmitting.current) return;
+      isSubmitting.current = true;
       try {
+         setIsLoading(true);
          const entry = bills.find(b => b.id === id);
-         if (!entry) return;
+         if (!entry) {
+            isSubmitting.current = false;
+            setIsLoading(false);
+            return;
+         }
 
          await settleAllDues(entry.customer_id, 'Cash', 'Full Settlement from Billing');
 
@@ -109,6 +117,9 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          await fetchData(true);
       } catch (err) {
          console.error("Failed to mark as paid:", err);
+      } finally {
+         isSubmitting.current = false;
+         setIsLoading(false);
       }
       setSelectedInvoice(null);
    };

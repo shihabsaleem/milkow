@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
@@ -26,6 +26,8 @@ export function useCustomerLogic(
       outstanding: "", outstanding_type: "credit", 
       default_product_id: "", default_qty: "1" 
    });
+
+   const isSubmitting = useRef(false);
 
    const [modalConfig, setModalConfig] = useState<{
       isOpen: boolean;
@@ -154,7 +156,8 @@ export function useCustomerLogic(
 
    const handleEditSubmit = async (e: React.FormEvent, setIsEditModalOpen: (v: boolean) => void) => {
       e.preventDefault();
-      if (!customer || !editForm.name || !editForm.phone || !editForm.area_id) return;
+      if (!customer || !editForm.name || !editForm.phone || !editForm.area_id || isSubmitting.current) return;
+      isSubmitting.current = true;
       try {
          setIsLoading(true);
          const amt = parseFloat(editForm.outstanding) || 0;
@@ -181,11 +184,14 @@ export function useCustomerLogic(
       } catch (err) {
          console.error(err);
          setIsLoading(false);
+      } finally {
+         isSubmitting.current = false;
       }
    };
 
    const runMarkAsPaid = async () => {
-      if (!customer || grandTotalAmount <= 0) return;
+      if (!customer || grandTotalAmount <= 0 || isSubmitting.current) return;
+      isSubmitting.current = true;
       try {
          setIsLoading(true);
 
@@ -210,6 +216,7 @@ export function useCustomerLogic(
             onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
          });
       } finally {
+         isSubmitting.current = false;
          setIsLoading(false);
       }
    };
@@ -237,7 +244,8 @@ export function useCustomerLogic(
    };
 
    const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string, setIsPaymentModalOpen: (v: boolean) => void) => {
-      if (!customer || isLoading) return;
+      if (!customer || isSubmitting.current) return;
+      isSubmitting.current = true;
       try {
          setIsLoading(true);
 
@@ -263,6 +271,7 @@ export function useCustomerLogic(
             onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
          });
       } finally {
+         isSubmitting.current = false;
          setIsLoading(false);
       }
    };

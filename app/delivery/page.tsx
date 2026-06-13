@@ -139,6 +139,7 @@ export default function DeliveryPage() {
       setIsLoading(false);
    };
 
+   /*
    const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string) => {
       if (!selectedCustomerForPayment) return;
       try {
@@ -212,6 +213,7 @@ export default function DeliveryPage() {
          setIsLoading(false);
       }
    };
+   */
 
    // 1. DATA LOAD & SYNC
    useEffect(() => {
@@ -688,6 +690,8 @@ export default function DeliveryPage() {
                               <div className="flex items-center gap-2">
                                  <button onClick={(e) => {
                                     e.stopPropagation();
+                                    router.push(`/customers/${delivery.customer_id}`);
+                                    /*
                                     setSelectedCustomerForPayment(delivery.customer_id);
                                     setPaymentAmount("");
                                     setPaymentMethod("Cash");
@@ -700,6 +704,7 @@ export default function DeliveryPage() {
                                        const spot = (unbilled || []).reduce((a: number, b: any) => a + (Number(b.total_cost) || 0), 0);
                                        setPaymentTotalDue(past + spot);
                                     });
+                                    */
                                  }} className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"><Wallet2 size={18} strokeWidth={2.5} /></button>
                                  <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
                               </div>
@@ -778,6 +783,7 @@ export default function DeliveryPage() {
             )}
          </AnimatePresence>
 
+         {/*
          <AnimatePresence>
             {isPaymentModalOpen && (
                <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
@@ -798,7 +804,7 @@ export default function DeliveryPage() {
                         e.preventDefault();
                         const amt = parseFloat(paymentAmount);
                         if (isNaN(amt) || amt <= 0) return;
-                        runRecordPayment(amt, paymentMethod, paymentNotes);
+                        // runRecordPayment(amt, paymentMethod, paymentNotes);
                      }} className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5">
                            <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Payment Amount (₹)</label>
@@ -846,6 +852,7 @@ export default function DeliveryPage() {
                </div>
             )}
          </AnimatePresence>
+         */}
 
          <AnimatePresence>
             {hasUnsavedChanges && !isStagingCollapsed && (

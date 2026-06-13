@@ -498,23 +498,8 @@ export default function BillingPage() {
       const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
       const message = `Hi ${invoice.customer?.name}, your bill for ${invoice.type} is ₹${amount}. You can pay using the attached QR or this link: ${upiLink}`;
 
-      try {
-         const file = await getPaymentCardFile(invoice);
-         if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-               files: [file],
-               title: `Payment for ${invoice.customer?.name}`,
-               text: message
-            });
-         } else {
-            const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`;
-            window.open(url, "_blank");
-         }
-      } catch (e) {
-         console.error("Share failed", e);
-         const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`;
-         window.open(url, "_blank");
-      }
+      const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`;
+      window.open(url, "_blank");
    };
 
    return (

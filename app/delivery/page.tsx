@@ -10,6 +10,7 @@ import { deductInventoryOnDelivery, restoreInventoryOnUndelivery, syncBatchDeliv
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
+import { recordPayment, fetchCustomerBalance } from "@/lib/financials";
 
 type DeliveryWithCustomer = T.Delivery & { customer: T.Customer };
 
@@ -144,52 +145,7 @@ export default function DeliveryPage() {
       if (!selectedCustomerForPayment) return;
       try {
          setIsLoading(true);
-         const customerId = selectedCustomerForPayment;
-
-         const [
-            { data: customer },
-            { data: unbilledDeliveries },
-         ] = await Promise.all([
-            supabase.from('customers').select('*').eq('id', customerId).single(),
-            supabase.from('deliveries').select('*').eq('customer_id', customerId).eq('delivered', true).eq('billed', false),
-         ]);
-
-         if (!customer) return;
-
-         const pastOutstanding = Number(customer.past_outstanding) || 0;
-         const unbilledAmount = (unbilledDeliveries || []).reduce((acc: number, d: any) => acc + (Number(d.total_cost) || 0), 0);
-
-         if (pastOutstanding > 0) {
-            await supabase.from('bills').insert({
-               customer_id: customerId,
-               amount: pastOutstanding,
-               type: 'Opening Balance',
-               status: 'Pending',
-               notes: 'Converted for settlement',
-               created_at: new Date().toISOString()
-            });
-            await supabase.from('customers').update({ past_outstanding: 0 }).eq('id', customerId);
-         }
-
-         if (unbilledDeliveries && unbilledDeliveries.length > 0 && unbilledAmount > 0) {
-            await supabase.from('bills').insert({
-               customer_id: customerId,
-               amount: unbilledAmount,
-               type: 'Spot',
-               status: 'Pending',
-               created_at: new Date().toISOString()
-            });
-            const ids = unbilledDeliveries.map((d: any) => d.id);
-            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
-         }
-
-         await supabase.from('payments').insert({
-            customer_id: customerId,
-            amount: amountVal,
-            method: methodVal as any,
-            payment_date: new Date().toISOString(),
-            notes: notesVal || 'Custom Payment from Delivery'
-         });
+         await recordPayment(selectedCustomerForPayment, amountVal, methodVal, notesVal || 'Custom Payment from Delivery');
 
          await fetchData();
          setIsPaymentModalOpen(false);
@@ -688,7 +644,7 @@ export default function DeliveryPage() {
                                  </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                 <button onClick={(e) => {
+                                 <button onClick={async (e) => {
                                     e.stopPropagation();
                                     router.push(`/customers/${delivery.customer_id}`);
                                     /*
@@ -698,13 +654,8 @@ export default function DeliveryPage() {
                                     setPaymentNotes("");
                                     setPaymentTotalDue(null);
                                     setIsPaymentModalOpen(true);
-                                    supabase.from('customers').select('past_outstanding').eq('id', delivery.customer_id).single().then(async ({ data: c }: any) => {
-                                       const past = Number(c?.past_outstanding) || 0;
-                                       const { data: unbilled } = await supabase.from('deliveries').select('total_cost').eq('customer_id', delivery.customer_id).eq('delivered', true).eq('billed', false);
-                                       const spot = (unbilled || []).reduce((a: number, b: any) => a + (Number(b.total_cost) || 0), 0);
-                                       setPaymentTotalDue(past + spot);
-                                    });
-                                    */
+                                    const bal = await fetchCustomerBalance(delivery.customer_id);
+                                    setPaymentTotalDue(bal);
                                  }} className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"><Wallet2 size={18} strokeWidth={2.5} /></button>
                                  <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
                               </div>

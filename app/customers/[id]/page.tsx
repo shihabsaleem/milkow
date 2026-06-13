@@ -10,6 +10,7 @@ import * as T from "@/types/database";
 import CustomSelect from "@/components/ui/CustomSelect";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import { toPng } from "html-to-image";
+import { recordPayment, settleAllDues } from "@/lib/financials";
 
 export default function CustomerProfilePage() {
    const params = useParams();
@@ -155,15 +156,23 @@ export default function CustomerProfilePage() {
          setIsLoading(true);
          const amt = parseFloat(editForm.outstanding) || 0;
          const finalOutstanding = editForm.outstanding_type === "advance" ? -Math.abs(amt) : Math.abs(amt);
-         await supabase.from('customers').update({
+         
+         const userChangedOutstanding = finalOutstanding !== Number(customer.past_outstanding);
+         
+         const updatePayload: any = {
             name: editForm.name,
             phone: editForm.phone,
             area_id: parseInt(editForm.area_id),
             frequency: editForm.frequency,
-            past_outstanding: finalOutstanding,
             default_product_id: editForm.default_product_id || null,
             default_qty: parseInt(editForm.default_qty) || 1
-         }).eq('id', customer.id);
+         };
+         
+         if (userChangedOutstanding) {
+            updatePayload.past_outstanding = finalOutstanding;
+         }
+
+         await supabase.from('customers').update(updatePayload).eq('id', customer.id);
          setIsEditModalOpen(false);
          await fetchData();
          if (editForm.phone !== customer.phone) {
@@ -200,47 +209,7 @@ export default function CustomerProfilePage() {
       try {
          setIsLoading(true);
 
-         if (Number(customer.past_outstanding) > 0) {
-            await supabase.from('bills').insert({
-               customer_id: customer.id,
-               amount: Number(customer.past_outstanding),
-               type: 'Opening Balance',
-               status: 'Paid',
-               notes: 'Converted from static Past Outstanding for settlement',
-               created_at: new Date().toISOString(),
-            });
-
-            await supabase.from('customers').update({
-               past_outstanding: 0
-            }).eq('id', customer.id);
-         }
-
-         if (unbilledDeliveries.length > 0) {
-            await supabase.from('bills').insert({
-               customer_id: customer.id,
-               amount: currentDeliveriesAmount,
-               type: 'Spot',
-               status: 'Paid',
-               created_at: new Date().toISOString(),
-            });
-
-            const ids = unbilledDeliveries.map(d => d.id);
-            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
-         }
-
-         // 3. Mark all existing pending bills as Paid to keep history clean
-         await supabase.from('bills')
-            .update({ status: 'Paid' })
-            .eq('customer_id', customer.id)
-            .eq('status', 'Pending');
-
-         await supabase.from('payments').insert({
-            customer_id: customer.id,
-            amount: grandTotalAmount,
-            method: 'Cash',
-            payment_date: new Date().toISOString(),
-            notes: 'Full Settlement from Profile'
-         });
+         await settleAllDues(customer.id, 'Cash', 'Full Settlement from Profile');
 
          await fetchData();
          setModalConfig({
@@ -292,41 +261,7 @@ export default function CustomerProfilePage() {
       try {
          setIsLoading(true);
 
-         if (Number(customer.past_outstanding) > 0) {
-            await supabase.from('bills').insert({
-               customer_id: customer.id,
-               amount: Number(customer.past_outstanding),
-               type: 'Opening Balance',
-               status: 'Pending',
-               notes: 'Converted from static Past Outstanding for settlement',
-               created_at: new Date().toISOString(),
-            });
-
-            await supabase.from('customers').update({
-               past_outstanding: 0
-            }).eq('id', customer.id);
-         }
-
-         if (unbilledDeliveries.length > 0) {
-            await supabase.from('bills').insert({
-               customer_id: customer.id,
-               amount: currentDeliveriesAmount,
-               type: 'Spot',
-               status: 'Pending',
-               created_at: new Date().toISOString(),
-            });
-
-            const ids = unbilledDeliveries.map(d => d.id);
-            await supabase.from('deliveries').update({ billed: true }).in('id', ids);
-         }
-
-         await supabase.from('payments').insert({
-            customer_id: customer.id,
-            amount: amountVal,
-            method: methodVal as any,
-            payment_date: new Date().toISOString(),
-            notes: notesVal || 'Custom Payment from Profile'
-         });
+         await recordPayment(customer.id, amountVal, methodVal, notesVal || 'Custom Payment from Profile');
 
          await fetchData();
          setIsPaymentModalOpen(false);

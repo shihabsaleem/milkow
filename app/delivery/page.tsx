@@ -656,6 +656,7 @@ export default function DeliveryPage() {
                                     setIsPaymentModalOpen(true);
                                     const bal = await fetchCustomerBalance(delivery.customer_id);
                                     setPaymentTotalDue(bal);
+                                    */
                                  }} className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"><Wallet2 size={18} strokeWidth={2.5} /></button>
                                  <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
                               </div>

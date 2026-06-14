@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { MoreVertical, Calendar, Sunrise, Sunset, User, LogOut } from "lucide-react";
+import { MoreVertical, Calendar, Sunrise, Sunset, User, LogOut, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -82,6 +82,8 @@ export default function Dashboard() {
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="absolute right-0 top-12 w-52 bg-white border border-zinc-200 shadow-2xl rounded-2xl overflow-hidden py-1 z-50 origin-top-right text-left">
                   <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-zinc-700 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"><User size={16} className="text-zinc-400" /> Profile</Link>
+                  <div className="w-full h-px bg-zinc-100" />
+                  <Link href="/billing" className="flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-zinc-700 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"><Wallet size={16} className="text-zinc-400" /> Billing</Link>
                   <div className="w-full h-px bg-zinc-100" />
                   <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-rose-600 hover:bg-rose-50 active:bg-rose-100 transition-colors"><LogOut size={16} className="text-rose-400" /> Log Out</button>
                 </motion.div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2, MoreVertical } from "lucide-react";
+import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2, MoreVertical, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -55,7 +55,7 @@ export default function DeliveryPage() {
       }
       return "";
    });
-   
+
    // Persist selectedRoute
    useEffect(() => {
       localStorage.setItem('milkow_selected_route', selectedRoute.toString());
@@ -239,24 +239,41 @@ export default function DeliveryPage() {
                   return (
                      <motion.div key={delivery.id} layout className={`border rounded-2xl transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-primary/20 shadow-sm'}`}>
                         <div className="p-4">
-                           <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedStopId(isExpanded ? null : delivery.id)}>
-                              <div className="flex items-start gap-3">
-                                 <div className={`mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs text-center transition-all ${delivery.delivered ? 'bg-zinc-200 text-zinc-500' : 'bg-primary text-white shadow-md'}`}>
-                                    {index + 1}
+
+                           <div className="flex flex-row items-start justify-between gap-4">
+
+                              <div className="flex flex-col flex-1">
+                                 <div className="flex items-start gap-3">
+                                    <div className={`mt-0.5 shrink-0 w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs text-center transition-all ${delivery.delivered ? 'bg-zinc-200 text-zinc-500' : 'bg-primary text-white shadow-md'}`}>
+                                       {index + 1}
+                                    </div>
+                                    <div className="flex flex-col">
+                                       <h3 className={`font-bold text-lg leading-tight ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
+                                       {(() => {
+                                          const prod = products.find(p => p.id === delivery.product_id);
+                                          return (
+                                             <p className="font-semibold text-primary text-sm mt-0.5">
+                                                {delivery.milk_qty} {prod ? `${prod.name} (${prod.size})` : 'Milk'}
+                                             </p>
+                                          );
+                                       })()}
+                                    </div>
                                  </div>
-                                 <div>
-                                    <h3 className={`font-bold text-lg ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
-                                    {(() => {
-                                       const prod = products.find(p => p.id === delivery.product_id);
-                                       return (
-                                          <p className="font-semibold text-primary text-sm mt-0.5">
-                                             {delivery.milk_qty} {prod ? `${prod.name} (${prod.size})` : 'Milk'}
-                                          </p>
-                                       );
-                                    })()}
+
+                                 {!isExpanded && activeItems.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-2 mb-2 pl-11">
+                                       {activeItems.map((item: any) => (<span key={item.name} className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-md">{item.qty}x {item.name}</span>))}
+                                    </div>
+                                 )}
+
+                                 <div className="mt-3 pt-3 border-t border-zinc-100 pl-2 ">
+                                    <button onClick={(e) => { e.stopPropagation(); setExpandedStopId(delivery.id); }} className={`flex items-start gap-1.5 text-xs font-bold transition-colors py-1 rounded-lg ${isExpanded ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extra Items' : 'Add Additional Products'}</button>
                                  </div>
                               </div>
-                              <div className="flex items-center gap-2">
+
+                              <div className="flex flex-col items-center gap-2">
+
+                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
                                  <button onClick={async (e) => {
                                     e.stopPropagation();
                                     router.push(`/customers/${delivery.customer_id}`);
@@ -270,18 +287,13 @@ export default function DeliveryPage() {
                                     const bal = await fetchCustomerBalance(delivery.customer_id);
                                     setPaymentTotalDue(bal);
                                     */
-                                 }} className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"><Wallet2 size={18} strokeWidth={2.5} /></button>
-                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
+                                 }} className="h-12 w-12 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"><ArrowRight size={18} strokeWidth={2.5} /></button>
                               </div>
+
+
+
                            </div>
-                           {!isExpanded && activeItems.length > 0 && (
-                              <div className="mt-3 flex flex-wrap gap-2 mb-2">
-                                 {activeItems.map((item: any) => (<span key={item.name} className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-md">{item.qty}x {item.name}</span>))}
-                              </div>
-                           )}
-                           <div className="mt-4 pt-3 border-t border-zinc-100">
-                              <button onClick={() => setExpandedStopId(delivery.id)} className={`flex items-center gap-1.5 text-xs font-bold transition-colors py-1 rounded-lg ${isExpanded ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extra Items' : 'Add Additional Products'}</button>
-                           </div>
+
                         </div>
                      </motion.div>
                   );

@@ -204,16 +204,16 @@ export default function BillingPage() {
                            <div className="flex flex-col items-end"><span className="font-black text-lg text-primary">₹{Number(bill.amount).toFixed(2)}</span></div>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-zinc-100">
-                           <button onClick={() => setSelectedInvoice(bill)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-zinc-100 text-zinc-700 active:scale-95"><QrCode size={14} /> Share</button>
-                           <button onClick={() => {
+                           <button disabled={isLoading} onClick={() => setSelectedInvoice(bill)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-zinc-100 text-zinc-700 active:scale-95 disabled:opacity-50"><QrCode size={14} /> Share</button>
+                           <button disabled={isLoading} onClick={() => {
                               setSelectedCustomerForPayment(bill.customer_id);
                               setPaymentAmount(bill.amount.toString());
                               setPaymentMethod("Cash");
                               setPaymentNotes("");
                               setPaymentTotalDue(bill.amount);
                               setIsPaymentModalOpen(true);
-                           }} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-primary text-white active:scale-95"><Wallet2 size={14} /> Record</button>
-                           <button onClick={() => handleMarkAsPaid(bill.id, setSelectedInvoice)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-emerald-50 text-emerald-600 border active:scale-95"><CheckCircle2 size={14} /> Settle</button>
+                           }} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-primary text-white active:scale-95 disabled:opacity-50"><Wallet2 size={14} /> Record</button>
+                           <button disabled={isLoading} onClick={() => handleMarkAsPaid(bill.id, setSelectedInvoice)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-emerald-50 text-emerald-600 border active:scale-95 disabled:opacity-50 disabled:pointer-events-none"><CheckCircle2 size={14} /> Settle</button>
                         </div>
                      </div>
                   );

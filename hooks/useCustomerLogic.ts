@@ -27,7 +27,7 @@ export function useCustomerLogic(
       default_product_id: "", default_qty: "1" 
    });
 
-   const isSubmitting = useRef(false);
+   const [isSubmitting, setIsSubmitting] = useState(false);
 
    const [modalConfig, setModalConfig] = useState<{
       isOpen: boolean;
@@ -156,8 +156,8 @@ export function useCustomerLogic(
 
    const handleEditSubmit = async (e: React.FormEvent, setIsEditModalOpen: (v: boolean) => void) => {
       e.preventDefault();
-      if (!customer || !editForm.name || !editForm.phone || !editForm.area_id || isSubmitting.current) return;
-      isSubmitting.current = true;
+      if (!customer || !editForm.name || !editForm.phone || !editForm.area_id || isSubmitting) return;
+      setIsSubmitting(true);
       try {
          setIsLoading(true);
          const amt = parseFloat(editForm.outstanding) || 0;
@@ -185,13 +185,13 @@ export function useCustomerLogic(
          console.error(err);
          setIsLoading(false);
       } finally {
-         isSubmitting.current = false;
+         setIsSubmitting(false);
       }
    };
 
    const runMarkAsPaid = async () => {
-      if (!customer || grandTotalAmount <= 0 || isSubmitting.current) return;
-      isSubmitting.current = true;
+      if (!customer || grandTotalAmount <= 0 || isSubmitting) return;
+      setIsSubmitting(true);
       try {
          setIsLoading(true);
 
@@ -216,7 +216,7 @@ export function useCustomerLogic(
             onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
          });
       } finally {
-         isSubmitting.current = false;
+         setIsSubmitting(false);
          setIsLoading(false);
       }
    };
@@ -244,8 +244,8 @@ export function useCustomerLogic(
    };
 
    const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string, setIsPaymentModalOpen: (v: boolean) => void) => {
-      if (!customer || isSubmitting.current) return;
-      isSubmitting.current = true;
+      if (!customer || isSubmitting) return;
+      setIsSubmitting(true);
       try {
          setIsLoading(true);
 
@@ -271,7 +271,7 @@ export function useCustomerLogic(
             onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
          });
       } finally {
-         isSubmitting.current = false;
+         setIsSubmitting(false);
          setIsLoading(false);
       }
    };
@@ -421,6 +421,7 @@ export function useCustomerLogic(
       handleMarkAsPaid,
       runRecordPayment,
       changeMonth,
-      handleCaptureScreenshot
+      handleCaptureScreenshot,
+      isSubmitting
    };
 }

@@ -100,6 +100,7 @@ export function useCustomersLogic() {
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!newCustomer.name || !newCustomer.phone || !newCustomer.area_id) return;
     try {
       setIsSubmitting(true);

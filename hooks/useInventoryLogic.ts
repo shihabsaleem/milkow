@@ -31,6 +31,7 @@ export function useInventoryLogic() {
   const [closingShift, setClosingShift] = useState("Morning Only");
   const [closedShifts, setClosedShifts] = useState<{ [date: string]: string[] }>({});
   const [dailyPrices, setDailyPrices] = useState<any>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   const [modalConfig, setModalConfig] = useState<{
@@ -124,8 +125,9 @@ export function useInventoryLogic() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProduct.name || !newProduct.price) return;
+    if (!newProduct.name || !newProduct.price || isSubmitting) return;
     try {
+      setIsSubmitting(true);
       const productToSave = {
         name: newProduct.name,
         size: newProduct.size,
@@ -168,7 +170,9 @@ export function useInventoryLogic() {
       setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
       setEditingIndex(null);
       await fetchData();
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const runDeleteProduct = async () => {
@@ -237,7 +241,9 @@ export function useInventoryLogic() {
 
   const handleCloseShiftSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     try {
+      setIsSubmitting(true);
       const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
       const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
       const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
@@ -284,6 +290,8 @@ export function useInventoryLogic() {
         confirmText: "Close",
         onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -313,6 +321,7 @@ export function useInventoryLogic() {
     handleDeleteProduct,
     updatePipelineValue,
     handleCloseShiftSubmit,
-    fetchData
+    fetchData,
+    isSubmitting
   };
 }

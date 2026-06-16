@@ -45,7 +45,8 @@ export default function CustomerProfilePage() {
       handleMarkAsPaid,
       runRecordPayment,
       changeMonth,
-      handleCaptureScreenshot
+      handleCaptureScreenshot,
+      isSubmitting
    } = useCustomerLogic(customerIdParam, screenshotRef);
 
    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -404,7 +405,8 @@ export default function CustomerProfilePage() {
                         {grandTotalAmount > 0 && (
                            <button
                               onClick={handleMarkAsPaid}
-                              className="flex-1 bg-white text-zinc-900 border border-zinc-200 py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                              disabled={isSubmitting}
+                              className="flex-1 bg-white text-zinc-900 border border-zinc-200 py-4 rounded-2xl font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 shadow-sm"
                            >
                               <Receipt size={18} />
                               Settle Full
@@ -504,7 +506,9 @@ export default function CustomerProfilePage() {
                             </div>
                            
                          </div>
-                        <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Save Changes</button>
+                        <button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
+                          {isSubmitting ? "Saving..." : "Save Changes"}
+                        </button>
                      </form>
                   </motion.div>
                </div>
@@ -569,10 +573,10 @@ export default function CustomerProfilePage() {
                         </div>
                         <button
                            type="submit"
-                           disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || isLoading}
-                           className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 transition-all shadow-xl"
+                           disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || isSubmitting}
+                           className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl"
                         >
-                           {isLoading ? "Recording..." : "Record Payment"}
+                           {isSubmitting ? "Recording..." : "Record Payment"}
                         </button>
                      </form>
                   </motion.div>

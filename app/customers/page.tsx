@@ -171,7 +171,9 @@ export default function CustomersPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Outstanding (₹)</label><input type="number" placeholder="0.00" value={newCustomer.outstanding} onChange={e => setNewCustomer({ ...newCustomer, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Complete Registration</button>
+                <button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
+                  {isSubmitting ? "Registering..." : "Complete Registration"}
+                </button>
               </form>
             </motion.div>
           </div>

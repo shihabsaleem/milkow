@@ -39,7 +39,8 @@ export default function InventoryPage() {
     handleDeleteProduct,
     updatePipelineValue,
     handleCloseShiftSubmit,
-    fetchData
+    fetchData,
+    isSubmitting
   } = useInventoryLogic();
 
   return (
@@ -134,7 +135,9 @@ export default function InventoryPage() {
                   {editingIndex !== null && (
                     <button type="button" onClick={handleDeleteProduct} className="shrink-0 w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center hover:bg-rose-100 transition-colors"><Trash2 size={20} /></button>
                   )}
-                  <button type="submit" className="grow bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">{editingIndex !== null ? "Save Changes" : "Create Product"}</button>
+                  <button type="submit" disabled={isSubmitting} className="grow bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
+                    {isSubmitting ? "Saving..." : (editingIndex !== null ? "Save Changes" : "Create Product")}
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -161,7 +164,9 @@ export default function InventoryPage() {
                 <div className="bg-primary/5 border border-primary/10 p-4 rounded-xl">
                   <p className="text-xs font-medium text-primary">This will record the end of the shift and archive current prices for the ledger. All inventory and stock levels will be reset to zero.</p>
                 </div>
-                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Confirm Close Shift</button>
+                <button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
+                  {isSubmitting ? "Closing Shift..." : "Confirm Close Shift"}
+                </button>
               </form>
             </motion.div>
           </div>

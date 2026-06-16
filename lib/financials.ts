@@ -1,5 +1,31 @@
 import { supabase } from "@/lib/supabase";
 
+/**
+ * Records a return/refund for a customer.
+ * Creates a negative-amount bill (credit note) so that the customer's
+ * balance reflects the credit. If balance was 0 after full payment,
+ * it will go negative (advance) by the returned amount.
+ *
+ * @param customerId - The customer's UUID
+ * @param returnAmount - The value of the returned item(s) (positive number)
+ * @param notes - Description of what was returned e.g. "Returned 1 Curd"
+ */
+export async function recordReturn(customerId: string, returnAmount: number, notes: string) {
+   if (returnAmount <= 0) throw new Error("Return amount must be positive");
+
+   // Insert a credit note bill with negative amount
+   const { error } = await supabase.from('bills').insert({
+      customer_id: customerId,
+      amount: -Math.abs(returnAmount),
+      type: 'Spot',
+      status: 'Paid',                       // treat as already settled — it's a credit
+      notes: notes || 'Return / Refund',
+      created_at: new Date().toISOString()
+   });
+
+   if (error) throw error;
+}
+
 export async function fetchCustomerBalance(customerId: string): Promise<number> {
    const { data, error } = await supabase.from('customer_financials').select('current_balance').eq('id', customerId).single();
    if (error) {

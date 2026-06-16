@@ -490,6 +490,54 @@ export async function syncBatchDeliveries(
     throw upsertError;
   }
 
+  // ── Supplementary billing for already-billed deliveries that gained extra items ──
+  // If a delivery was already billed (billed=true) and the new total_cost > old total_cost,
+  // create a Spot bill for the difference so the extra amount is captured in the ledger.
+  const supplementaryBills: any[] = [];
+  for (const d of changedDeliveries) {
+    const initial = initialDeliveries.find(sd => sd.id === d.id);
+    if (!initial) continue;
+
+    // Only care about deliveries that were already billed before this sync
+    if (!initial.billed) continue;
+    // Only care if delivery stays delivered (not being un-delivered)
+    if (!d.delivered) continue;
+
+    // Recalculate new total cost using current product prices
+    const mainProd = productById.get(d.product_id || "");
+    const mainPrice = mainProd ? mainProd.price : 0;
+    let newTotal = (d.milk_qty || 0) * mainPrice;
+    (d.misc_items || []).forEach((item: any) => {
+      const p = productByName.get(item.name);
+      if (p) newTotal += (item.qty || 0) * p.price;
+    });
+
+    // Old total cost (what was already billed)
+    const oldTotal = Number(initial.total_cost) || 0;
+    const diff = newTotal - oldTotal;
+
+    if (diff > 0.001) {
+      // Extra items were added — charge the difference
+      supplementaryBills.push({
+        customer_id: d.customer_id,
+        type: 'Spot',
+        amount: Math.round(diff * 100) / 100,
+        status: 'Pending',
+        notes: `Supplementary charge for extra items added after billing`,
+        created_at: new Date().toISOString()
+      });
+    }
+  }
+
+  if (supplementaryBills.length > 0) {
+    const { error: billError } = await supabase.from('bills').insert(supplementaryBills);
+    if (billError) {
+      console.error('[Sync] ⚠️ Failed to create supplementary bills:', billError);
+    } else {
+      console.log(`[Sync] ✅ Created ${supplementaryBills.length} supplementary bill(s) for extra items.`);
+    }
+  }
+
   // Calculate net changes for each product ID
   // Positive delta: ADD back to stock (restoring undelivered)
   // Negative delta: SUBTRACT from stock (delivering)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef } from "react";
 import Modal from "@/components/ui/Modal";
@@ -44,6 +44,7 @@ export default function CustomerProfilePage() {
       handleEditSubmit,
       handleMarkAsPaid,
       runRecordPayment,
+      handleRecordReturn,
       changeMonth,
       handleCaptureScreenshot,
       isSubmitting
@@ -52,9 +53,12 @@ export default function CustomerProfilePage() {
    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
    const [paymentAmount, setPaymentAmount] = useState("");
    const [paymentMethod, setPaymentMethod] = useState("Cash");
    const [paymentNotes, setPaymentNotes] = useState("");
+   const [returnAmount, setReturnAmount] = useState("");
+   const [returnNotes, setReturnNotes] = useState("");
    const [activeTab, setActiveTab] = useState<'calendar' | 'statement'>('calendar');
 
    const daysCount = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
@@ -424,6 +428,18 @@ export default function CustomerProfilePage() {
                            <Receipt size={18} />
                            Record Payment
                         </button>
+                        <button
+                           onClick={() => {
+                              setReturnAmount("");
+                              setReturnNotes("");
+                              setIsReturnModalOpen(true);
+                           }}
+                           disabled={isSubmitting}
+                           className="flex-1 bg-amber-50 text-amber-700 border border-amber-200 py-4 rounded-2xl font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
+                        >
+                           <RotateCcw size={18} />
+                           Return Item
+                        </button>
                      </div>
                   </div>
                </div>
@@ -508,6 +524,63 @@ export default function CustomerProfilePage() {
                          </div>
                         <button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
                           {isSubmitting ? "Saving..." : "Save Changes"}
+                        </button>
+                     </form>
+                  </motion.div>
+               </div>
+            )}
+            {isReturnModalOpen && (
+               <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsReturnModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6 text-zinc-900">
+                     <div className="flex justify-between items-center">
+                        <div>
+                           <p className="text-[18px] font-black text-slate-900">Record Return</p>
+                           <p className="text-xs text-zinc-400 mt-0.5">Customer returned item(s) — credit will be added as advance</p>
+                        </div>
+                        <button onClick={() => setIsReturnModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button>
+                     </div>
+
+                     <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl">
+                        <p className="text-amber-800 text-xs font-bold">ℹ️ How this works</p>
+                        <p className="text-amber-700 text-xs mt-1">The return amount will be added as a credit (advance) to this customer's account. If balance was ₹0, it becomes negative (advance) by the returned value.</p>
+                     </div>
+
+                     <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const amt = parseFloat(returnAmount);
+                        if (isNaN(amt) || amt <= 0) return;
+                        handleRecordReturn(amt, returnNotes, setIsReturnModalOpen);
+                     }} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Return Amount (₹)</label>
+                           <input
+                              autoFocus
+                              type="number"
+                              step="0.01"
+                              required
+                              placeholder="0.00"
+                              value={returnAmount}
+                              onChange={e => setReturnAmount(e.target.value)}
+                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all font-bold"
+                           />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Reason (Optional)</label>
+                           <input
+                              type="text"
+                              placeholder="e.g. Returned 1 Curd packet"
+                              value={returnNotes}
+                              onChange={e => setReturnNotes(e.target.value)}
+                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                           />
+                        </div>
+                        <button
+                           type="submit"
+                           disabled={!returnAmount || parseFloat(returnAmount) <= 0 || isSubmitting}
+                           className="w-full bg-amber-600 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl"
+                        >
+                           {isSubmitting ? "Recording..." : "Record Return & Add Credit"}
                         </button>
                      </form>
                   </motion.div>

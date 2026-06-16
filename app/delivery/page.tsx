@@ -12,7 +12,7 @@ import * as T from "@/types/database";
 import { recordPayment, fetchCustomerBalance } from "@/lib/financials";
 import { useDeliveryLogic } from "@/hooks/useDeliveryLogic";
 
-type DeliveryWithCustomer = T.Delivery & { customer: T.Customer };
+type DeliveryWithCustomer = T.Delivery & { customer: T.Customer & { financials?: { current_balance: number } } };
 
 export default function DeliveryPage() {
    const router = useRouter();
@@ -248,7 +248,19 @@ export default function DeliveryPage() {
                                        {index + 1}
                                     </div>
                                     <div className="flex flex-col">
-                                       <h3 className={`font-bold text-lg leading-tight ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
+                                       <div className="flex items-center gap-2 flex-wrap">
+                                          <h3 className={`font-bold text-lg leading-tight ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
+                                          {delivery.customer?.financials && delivery.customer.financials.current_balance !== 0 && (
+                                             <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${
+                                                delivery.customer.financials.current_balance < 0 
+                                                   ? 'bg-emerald-500/10 text-emerald-600' 
+                                                   : 'bg-amber-500/10 text-amber-600'
+                                             }`}>
+                                                {delivery.customer.financials.current_balance < 0 ? 'Adv: ' : 'Bal: '}
+                                                ₹{Math.abs(delivery.customer.financials.current_balance).toLocaleString()}
+                                             </span>
+                                          )}
+                                       </div>
                                        {(() => {
                                           const prod = products.find(p => p.id === delivery.product_id);
                                           return (

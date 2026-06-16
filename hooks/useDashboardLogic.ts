@@ -96,7 +96,7 @@ export function useDashboardLogic() {
         const qty = Number(d.milk_qty) || 0;
         if (qty > 0) {
           const prod = productsMap.get(d.product_id);
-          const name = prod?.name || 'Cow Milk';
+          const name = prod?.name || 'Unlisted item';
           const unit = prod?.unit || 'Bottles';
           const vol = prod?.size || 'Daily';
           if (!summary[name]) summary[name] = { count: 0, unit, vol };

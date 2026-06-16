@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
 import { syncBatchDeliveries } from "@/lib/automation";
 
-type DeliveryWithCustomer = T.Delivery & { customer: T.Customer };
+type DeliveryWithCustomer = T.Delivery & { customer: T.Customer & { financials?: { current_balance: number } } };
 
 export function useDeliveryLogic() {
    const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
@@ -43,7 +43,8 @@ export function useDeliveryLogic() {
          { data: routeSets },
          { data: prodData },
          { data: routeData },
-         { data: settingsData }
+         { data: settingsData },
+         { data: financialsData }
       ] = await Promise.all([
          supabase.from('areas').select('*').order('name', { ascending: true }),
          supabase.from('products').select('*').order('name', { ascending: true }),
@@ -51,7 +52,8 @@ export function useDeliveryLogic() {
             .select('*, customer:customers(*)')
             .eq('delivery_date', today)
             .eq('shift', shift === 'morning' ? 'Morning Only' : 'Evening Only'),
-         supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle()
+         supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle(),
+         supabase.from('customer_financials').select('id, current_balance')
       ]);
 
       if (settingsData) {
@@ -72,7 +74,22 @@ export function useDeliveryLogic() {
       if (prodData) setProducts(prodData as T.Product[]);
 
       if (routeData) {
-         const dbDeliveries = routeData as DeliveryWithCustomer[];
+         let dbDeliveries = routeData as any[];
+         if (financialsData) {
+            dbDeliveries = dbDeliveries.map(d => {
+               if (d.customer) {
+                  const fin = financialsData.find((f: any) => f.id === d.customer.id);
+                  return {
+                     ...d,
+                     customer: {
+                        ...d.customer,
+                        financials: fin ? { current_balance: Number(fin.current_balance) } : undefined
+                     }
+                  };
+               }
+               return d;
+            });
+         }
          setServerDeliveries(dbDeliveries);
 
          const cacheKey = `milkow_staged_changes_${today}_${shift === 'morning' ? 'Morning Only' : 'Evening Only'}`;
@@ -105,6 +122,8 @@ export function useDeliveryLogic() {
       const sub = supabase.channel('route_page')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => fetchData(true))
          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => fetchData(true))
          .subscribe();
 
       return () => { sub.unsubscribe(); };

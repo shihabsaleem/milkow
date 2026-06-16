@@ -42,6 +42,10 @@ export function useDashboardLogic() {
     if (!silent) setIsLoading(true);
     const dbShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
 
+    const [year, month, day] = date.split('-').map(Number);
+    const startIso = new Date(year, month - 1, day, 0, 0, 0, 0).toISOString();
+    const endIso = new Date(year, month - 1, day, 23, 59, 59, 999).toISOString();
+
     const [
       { data: invData },
       { data: allDelData },
@@ -57,7 +61,7 @@ export function useDashboardLogic() {
       supabase.from('customer_financials').select('*'),
       supabase.from('customers').select('*', { count: 'exact', head: true }),
       supabase.from('system_settings').select('value').eq('key', 'general').single(),
-      supabase.from('payments').select('amount').like('payment_date', `${date}%`)
+      supabase.from('payments').select('amount').gte('payment_date', startIso).lte('payment_date', endIso)
     ]);
 
     if (invData) setInventory(invData as T.InventoryItem[]);

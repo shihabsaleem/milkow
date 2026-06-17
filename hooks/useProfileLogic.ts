@@ -28,6 +28,8 @@ export function useProfileLogic() {
   const [newRoute, setNewRoute] = useState("");
   const [isAddingRoute, setIsAddingRoute] = useState(false);
   const [routeSuccess, setRouteSuccess] = useState(false);
+  const [editingRouteId, setEditingRouteId] = useState<number | null>(null);
+  const [editingRouteName, setEditingRouteName] = useState("");
   const listEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -139,6 +141,21 @@ export function useProfileLogic() {
     }
   };
 
+  const editRoute = async (id: number, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    try {
+      const { error } = await supabase.from('areas').update({ name: trimmed }).eq('id', id);
+      if (error) throw error;
+      setAreas(prev => prev.map(a => a.id === id ? { ...a, name: trimmed } : a).sort((a, b) => a.name.localeCompare(b.name)));
+      setEditingRouteId(null);
+      setEditingRouteName("");
+    } catch (e: unknown) {
+      const err = e as Error;
+      console.error("Failed to edit route:", err.message);
+    }
+  };
+
   const handleLogout = async () => {
     await logout();
     document.cookie = "milkow_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -172,6 +189,11 @@ export function useProfileLogic() {
     handleSave,
     addRoute,
     removeRoute,
+    editRoute,
+    editingRouteId,
+    setEditingRouteId,
+    editingRouteName,
+    setEditingRouteName,
     handleLogout,
     fetchSettings
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Save, LogOut, X, Plus } from "lucide-react";
+import { ArrowLeft, Save, LogOut, X, Plus, Edit2, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import { useProfileLogic } from "@/hooks/useProfileLogic";
@@ -34,6 +34,11 @@ export default function UserProfilePage() {
       handleSave,
       addRoute,
       removeRoute,
+      editRoute,
+      editingRouteId,
+      setEditingRouteId,
+      editingRouteName,
+      setEditingRouteName,
       handleLogout,
       fetchSettings
    } = useProfileLogic();
@@ -212,13 +217,33 @@ export default function UserProfilePage() {
                               exit={{ opacity: 0, scale: 0.95 }}
                               className="flex items-center justify-between bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3"
                            >
-                              <span className="text-sm font-bold text-zinc-900">{area.name}</span>
-                              <button
-                                 onClick={() => removeRoute(area.id)}
-                                 className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors"
-                              >
-                                 <X size={16} />
-                              </button>
+                              {editingRouteId === area.id ? (
+                                 <>
+                                    <input
+                                       autoFocus
+                                       value={editingRouteName}
+                                       onChange={e => setEditingRouteName(e.target.value)}
+                                       onKeyDown={e => { if (e.key === 'Enter') editRoute(area.id, editingRouteName); if (e.key === 'Escape') { setEditingRouteId(null); setEditingRouteName(''); } }}
+                                       className="flex-1 bg-white border border-primary/30 rounded-lg px-3 py-1.5 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 mr-2"
+                                    />
+                                    <button onClick={() => editRoute(area.id, editingRouteName)} className="text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
+                                       <Check size={16} />
+                                    </button>
+                                    <button onClick={() => { setEditingRouteId(null); setEditingRouteName(''); }} className="text-zinc-400 hover:bg-zinc-100 p-1.5 rounded-lg transition-colors ml-1">
+                                       <X size={16} />
+                                    </button>
+                                 </>
+                              ) : (
+                                 <>
+                                    <span className="text-sm font-bold text-zinc-900 flex-1">{area.name}</span>
+                                    <button onClick={() => { setEditingRouteId(area.id); setEditingRouteName(area.name); }} className="text-zinc-400 hover:bg-zinc-100 p-1.5 rounded-lg transition-colors mr-1">
+                                       <Edit2 size={15} />
+                                    </button>
+                                    <button onClick={() => removeRoute(area.id)} className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors">
+                                       <X size={16} />
+                                    </button>
+                                 </>
+                              )}
                            </motion.div>
                         ))}
                      </AnimatePresence>

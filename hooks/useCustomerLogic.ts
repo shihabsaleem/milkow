@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
-import { toPng } from "html-to-image";
+// import { toPng } from "html-to-image"; // commented out — long screenshot setup
 import { recordPayment, settleAllDues, recordReturn } from "@/lib/financials";
 
 export function useCustomerLogic(
@@ -320,112 +320,115 @@ export function useCustomerLogic(
    const monthName = viewDate.toLocaleString('default', { month: 'long' });
    const yearName = viewDate.getFullYear();
 
-   const handleCaptureScreenshot = async () => {
-      if (!screenshotRef.current || !customer) return;
-      setIsCapturing(true);
-      try {
-         const balanceText = grandTotalAmount > 0 
-            ? `Outstanding Balance: ₹${grandTotalAmount.toFixed(2)}` 
-            : `Advance Balance: ₹${Math.abs(grandTotalAmount).toFixed(2)}`;
-         const message = `Hi ${customer.name}, here is your delivery ledger and statement for ${monthName} ${yearName}.\n${balanceText}`;
-
-         const openWhatsApp = (msg: string) => {
-            const phoneNum = customer.phone || "";
-            const cleanPhone = phoneNum.replace(/[^0-9]/g, "");
-            const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-            const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`;
-            window.open(url, "_blank");
-         };
-
-         const generateBlob = async () => {
-            const dataUrl = await toPng(screenshotRef.current!, {
-               quality: 0.95,
-               backgroundColor: "#f8fafc",
-               style: {
-                  height: "auto",
-                  overflow: "visible",
-               },
-            });
-            return await (await fetch(dataUrl)).blob();
-         };
-
-         let shared = false;
-         if (navigator.share && navigator.canShare) {
-            try {
-               const blob = await generateBlob();
-               const fileName = `Milkow_Profile_${customer.name.replace(/\s+/g, '_')}_${monthName}_${yearName}.png`;
-               const file = new File([blob], fileName, { type: "image/png" });
-
-               if (navigator.canShare({ files: [file] })) {
-                  await navigator.share({
-                     files: [file],
-                     title: `${customer.name} Statement`,
-                     text: message,
-                  });
-                  shared = true;
-               }
-            } catch (shareErr) {
-               console.warn("Native share failed, trying clipboard:", shareErr);
-            }
-         }
-
-         if (!shared) {
-            let clipboardCopied = false;
-            try {
-               if (navigator.clipboard && window.ClipboardItem) {
-                  const blobPromise = generateBlob();
-                  await navigator.clipboard.write([
-                     new ClipboardItem({
-                        "image/png": blobPromise
-                     })
-                  ]);
-                  clipboardCopied = true;
-               }
-            } catch (clipErr) {
-               console.warn("Clipboard copy failed, falling back to download:", clipErr);
-            }
-
-            if (clipboardCopied) {
-               setModalConfig({
-                  isOpen: true,
-                  title: "Copied to Clipboard",
-                  message: `The ledger statement has been copied to your clipboard. WhatsApp will open now—simply paste (Ctrl+V or long-press paste) to share the image.`,
-                  type: 'success',
-                  confirmText: "Open WhatsApp",
-                  onConfirm: () => {
-                     setModalConfig(prev => ({ ...prev, isOpen: false }));
-                     openWhatsApp(message);
-                  }
-               });
-            } else {
-               const blob = await generateBlob();
-               const fileName = `Milkow_Profile_${customer.name.replace(/\s+/g, '_')}_${monthName}_${yearName}.png`;
-               const fileUrl = URL.createObjectURL(blob);
-               const link = document.createElement("a");
-               link.download = fileName;
-               link.href = fileUrl;
-               link.click();
-               URL.revokeObjectURL(fileUrl);
-
-               setModalConfig({
-                  isOpen: true,
-                  title: "Statement Downloaded",
-                  message: `The statement image has been downloaded. WhatsApp will open now—please attach the downloaded image manually.`,
-                  type: 'info',
-                  confirmText: "Open WhatsApp",
-                  onConfirm: () => {
-                     setModalConfig(prev => ({ ...prev, isOpen: false }));
-                     openWhatsApp(message);
-                  }
-               });
-            }
-         }
-      } catch (err) {
-         console.error("Screenshot capture and share failed:", err);
-      } finally {
-         setIsCapturing(false);
-      }
-   };
+   // ─── Long Screenshot Setup (commented out) ───────────────────────────────
+   // const handleCaptureScreenshot = async () => {
+   //    if (!screenshotRef.current || !customer) return;
+   //    setIsCapturing(true);
+   //    try {
+   //       const balanceText = grandTotalAmount > 0
+   //          ? `Outstanding Balance: ₹${grandTotalAmount.toFixed(2)}`
+   //          : `Advance Balance: ₹${Math.abs(grandTotalAmount).toFixed(2)}`;
+   //       const message = `Hi ${customer.name}, here is your delivery ledger and statement for ${monthName} ${yearName}.\n${balanceText}`;
+   //
+   //       const openWhatsApp = (msg: string) => {
+   //          const phoneNum = customer.phone || "";
+   //          const cleanPhone = phoneNum.replace(/[^0-9]/g, "");
+   //          const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+   //          const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`;
+   //          window.open(url, "_blank");
+   //       };
+   //
+   //       const generateBlob = async () => {
+   //          const dataUrl = await toPng(screenshotRef.current!, {
+   //             quality: 0.95,
+   //             backgroundColor: "#f8fafc",
+   //             style: {
+   //                height: "auto",
+   //                overflow: "visible",
+   //             },
+   //          });
+   //          return await (await fetch(dataUrl)).blob();
+   //       };
+   //
+   //       let shared = false;
+   //       if (navigator.share && navigator.canShare) {
+   //          try {
+   //             const blob = await generateBlob();
+   //             const fileName = `Milkow_Profile_${customer.name.replace(/\s+/g, '_')}_${monthName}_${yearName}.png`;
+   //             const file = new File([blob], fileName, { type: "image/png" });
+   //
+   //             if (navigator.canShare({ files: [file] })) {
+   //                await navigator.share({
+   //                   files: [file],
+   //                   title: `${customer.name} Statement`,
+   //                   text: message,
+   //                });
+   //                shared = true;
+   //             }
+   //          } catch (shareErr) {
+   //             console.warn("Native share failed, trying clipboard:", shareErr);
+   //          }
+   //       }
+   //
+   //       if (!shared) {
+   //          let clipboardCopied = false;
+   //          try {
+   //             if (navigator.clipboard && window.ClipboardItem) {
+   //                const blobPromise = generateBlob();
+   //                await navigator.clipboard.write([
+   //                   new ClipboardItem({
+   //                      "image/png": blobPromise
+   //                   })
+   //                ]);
+   //                clipboardCopied = true;
+   //             }
+   //          } catch (clipErr) {
+   //             console.warn("Clipboard copy failed, falling back to download:", clipErr);
+   //          }
+   //
+   //          if (clipboardCopied) {
+   //             setModalConfig({
+   //                isOpen: true,
+   //                title: "Copied to Clipboard",
+   //                message: `The ledger statement has been copied to your clipboard. WhatsApp will open now—simply paste (Ctrl+V or long-press paste) to share the image.`,
+   //                type: 'success',
+   //                confirmText: "Open WhatsApp",
+   //                onConfirm: () => {
+   //                   setModalConfig(prev => ({ ...prev, isOpen: false }));
+   //                   openWhatsApp(message);
+   //                }
+   //             });
+   //          } else {
+   //             const blob = await generateBlob();
+   //             const fileName = `Milkow_Profile_${customer.name.replace(/\s+/g, '_')}_${monthName}_${yearName}.png`;
+   //             const fileUrl = URL.createObjectURL(blob);
+   //             const link = document.createElement("a");
+   //             link.download = fileName;
+   //             link.href = fileUrl;
+   //             link.click();
+   //             URL.revokeObjectURL(fileUrl);
+   //
+   //             setModalConfig({
+   //                isOpen: true,
+   //                title: "Statement Downloaded",
+   //                message: `The statement image has been downloaded. WhatsApp will open now—please attach the downloaded image manually.`,
+   //                type: 'info',
+   //                confirmText: "Open WhatsApp",
+   //                onConfirm: () => {
+   //                   setModalConfig(prev => ({ ...prev, isOpen: false }));
+   //                   openWhatsApp(message);
+   //                }
+   //             });
+   //          }
+   //       }
+   //    } catch (err) {
+   //       console.error("Screenshot capture and share failed:", err);
+   //    } finally {
+   //       setIsCapturing(false);
+   //    }
+   // };
+   // ─────────────────────────────────────────────────────────────────────────
+   const handleCaptureScreenshot = async () => { /* screenshot disabled */ };
 
    return {
       customer,

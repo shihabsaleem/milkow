@@ -415,8 +415,8 @@ export default function PublicBillPage() {
       {/* Footer */}
       {!billData && (
         <footer className="w-full text-center pb-2 z-10 mt-12">
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-            Powered by Milkow
+          <p className="text-center mt-10 text-zinc-400 text-[10px] font-medium tracking-wide uppercase">
+             &copy; 2026 Milkow &bull; <a href="https://shihabsaleem.site" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">shihab saleem</a>
           </p>
         </footer>
       )}

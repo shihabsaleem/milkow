@@ -134,6 +134,7 @@ export default function CustomerProfilePage() {
                      <Receipt size={16} />
                      <span className="hidden sm:inline">QR Bill</span>
                   </button>
+                  {/* Screenshot button — commented out (long screenshot setup disabled)
                   <button
                       onClick={handleCaptureScreenshot}
                       disabled={isCapturing}
@@ -142,6 +143,7 @@ export default function CustomerProfilePage() {
                    >
                       <Camera size={20} className={isCapturing ? "animate-pulse text-primary" : ""} />
                    </button>
+                  */}
                   <button onClick={() => setIsEditModalOpen(true)} className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl active:scale-90"><Edit2 size={20} /></button>
                   <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl active:scale-90"><Trash2 size={20} /></button>
                </div>

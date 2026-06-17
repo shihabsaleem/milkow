@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
 // import { toPng } from "html-to-image"; // commented out — long screenshot setup
-import { recordPayment, settleAllDues, recordReturn } from "@/lib/financials";
+import { recordPayment, settleAllDues/*, recordReturn*/ } from "@/lib/financials"; // recordReturn commented out — Return Item disabled
 
 export function useCustomerLogic(
    customerIdParam: string,
@@ -276,40 +276,42 @@ export function useCustomerLogic(
       }
    };
 
-   const handleRecordReturn = async (
-      returnAmount: number,
-      returnNotes: string,
-      setIsReturnModalOpen: (v: boolean) => void
-   ) => {
-      if (!customer || returnAmount <= 0 || isSubmitting) return;
-      setIsSubmitting(true);
-      try {
-         setIsLoading(true);
-         await recordReturn(customer.id, returnAmount, returnNotes || `Return / Refund`);
-         await fetchData(true);
-         setIsReturnModalOpen(false);
-         setModalConfig({
-            isOpen: true,
-            title: "Return Recorded",
-            message: `₹${returnAmount.toFixed(2)} credit has been added to ${customer.name}'s account as advance.`,
-            type: 'success',
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-            confirmText: "Great"
-         });
-      } catch (err) {
-         console.error("Failed to record return:", err);
-         setModalConfig({
-            isOpen: true,
-            title: "Return Failed",
-            message: "Failed to record return. Please try again.",
-            type: 'danger',
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-         });
-      } finally {
-         setIsSubmitting(false);
-         setIsLoading(false);
-      }
-   };
+   // ─── handleRecordReturn — commented out (Return Item disabled) ───────────
+   // const handleRecordReturn = async (
+   //    returnAmount: number,
+   //    returnNotes: string,
+   //    setIsReturnModalOpen: (v: boolean) => void
+   // ) => {
+   //    if (!customer || returnAmount <= 0 || isSubmitting) return;
+   //    setIsSubmitting(true);
+   //    try {
+   //       setIsLoading(true);
+   //       await recordReturn(customer.id, returnAmount, returnNotes || `Return / Refund`);
+   //       await fetchData(true);
+   //       setIsReturnModalOpen(false);
+   //       setModalConfig({
+   //          isOpen: true,
+   //          title: "Return Recorded",
+   //          message: `₹${returnAmount.toFixed(2)} credit has been added to ${customer.name}'s account as advance.`,
+   //          type: 'success',
+   //          onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+   //          confirmText: "Great"
+   //       });
+   //    } catch (err) {
+   //       console.error("Failed to record return:", err);
+   //       setModalConfig({
+   //          isOpen: true,
+   //          title: "Return Failed",
+   //          message: "Failed to record return. Please try again.",
+   //          type: 'danger',
+   //          onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+   //       });
+   //    } finally {
+   //       setIsSubmitting(false);
+   //       setIsLoading(false);
+   //    }
+   // };
+   // ─────────────────────────────────────────────────────────────────────────
 
    const changeMonth = (delta: number) => {
       const newDate = new Date(viewDate);
@@ -458,7 +460,7 @@ export function useCustomerLogic(
       handleEditSubmit,
       handleMarkAsPaid,
       runRecordPayment,
-      handleRecordReturn,
+      // handleRecordReturn, // Return Item disabled
       changeMonth,
       handleCaptureScreenshot,
       isSubmitting

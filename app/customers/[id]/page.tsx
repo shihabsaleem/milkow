@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera, RotateCcw } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera, RotateCcw, ArrowDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef } from "react";
 import Modal from "@/components/ui/Modal";
@@ -130,10 +130,10 @@ export default function CustomerProfilePage() {
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between gap-4">
                <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-base sm:text-lg font-bold">{customer?.name || 'Customer'}</h1><p className="text-[10px] sm:text-xs text-zinc-500">Customer Profile</p></div></div>
                <div className="flex items-center gap-2">
-                  <button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer?.name || '')}`)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
+                  {/*<button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer?.name || '')}`)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
                      <Receipt size={16} />
                      <span className="hidden sm:inline">QR Bill</span>
-                  </button>
+                  </button>*/}
                   {/* Screenshot button — commented out (long screenshot setup disabled)
                   <button
                       onClick={handleCaptureScreenshot}
@@ -144,8 +144,9 @@ export default function CustomerProfilePage() {
                       <Camera size={20} className={isCapturing ? "animate-pulse text-primary" : ""} />
                    </button>
                   */}
-                  <button onClick={() => setIsEditModalOpen(true)} className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl active:scale-90"><Edit2 size={20} /></button>
-                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl active:scale-90"><Trash2 size={20} /></button>
+                  <button onClick={() => document.getElementById('financial-summary')?.scrollIntoView({ behavior: 'smooth' })} className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl border border-zinc-200 active:scale-90"><ArrowDown size={20} /></button>
+                  <button onClick={() => setIsEditModalOpen(true)} className="p-2 text-zinc-500 border border-zinc-200 hover:bg-zinc-100 rounded-xl active:scale-90"><Edit2 size={20} /></button>
+                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-rose-500 border border-zinc-200 hover:bg-rose-50 rounded-xl active:scale-90"><Trash2 size={20} /></button>
                </div>
             </div>
          </header>
@@ -187,180 +188,180 @@ export default function CustomerProfilePage() {
                      </div>
                      <div className="max-w-2xl mx-auto w-full px-6">
                         <div className="flex relative">
-                         <button
-                            onClick={() => setActiveTab('calendar')}
-                            className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors ${activeTab === 'calendar' ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}
-                         >
-                            Calendar
-                            {activeTab === 'calendar' && (
-                               <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
-                            )}
-                         </button>
-                         <button
-                            onClick={() => setActiveTab('statement')}
-                            className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors ${activeTab === 'statement' ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}
-                         >
-                            Statement
-                            {activeTab === 'statement' && (
-                               <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
-                            )}
-                         </button>
-                      </div>
-                   </div>
+                           <button
+                              onClick={() => setActiveTab('calendar')}
+                              className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors ${activeTab === 'calendar' ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}
+                           >
+                              Calendar
+                              {activeTab === 'calendar' && (
+                                 <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
+                              )}
+                           </button>
+                           <button
+                              onClick={() => setActiveTab('statement')}
+                              className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors ${activeTab === 'statement' ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}
+                           >
+                              Statement
+                              {activeTab === 'statement' && (
+                                 <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
+                              )}
+                           </button>
+                        </div>
+                     </div>
                   </div>
-                   {/* TABS */}
-                  
-
-                   <AnimatePresence mode="wait">
-                   {activeTab === 'calendar' ? (
-                   <motion.div key="calendar" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15 }}>
-                   <div className="max-w-2xl mx-auto w-full px-5 py-2">
-                      <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
-                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-                            <div><h3 className="text-lg sm:text-xl font-black text-zinc-900">Delivery History</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
-                            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Deliveries</span></div>
-                         </div>
-                         <div className="flex flex-col gap-3">
-                            {Array.from({ length: displayDays }).map((_, i) => {
-                               const day = i + 1;
-                               const dateStr = `${yearName}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                               const dayDeliveries = deliveries.filter(d => d.delivery_date === dateStr);
-
-                               if (dayDeliveries.length === 0) {
-                                  return (
-                                     <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-zinc-50/50 border-zinc-100/50 opacity-40">
-                                        <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                           <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-zinc-100 text-zinc-400">
-                                              <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
-                                              <span className="text-base sm:text-lg leading-none">{day}</span>
-                                           </div>
-                                           <p className="text-[11px] sm:text-xs font-bold text-zinc-400 italic tracking-tight">No deliveries scheduled</p>
-                                        </div>
-                                        <div className="text-right shrink-0 ml-2">
-                                           <p className="font-black text-[13px] sm:text-sm text-zinc-300">₹0</p>
-                                        </div>
-                                     </div>
-                                  );
-                               }
-
-                               const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
-
-                               return (
-                                  <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
-                                     <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                        <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
-                                           <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
-                                           <span className="text-base sm:text-lg leading-none">{day}</span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                                           {dayDeliveries.map((delivery, dIdx) => (
-                                              <div key={dIdx} className={`flex flex-col gap-1 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-zinc-100" : ""}`}>
-                                                 <p className="font-black text-[13px] sm:text-[15px] text-zinc-900 leading-tight truncate max-w-[150px] sm:max-w-none">
-                                                    {[
-                                                       delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
-                                                       ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
-                                                    ].filter(Boolean).join(' + ')}
-                                                 </p>
-                                                 <div className="flex items-center gap-1.5">
-                                                    <span className={`px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border font-black shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
-                                                    {delivery.delivered ? (
-                                                       <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-emerald-200 font-bold uppercase tracking-tighter">Delivered</span>
-                                                    ) : (() => {
-                                                       const now = new Date();
-                                                       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                                                       const isPast = delivery.delivery_date < today;
-                                                       const isToday = delivery.delivery_date === today;
-                                                       const hour = now.getHours();
-                                                       const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
-                                                       if (isPast || (isToday && isShiftOver)) {
-                                                          return <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-rose-200 font-bold uppercase tracking-tighter">Undelivered</span>;
-                                                       }
-                                                       return <span className="bg-zinc-100 text-zinc-400 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Pending</span>;
-                                                    })()}
-                                                    {delivery.billed && (
-                                                       <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Billed</span>
-                                                    )}
-                                                 </div>
-                                              </div>
-                                           ))}
-                                        </div>
-                                     </div>
-                                     <div className="text-right shrink-0 ml-2">
-                                        <p className="font-black text-[13px] sm:text-sm text-zinc-900">₹{dayTotal.toFixed(0)}</p>
-                                        <p className="text-[8px] sm:text-[10px] font-bold text-zinc-400 uppercase">Total</p>
-                                     </div>
-                                  </div>
-                               );
-                            })}
-                            {deliveries.filter(d => d.delivered).length === 0 && (
-                               <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
-                                  <p className="font-bold">No deliveries recorded</p>
-                                  <p className="text-[10px] uppercase tracking-widest">For {monthName} {yearName}</p>
-                               </div>
-                            )}
-                         </div>
-                      </div>
-                   </div>
-                   </motion.div>
-                   ) : (
-                   <motion.div key="statement" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.15 }}>
-                   <div className="max-w-2xl mx-auto w-full px-5 py-2">
-                      <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
-                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg sm:text-xl font-black text-zinc-900">Payment History</h3>
-                            <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-primary/5 text-primary rounded-xl border border-primary/10">{payments.length} Records</span>
-                         </div>
-                         {payments.length === 0 ? (
-                            <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
-                               <p className="font-bold">No payments found</p>
-                               <p className="text-[10px] uppercase tracking-widest">All payments will appear here</p>
-                            </div>
-                         ) : (
-                            <div className="flex flex-col gap-3">
-                               {payments.map((p, i) => {
-                                  const d = new Date(p.payment_date);
-                                  const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                                  const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-                                  return (
-                                     <div key={i} className="flex items-center justify-between p-4 rounded-2xl border bg-white border-zinc-100 hover:border-emerald-200 transition-all">
-                                        <div className="flex items-center gap-3">
-                                           <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-100">
-                                              <Receipt size={18} />
-                                           </div>
-                                           <div>
-                                              <p className="font-black text-[13px] text-zinc-900">{dateStr}</p>
-                                              <div className="flex items-center gap-2 mt-0.5">
-                                                 <span className="text-[10px] font-bold text-zinc-400">{timeStr}</span>
-                                                 <span className="w-1 h-1 rounded-full bg-zinc-300" />
-                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-500">{(p as any).method || 'Cash'}</span>
-                                              </div>
-                                              {(p as any).notes && <p className="text-[10px] text-zinc-400 mt-0.5 italic">{(p as any).notes}</p>}
-                                           </div>
-                                        </div>
-                                        <div className="text-right shrink-0 ml-2">
-                                           <p className="font-black text-sm text-emerald-600">+₹{Number(p.amount).toFixed(2)}</p>
-                                           <p className="text-[9px] font-bold text-zinc-400 uppercase">Received</p>
-                                        </div>
-                                     </div>
-                                  );
-                               })}
-                            </div>
-                         )}
-                      </div>
-                   </div>
-                   </motion.div>
-                   )}
-                   </AnimatePresence>
-                </>
-             ) : (
-                <div className="flex flex-col items-center justify-center py-20 opacity-40">
-                   <X size={48} className="mb-4" />
-                   <p className="font-bold">Customer not found</p>
-                </div>
-             )}
+                  {/* TABS */}
 
 
-            <div className="max-w-2xl mx-auto w-full px-5 py-6">
+                  <AnimatePresence mode="wait">
+                     {activeTab === 'calendar' ? (
+                        <motion.div key="calendar" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15 }}>
+                           <div className="max-w-2xl mx-auto w-full px-5 py-2">
+                              <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
+                                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                                    <div><h3 className="text-lg sm:text-xl font-black text-zinc-900">Delivery History</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
+                                    <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Deliveries</span></div>
+                                 </div>
+                                 <div className="flex flex-col gap-3">
+                                    {Array.from({ length: displayDays }).map((_, i) => {
+                                       const day = i + 1;
+                                       const dateStr = `${yearName}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                       const dayDeliveries = deliveries.filter(d => d.delivery_date === dateStr);
+
+                                       if (dayDeliveries.length === 0) {
+                                          return (
+                                             <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-zinc-50/50 border-zinc-100/50 opacity-40">
+                                                <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                                                   <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-zinc-100 text-zinc-400">
+                                                      <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
+                                                      <span className="text-base sm:text-lg leading-none">{day}</span>
+                                                   </div>
+                                                   <p className="text-[11px] sm:text-xs font-bold text-zinc-400 italic tracking-tight">No deliveries scheduled</p>
+                                                </div>
+                                                <div className="text-right shrink-0 ml-2">
+                                                   <p className="font-black text-[13px] sm:text-sm text-zinc-300">₹0</p>
+                                                </div>
+                                             </div>
+                                          );
+                                       }
+
+                                       const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
+
+                                       return (
+                                          <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
+                                             <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                                                <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
+                                                   <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
+                                                   <span className="text-base sm:text-lg leading-none">{day}</span>
+                                                </div>
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                                                   {dayDeliveries.map((delivery, dIdx) => (
+                                                      <div key={dIdx} className={`flex flex-col gap-1 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-zinc-100" : ""}`}>
+                                                         <p className="font-black text-[13px] sm:text-[15px] text-zinc-900 leading-tight truncate max-w-[150px] sm:max-w-none">
+                                                            {[
+                                                               delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
+                                                               ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
+                                                            ].filter(Boolean).join(' + ')}
+                                                         </p>
+                                                         <div className="flex items-center gap-1.5">
+                                                            <span className={`px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border font-black shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
+                                                            {delivery.delivered ? (
+                                                               <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-emerald-200 font-bold uppercase tracking-tighter">Delivered</span>
+                                                            ) : (() => {
+                                                               const now = new Date();
+                                                               const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                                                               const isPast = delivery.delivery_date < today;
+                                                               const isToday = delivery.delivery_date === today;
+                                                               const hour = now.getHours();
+                                                               const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
+                                                               if (isPast || (isToday && isShiftOver)) {
+                                                                  return <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-rose-200 font-bold uppercase tracking-tighter">Undelivered</span>;
+                                                               }
+                                                               return <span className="bg-zinc-100 text-zinc-400 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Pending</span>;
+                                                            })()}
+                                                            {delivery.billed && (
+                                                               <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Billed</span>
+                                                            )}
+                                                         </div>
+                                                      </div>
+                                                   ))}
+                                                </div>
+                                             </div>
+                                             <div className="text-right shrink-0 ml-2">
+                                                <p className="font-black text-[13px] sm:text-sm text-zinc-900">₹{dayTotal.toFixed(0)}</p>
+                                                <p className="text-[8px] sm:text-[10px] font-bold text-zinc-400 uppercase">Total</p>
+                                             </div>
+                                          </div>
+                                       );
+                                    })}
+                                    {deliveries.filter(d => d.delivered).length === 0 && (
+                                       <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
+                                          <p className="font-bold">No deliveries recorded</p>
+                                          <p className="text-[10px] uppercase tracking-widest">For {monthName} {yearName}</p>
+                                       </div>
+                                    )}
+                                 </div>
+                              </div>
+                           </div>
+                        </motion.div>
+                     ) : (
+                        <motion.div key="statement" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.15 }}>
+                           <div className="max-w-2xl mx-auto w-full px-5 py-2">
+                              <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
+                                 <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-lg sm:text-xl font-black text-zinc-900">Payment History</h3>
+                                    <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-primary/5 text-primary rounded-xl border border-primary/10">{payments.length} Records</span>
+                                 </div>
+                                 {payments.length === 0 ? (
+                                    <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
+                                       <p className="font-bold">No payments found</p>
+                                       <p className="text-[10px] uppercase tracking-widest">All payments will appear here</p>
+                                    </div>
+                                 ) : (
+                                    <div className="flex flex-col gap-3">
+                                       {payments.map((p, i) => {
+                                          const d = new Date(p.payment_date);
+                                          const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                          const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+                                          return (
+                                             <div key={i} className="flex items-center justify-between p-4 rounded-2xl border bg-white border-zinc-100 hover:border-emerald-200 transition-all">
+                                                <div className="flex items-center gap-3">
+                                                   <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                                      <Receipt size={18} />
+                                                   </div>
+                                                   <div>
+                                                      <p className="font-black text-[13px] text-zinc-900">{dateStr}</p>
+                                                      <div className="flex items-center gap-2 mt-0.5">
+                                                         <span className="text-[10px] font-bold text-zinc-400">{timeStr}</span>
+                                                         <span className="w-1 h-1 rounded-full bg-zinc-300" />
+                                                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-500">{(p as any).method || 'Cash'}</span>
+                                                      </div>
+                                                      {(p as any).notes && <p className="text-[10px] text-zinc-400 mt-0.5 italic">{(p as any).notes}</p>}
+                                                   </div>
+                                                </div>
+                                                <div className="text-right shrink-0 ml-2">
+                                                   <p className="font-black text-sm text-emerald-600">+₹{Number(p.amount).toFixed(2)}</p>
+                                                   <p className="text-[9px] font-bold text-zinc-400 uppercase">Received</p>
+                                                </div>
+                                             </div>
+                                          );
+                                       })}
+                                    </div>
+                                 )}
+                              </div>
+                           </div>
+                        </motion.div>
+                     )}
+                  </AnimatePresence>
+               </>
+            ) : (
+               <div className="flex flex-col items-center justify-center py-20 opacity-40">
+                  <X size={48} className="mb-4" />
+                  <p className="font-bold">Customer not found</p>
+               </div>
+            )}
+
+
+            <div id="financial-summary" className="max-w-2xl mx-auto w-full px-5 py-6">
                <div className="bg-white rounded-4xl p-6 sm:p-8 shadow-lg text-white relative overflow-hidden border border-primary-dim">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary-dim/10 blur-[80px] rounded-full -mr-16 -mt-16" />
 
@@ -508,24 +509,24 @@ export default function CustomerProfilePage() {
                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3"> <CustomSelect
-                               label="Type"
-                               options={[
-                                  { value: "credit", label: "Credit" },
-                                  { value: "advance", label: "Advance" }
-                               ]}
-                               value={editForm.outstanding_type}
-                               onChange={val => setEditForm({ ...editForm, outstanding_type: val })}
-                            />
-                            <div className="flex flex-col gap-1.5">
-                               <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                                  {editForm.outstanding_type === "advance" ? "Past Advance (₹)" : "Past Outstanding (₹)"}
-                               </label>
-                               <input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" />
-                            </div>
-                           
-                         </div>
+                           label="Type"
+                           options={[
+                              { value: "credit", label: "Credit" },
+                              { value: "advance", label: "Advance" }
+                           ]}
+                           value={editForm.outstanding_type}
+                           onChange={val => setEditForm({ ...editForm, outstanding_type: val })}
+                        />
+                           <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                                 {editForm.outstanding_type === "advance" ? "Past Advance (₹)" : "Past Outstanding (₹)"}
+                              </label>
+                              <input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" />
+                           </div>
+
+                        </div>
                         <button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
-                          {isSubmitting ? "Saving..." : "Save Changes"}
+                           {isSubmitting ? "Saving..." : "Save Changes"}
                         </button>
                      </form>
                   </motion.div>

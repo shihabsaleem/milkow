@@ -58,38 +58,41 @@ export default function LoginPage() {
 
                <div className="text-center mb-8">
                   <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Welcome Back</h2>
-                  <p className="text-xs font-medium text-zinc-500 mt-1.5">Sign in securely to your dashboard</p>
+                  <p className="text-xs font-medium text-zinc-500 mt-1.5">Sign in</p>
                </div>
 
                <form onSubmit={handleLogin} className="flex flex-col gap-5">
                   <div className="flex flex-col gap-1.5 relative group/input">
                      <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
                      <div className="relative flex items-center">
-                        <div className="absolute left-4 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors">
-                           <Mail size={18} strokeWidth={2.5} />
+                        <div className="absolute left-4 z-10 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors pointer-events-none">
+                           <Mail size={18} strokeWidth={2} />
                         </div>
                         <input
                            type="email"
                            value={email}
                            onChange={(e) => setEmail(e.target.value)}
-                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2 border-zinc-100 hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
+                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2  border-zinc-200 shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
                            placeholder="Email address"
                            required
                         />
                      </div>
                   </div>
 
+                  
+
+
                   <div className="flex flex-col gap-1.5 relative group/input">
                      <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
                      <div className="relative flex items-center">
-                        <div className="absolute left-4 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors">
+                        <div className="absolute left-4 z-10 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors pointer-events-none">
                            <Lock size={18} strokeWidth={2.5} />
                         </div>
                         <input
                            type="password"
                            value={password}
                            onChange={(e) => setPassword(e.target.value)}
-                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2 border-zinc-100 hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
+                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2 border-zinc-200 shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
                            placeholder="Password"
                            required
                         />
@@ -125,17 +128,17 @@ export default function LoginPage() {
                         </>
                      )}
                   </button>
-                </form>
+               </form>
 
-                <div className="flex justify-center mt-6 pt-4 border-t border-zinc-100">
-                   <Link
-                      href="/bill"
-                      className="text-xs font-bold text-zinc-500 hover:text-primary transition-colors flex items-center gap-1 active:scale-95"
-                   >
-                      Looking for your bill? View Client Bill
-                   </Link>
-                </div>
-             </div>
+               <div className="flex justify-center mt-6 pt-4 border-t border-zinc-100">
+                  <Link
+                     href="/bill"
+                     className="text-xs font-bold text-zinc-500 hover:text-primary transition-colors flex items-center gap-1 active:scale-95"
+                  >
+                     Looking for your bill? View Client Bill
+                  </Link>
+               </div>
+            </div>
 
             {/* Copyright */}
             <p className="text-center mt-10 text-zinc-400 text-[10px] font-medium tracking-wide uppercase">

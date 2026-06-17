@@ -38,7 +38,8 @@ export default function BillingPage() {
       fetchData,
       handleMarkAsPaid,
       handleShareCard,
-      handleWhatsAppShare
+      handleWhatsAppShare,
+      isShareLoading
    } = useBillingLogic(qrRef);
 
    const [searchTerm, setSearchTerm] = useState("");
@@ -50,7 +51,7 @@ export default function BillingPage() {
       }
       return "";
    });
-   
+
    useEffect(() => {
       localStorage.setItem('milkow_selected_route', selectedRoute.toString());
    }, [selectedRoute]);
@@ -85,7 +86,7 @@ export default function BillingPage() {
          await fetchData();
          setIsPaymentModalOpen(false);
          setSelectedCustomerForPayment(null);
-         
+
          setModalConfig({
             isOpen: true,
             title: "Payment Recorded",
@@ -204,7 +205,7 @@ export default function BillingPage() {
                            <div className="flex flex-col items-end"><span className="font-black text-lg text-primary">₹{Number(bill.amount).toFixed(2)}</span></div>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-zinc-100">
-                           <button disabled={isLoading} onClick={() => setSelectedInvoice(bill)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-zinc-100 text-zinc-700 active:scale-95 disabled:opacity-50"><QrCode size={14} /> Share</button>
+                           <button disabled={isLoading} onClick={() => setSelectedInvoice(bill)} className="rounded-xl py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-zinc-100 text-zinc-700 active:scale-95 disabled:opacity-50"><QrCode size={14} /> Show QR</button>
                            <button disabled={isLoading} onClick={() => {
                               setSelectedCustomerForPayment(bill.customer_id);
                               setPaymentAmount(bill.amount.toString());
@@ -254,7 +255,7 @@ export default function BillingPage() {
                      <div className="w-full flex flex-col gap-3 mt-4">
                         <div className="flex gap-2">
                            <button onClick={() => handleWhatsAppShare(selectedInvoice)} className="flex-1 bg-[#E8F8EF] text-[#1E7E4E] py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><MessageCircle size={18} /> WhatsApp</button>
-                           <button onClick={() => handleShareCard(selectedInvoice)} className="flex-1 bg-primary text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><Share2 size={18} /> Share Card</button>
+                           <button onClick={() => handleShareCard(selectedInvoice)} disabled={isShareLoading} className="flex-1 bg-primary text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60 disabled:pointer-events-none">{isShareLoading ? <><span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Generating...</> : <><Share2 size={18} /> Share Card</>}</button>
                         </div>
                         <button onClick={() => handleMarkAsPaid(selectedInvoice.id, setSelectedInvoice)} className="w-full bg-zinc-100 text-zinc-500 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><Wallet2 size={18} /> Manual Confirmation</button>
                      </div>
@@ -273,7 +274,7 @@ export default function BillingPage() {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6 text-zinc-900">
                      <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
-                     
+
                      {paymentTotalDue !== null ? (
                         <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center justify-between">
                            <span className="text-orange-800 text-xs font-bold uppercase tracking-widest">Total Outstanding</span>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import QRCode from "qrcode";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
 import { recordPayment, settleAllDues } from "@/lib/financials";
@@ -9,6 +10,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
    const [routesList, setRoutesList] = useState<T.Area[]>([]);
    const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
    const [isLoading, setIsLoading] = useState(true);
+   const [isShareLoading, setIsShareLoading] = useState(false);
    const [showToast, setShowToast] = useState(false);
    const [modalConfig, setModalConfig] = useState<{
       isOpen: boolean;
@@ -187,6 +189,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       ctx.shadowColor = "transparent";
 
       const logo = new Image();
+      logo.crossOrigin = "anonymous";
       logo.src = "/assets/logo.svg";
       await new Promise((resolve) => { logo.onload = resolve; logo.onerror = resolve; });
       if (logo.complete && logo.naturalWidth > 0) {
@@ -251,9 +254,18 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      const uiQrCanvas = qrRef.current?.querySelector("canvas");
-      if (uiQrCanvas) {
-         ctx.drawImage(uiQrCanvas, qrX, qrY, qrSize, qrSize);
+      // Generate QR code directly onto an offscreen canvas — no DOM dependency,
+      // no tainted-canvas issues from embedded SVG logos.
+      if (paymentSettings) {
+         const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
+         const qrOffscreen = document.createElement("canvas");
+         await QRCode.toCanvas(qrOffscreen, upiValue, {
+            width: qrSize,
+            margin: 2,
+            errorCorrectionLevel: "H",
+            color: { dark: "#000000", light: "#FFFFFF" },
+         });
+         ctx.drawImage(qrOffscreen, qrX, qrY, qrSize, qrSize);
       }
 
       ctx.textAlign = "center";
@@ -271,32 +283,69 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       ctx.font = "bold 32px Geist, Inter, sans-serif";
       ctx.fillText("Fresh Milk, Delivered with Love.", width / 2, 1860);
 
-      const dataUrl = canvas.toDataURL("image/png", 0.95);
-      const blob = await (await fetch(dataUrl)).blob();
+      // Use toBlob() — faster than fetch(dataUrl) and avoids an extra async hop
+      // that could invalidate the browser's user-gesture token before navigator.share() runs.
+      const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/png", 0.95));
+      if (!blob) return null;
       return new File([blob], `Milkow_Bill_${invoice.customer?.name}.png`, { type: "image/png" });
    };
 
    const handleShareCard = async (selectedInvoice: (T.Bill & { customer: T.Customer }) | null) => {
-      if (!selectedInvoice) return;
+      if (!selectedInvoice || isShareLoading) return;
+      setIsShareLoading(true);
       try {
          const file = await getPaymentCardFile(selectedInvoice);
-         if (!file) return;
+         if (!file) throw new Error("Failed to generate payment card.");
+
          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: `Payment Card for ${selectedInvoice.customer?.name}`, text: `Hi ${selectedInvoice.customer?.name}, your payment card is ready.` });
+            // navigator.share requires being called as close to the user gesture as possible.
+            // toBlob() is the fastest path to get the File, keeping the gesture token alive.
+            await navigator.share({
+               files: [file],
+               title: `Payment Card for ${selectedInvoice.customer?.name}`,
+               text: `Hi ${selectedInvoice.customer?.name}, please pay ₹${Number(selectedInvoice.amount).toFixed(2)} via the QR.`,
+            });
          } else {
-            const dataUrl = URL.createObjectURL(file);
-            const link = document.createElement("a"); link.href = dataUrl; link.download = `Milkow_Card_${selectedInvoice.customer?.name}.png`; link.click();
+            // Fallback: trigger a download. Must append to DOM for Firefox/Safari.
+            const objectUrl = URL.createObjectURL(file);
+            const link = document.createElement("a");
+            link.href = objectUrl;
+            link.download = `Milkow_Card_${selectedInvoice.customer?.name}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
          }
-      } catch (e) { console.error(e); }
+      } catch (e: any) {
+         // "AbortError" means the user dismissed the share sheet — not a real error.
+         if (e?.name !== "AbortError") {
+            console.error("Share card error:", e);
+            setModalConfig({
+               isOpen: true,
+               title: "Share Failed",
+               message: "Could not share the payment card. Try again or screenshot the QR directly.",
+               type: "danger",
+               onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+               confirmText: "OK",
+            });
+         }
+      } finally {
+         setIsShareLoading(false);
+      }
    };
 
    const handleWhatsAppShare = async (invoice: (T.Bill & { customer: T.Customer })) => {
       if (!paymentSettings) return;
       const amount = Number(invoice.amount).toFixed(2);
       const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
-      const message = `Hi ${invoice.customer?.name}, your bill for ${invoice.type} is ₹${amount}. You can pay using the attached QR or this link: ${upiLink}`;
+      const message = `Hi ${invoice.customer?.name}, your total outstanding bill is ₹${amount}. Please scan the UPI QR or pay via: ${upiLink}`;
 
-      const url = `https://wa.me/+91${invoice.customer?.phone}?text=${encodeURIComponent(message)}`;
+      // Normalise phone: strip non-digits, then only prepend 91 if the number is
+      // exactly 10 digits (Indian local). If it's already 12+ digits it has a
+      // country code embedded — use it as-is.
+      const digitsOnly = (invoice.customer?.phone || "").replace(/\D/g, "");
+      const e164 = digitsOnly.length > 10 ? digitsOnly : `91${digitsOnly}`;
+      const url = `https://wa.me/${e164}?text=${encodeURIComponent(message)}`;
       window.open(url, "_blank");
    };
 
@@ -305,6 +354,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       routesList,
       paymentSettings,
       isLoading,
+      isShareLoading,
       showToast,
       modalConfig,
       setModalConfig,

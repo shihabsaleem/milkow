@@ -71,38 +71,49 @@ export function useProfileLogic() {
   }, [fetchSettings]);
 
   const handleSave = async () => {
+    setIsSaved(true);
+    const pinToSave = pin;
+    setPin("");
+    setTimeout(() => setIsSaved(false), 2000);
+
     try {
-      await supabase.from('system_settings').upsert({
-        key: 'general',
-        value: {
-          payment: { payee_name: payeeName, upi_id: upiId, currency_code: "INR" },
-          system_user: { name: adminName, pin: pin }
-        }
+      const runAsync = async () => {
+         await supabase.from('system_settings').upsert({
+         key: 'general',
+         value: {
+            payment: { payee_name: payeeName, upi_id: upiId, currency_code: "INR" },
+            system_user: { name: adminName, pin: pinToSave }
+         }
+         });
+
+         if (pinToSave && pinToSave.length >= 6) {
+         const { error: authError } = await supabase.auth.updateUser({ password: pinToSave });
+         if (authError) throw authError;
+         }
+
+         const { data: autoData } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
+         const existingAuto = (autoData?.value as T.AutomationSettings) || { lastRouteReset: '', lastBillGeneration: '' };
+         await supabase.from('system_settings').upsert({
+         key: 'automation',
+         value: {
+            ...existingAuto,
+            autoCloseEnabled,
+            morningCloseTime,
+            eveningCloseTime
+         }
+         });
+         fetchSettings(true);
+      };
+
+      runAsync().catch(e => {
+         const err = e as Error;
+         console.error("Failed to save settings:", err.message);
+         fetchSettings(true);
       });
-
-      if (pin && pin.length >= 6) {
-        const { error: authError } = await supabase.auth.updateUser({ password: pin });
-        if (authError) throw authError;
-      }
-
-      const { data: autoData } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
-      const existingAuto = (autoData?.value as T.AutomationSettings) || { lastRouteReset: '', lastBillGeneration: '' };
-      await supabase.from('system_settings').upsert({
-        key: 'automation',
-        value: {
-          ...existingAuto,
-          autoCloseEnabled,
-          morningCloseTime,
-          eveningCloseTime
-        }
-      });
-
-      setIsSaved(true);
-      setPin("");
-      setTimeout(() => setIsSaved(false), 2000);
     } catch (e: unknown) {
       const err = e as Error;
-      console.error("Failed to save settings:", err.message);
+      console.error("Failed to trigger save settings:", err.message);
+      fetchSettings(true);
     }
   };
 
@@ -131,28 +142,49 @@ export function useProfileLogic() {
   };
 
   const removeRoute = async (id: number) => {
+    // Optimistic UI Update
+    setAreas(prev => prev.filter(a => a.id !== id));
+    
     try {
-      const { error } = await supabase.from('areas').delete().eq('id', id);
-      if (error) throw error;
-      setAreas(prev => prev.filter(a => a.id !== id));
+      const runAsync = async () => {
+         const { error } = await supabase.from('areas').delete().eq('id', id);
+         if (error) throw error;
+         fetchSettings(true);
+      };
+      runAsync().catch((err) => {
+         console.error("Failed to remove route:", err.message);
+         fetchSettings(true); // revert
+      });
     } catch (e: unknown) {
       const err = e as Error;
-      console.error("Failed to remove route:", err.message);
+      console.error("Failed to trigger remove route:", err.message);
+      fetchSettings(true);
     }
   };
 
   const editRoute = async (id: number, name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
+    
+    // Optimistic UI Update
+    setAreas(prev => prev.map(a => a.id === id ? { ...a, name: trimmed } : a).sort((a, b) => a.name.localeCompare(b.name)));
+    setEditingRouteId(null);
+    setEditingRouteName("");
+
     try {
-      const { error } = await supabase.from('areas').update({ name: trimmed }).eq('id', id);
-      if (error) throw error;
-      setAreas(prev => prev.map(a => a.id === id ? { ...a, name: trimmed } : a).sort((a, b) => a.name.localeCompare(b.name)));
-      setEditingRouteId(null);
-      setEditingRouteName("");
+      const runAsync = async () => {
+         const { error } = await supabase.from('areas').update({ name: trimmed }).eq('id', id);
+         if (error) throw error;
+         fetchSettings(true);
+      };
+      runAsync().catch((err) => {
+         console.error("Failed to edit route:", err.message);
+         fetchSettings(true); // revert
+      });
     } catch (e: unknown) {
       const err = e as Error;
-      console.error("Failed to edit route:", err.message);
+      console.error("Failed to trigger edit route:", err.message);
+      fetchSettings(true);
     }
   };
 

@@ -139,10 +139,21 @@ export function useCustomerLogic(
    const toggleStatus = async () => {
       if (!customer) return;
       const newStatus = customer.status === 'Active' ? 'Inactive' : 'Active';
+      
+      // Optimistic update
+      setCustomer({ ...customer, status: newStatus });
+      
       try {
-         await supabase.from('customers').update({ status: newStatus }).eq('id', customer.id);
-         await fetchData(true);
-      } catch (err) { console.error(err); }
+         supabase.from('customers').update({ status: newStatus }).eq('id', customer.id)
+            .then(() => fetchData(true))
+            .catch((err: any) => {
+               console.error(err);
+               fetchData(true); // Revert on error
+            });
+      } catch (err) { 
+         console.error(err);
+         fetchData(true);
+      }
    };
 
    const deleteCustomer = async () => {
@@ -158,33 +169,41 @@ export function useCustomerLogic(
       e.preventDefault();
       if (!customer || !editForm.name || !editForm.phone || !editForm.area_id || isSubmitting) return;
       setIsSubmitting(true);
-      try {
-         setIsLoading(true);
-         const amt = parseFloat(editForm.outstanding) || 0;
-         const finalOutstanding = editForm.outstanding_type === "advance" ? -Math.abs(amt) : Math.abs(amt);
-         
-         const userChangedOutstanding = finalOutstanding !== Number(customer.past_outstanding);
-         
-         const updatePayload: any = {
-            name: editForm.name,
-            phone: editForm.phone,
-            area_id: parseInt(editForm.area_id),
-            frequency: editForm.frequency,
-            default_product_id: editForm.default_product_id || null,
-            default_qty: parseInt(editForm.default_qty) || 1
-         };
-         
-         if (userChangedOutstanding) {
-            updatePayload.past_outstanding = finalOutstanding;
-         }
+      
+      const amt = parseFloat(editForm.outstanding) || 0;
+      const finalOutstanding = editForm.outstanding_type === "advance" ? -Math.abs(amt) : Math.abs(amt);
+      
+      const userChangedOutstanding = finalOutstanding !== Number(customer.past_outstanding);
+      
+      const updatePayload: any = {
+         name: editForm.name,
+         phone: editForm.phone,
+         area_id: parseInt(editForm.area_id),
+         frequency: editForm.frequency,
+         default_product_id: editForm.default_product_id || null,
+         default_qty: parseInt(editForm.default_qty) || 1
+      };
+      
+      if (userChangedOutstanding) {
+         updatePayload.past_outstanding = finalOutstanding;
+      }
 
-         await supabase.from('customers').update(updatePayload).eq('id', customer.id);
-         setIsEditModalOpen(false);
-         await fetchData(true);
+      // Optimistic update
+      const newArea = areas.find(a => a.id === updatePayload.area_id) || customer.area;
+      setCustomer({ ...customer, ...updatePayload, area: newArea });
+      setIsEditModalOpen(false);
+      
+      try {
+         supabase.from('customers').update(updatePayload).eq('id', customer.id)
+            .then(() => fetchData(true))
+            .catch((err: any) => {
+               console.error(err);
+               fetchData(true); // Revert on failure
+            })
+            .finally(() => setIsSubmitting(false));
       } catch (err) {
          console.error(err);
-         setIsLoading(false);
-      } finally {
+         fetchData(true);
          setIsSubmitting(false);
       }
    };
@@ -192,32 +211,34 @@ export function useCustomerLogic(
    const runMarkAsPaid = async () => {
       if (!customer || grandTotalAmount <= 0 || isSubmitting) return;
       setIsSubmitting(true);
+      
+      // Optimistic Update
+      if (financials) {
+         setFinancials({ ...financials, current_balance: 0 });
+      }
+      setBills(prev => prev.map(b => ({ ...b, status: 'Paid' })));
+      
+      setModalConfig({
+         isOpen: true,
+         title: "Payment Recorded",
+         message: "Payment has been recorded and all dues have been settled successfully!",
+         type: 'success',
+         onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+         confirmText: "Great"
+      });
+
       try {
-         setIsLoading(true);
-
-         await settleAllDues(customer.id, 'Cash', 'Full Settlement from Profile');
-
-         await fetchData();
-         setModalConfig({
-            isOpen: true,
-            title: "Payment Recorded",
-            message: "Payment has been recorded and all dues have been settled successfully!",
-            type: 'success',
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-            confirmText: "Great"
-         });
+         settleAllDues(customer.id, 'Cash', 'Full Settlement from Profile')
+            .then(() => fetchData(true))
+            .catch((err: any) => {
+               console.error("Failed to mark as paid:", err);
+               fetchData(true); // Revert on failure
+            })
+            .finally(() => setIsSubmitting(false));
       } catch (err) {
-         console.error("Failed to mark as paid:", err);
-         setModalConfig({
-            isOpen: true,
-            title: "Payment Failed",
-            message: "Failed to record payment. Please check your connection and try again.",
-            type: 'danger',
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-         });
-      } finally {
+         console.error("Failed to trigger mark as paid:", err);
+         fetchData(true);
          setIsSubmitting(false);
-         setIsLoading(false);
       }
    };
 
@@ -246,33 +267,34 @@ export function useCustomerLogic(
    const runRecordPayment = async (amountVal: number, methodVal: string, notesVal: string, setIsPaymentModalOpen: (v: boolean) => void) => {
       if (!customer || isSubmitting) return;
       setIsSubmitting(true);
+      
+      // Optimistic UI updates
+      if (financials) {
+         setFinancials({ ...financials, current_balance: financials.current_balance - amountVal });
+      }
+      
+      setIsPaymentModalOpen(false);
+      setModalConfig({
+         isOpen: true,
+         title: "Payment Recorded",
+         message: `Successfully recorded payment of ₹${amountVal.toFixed(2)} using ${methodVal}.`,
+         type: 'success',
+         onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+         confirmText: "Great"
+      });
+
       try {
-         setIsLoading(true);
-
-         await recordPayment(customer.id, amountVal, methodVal, notesVal || 'Custom Payment from Profile');
-
-         await fetchData();
-         setIsPaymentModalOpen(false);
-         setModalConfig({
-            isOpen: true,
-            title: "Payment Recorded",
-            message: `Successfully recorded payment of ₹${amountVal.toFixed(2)} using ${methodVal}.`,
-            type: 'success',
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-            confirmText: "Great"
-         });
+         recordPayment(customer.id, amountVal, methodVal, notesVal || 'Custom Payment from Profile')
+            .then(() => fetchData(true))
+            .catch((err: any) => {
+               console.error("Failed to record payment:", err);
+               fetchData(true); // Revert on failure
+            })
+            .finally(() => setIsSubmitting(false));
       } catch (err) {
-         console.error("Failed to record payment:", err);
-         setModalConfig({
-            isOpen: true,
-            title: "Payment Failed",
-            message: "Failed to record payment. Please check your connection and try again.",
-            type: 'danger',
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-         });
-      } finally {
+         console.error("Failed to trigger record payment:", err);
+         fetchData(true);
          setIsSubmitting(false);
-         setIsLoading(false);
       }
    };
 

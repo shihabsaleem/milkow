@@ -109,7 +109,7 @@ export default function CustomersPage() {
                   }}
                   className="p-2.5 bg-primary/5 text-primary rounded-xl hover:bg-primary/10 transition-colors border border-primary/10 flex items-center gap-2"
                 >
-                  <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">QR Bill</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">Bill</span>
                   <ChevronRight size={18} className="text-primary/50 group-hover:text-primary transition-all translate-x-0 group-hover:translate-x-1" />
                 </button>
               </div>

@@ -44,6 +44,7 @@ export default function DeliveryPage() {
       updateProductQty,
       updateMilkQty,
       handleSync,
+      runMarkAsPaid,
       fetchData
    } = useDeliveryLogic();
 
@@ -237,7 +238,7 @@ export default function DeliveryPage() {
                   const isExpanded = expandedStopId === delivery.id;
                   const activeItems = delivery.misc_items || [];
                   return (
-                     <motion.div key={delivery.id} layout className={`border rounded-2xl transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-primary/20 shadow-sm'}`}>
+                     <motion.div key={delivery.id} layout className={` rounded-xl transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-primary/20 shadow-sm'}`}>
                         <div className="p-4">
 
                            <div className="flex flex-row items-start justify-between gap-4">
@@ -251,11 +252,10 @@ export default function DeliveryPage() {
                                        <div className="flex items-center gap-2 flex-wrap">
                                           <h3 className={`font-bold text-lg leading-tight ${delivery.delivered ? 'text-zinc-600 line-through' : 'text-zinc-900'}`}>{delivery.customer?.name}</h3>
                                           {delivery.customer?.financials && delivery.customer.financials.current_balance !== 0 && (
-                                             <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${
-                                                delivery.customer.financials.current_balance < 0 
-                                                   ? 'bg-emerald-500/10 text-emerald-600' 
-                                                   : 'bg-amber-500/10 text-amber-600'
-                                             }`}>
+                                             <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${delivery.customer.financials.current_balance < 0
+                                                ? 'bg-emerald-500/10 text-emerald-600'
+                                                : 'bg-amber-500/10 text-amber-600'
+                                                }`}>
                                                 {delivery.customer.financials.current_balance < 0 ? 'Adv: ' : 'Bal: '}
                                                 ₹{Math.abs(delivery.customer.financials.current_balance).toLocaleString()}
                                              </span>
@@ -277,35 +277,33 @@ export default function DeliveryPage() {
                                        {activeItems.map((item: any) => (<span key={item.name} className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-md">{item.qty}x {item.name}</span>))}
                                     </div>
                                  )}
-
-                                 <div className="mt-3 pt-3 border-t border-zinc-100 pl-2 ">
-                                    <button onClick={(e) => { e.stopPropagation(); setExpandedStopId(delivery.id); }} className={`flex items-start gap-1.5 text-xs font-bold transition-colors py-1 rounded-lg ${isExpanded ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extra Items' : 'Add Additional Products'}</button>
-                                 </div>
                               </div>
 
-                              <div className="flex flex-col items-center gap-2">
-
-                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-full ${delivery.delivered ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400 hover:text-emerald-500 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}><Check size={20} strokeWidth={3} /></button>
-                                 <button onClick={async (e) => {
-                                    e.stopPropagation();
-                                    router.push(`/customers/${delivery.customer_id}`);
-                                    /*
-                                    setSelectedCustomerForPayment(delivery.customer_id);
-                                    setPaymentAmount("");
-                                    setPaymentMethod("Cash");
-                                    setPaymentNotes("");
-                                    setPaymentTotalDue(null);
-                                    setIsPaymentModalOpen(true);
-                                    const bal = await fetchCustomerBalance(delivery.customer_id);
-                                    setPaymentTotalDue(bal);
-                                    */
-                                 }} className="h-12 w-12 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"><ArrowRight size={18} strokeWidth={2.5} /></button>
+                              <div className="flex flex-col justify-center ml-2">
+                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-xl shadow-xs transition-all ${delivery.delivered ? 'bg-emerald-500 text-white shadow-emerald-500/20 shadow-md' : 'bg-zinc-50 text-zinc-400 hover:bg-emerald-50 hover:text-emerald-500 hover:border-emerald-200 border border-zinc-200'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                    <Check size={24} strokeWidth={3} />
+                                 </button>
                               </div>
-
-
-
                            </div>
+                        </div>
 
+                        <div className="px-4 pb-2 pt-1 border-t border-zinc-100 flex items-center justify-between">
+                           <button onClick={(e) => { e.stopPropagation(); setExpandedStopId(delivery.id); }} className={`flex items-center gap-1.5 text-xs font-bold transition-colors py-2 px-3 rounded-xl ${isExpanded ? 'text-primary' : ' text-zinc-500'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extras' : 'Add Products'}</button>
+
+                           <div className="flex items-center gap-2">
+                              <button onClick={(e) => {
+                                 e.stopPropagation();
+                                 if (confirm(`Settle all dues for ${delivery.customer?.name}?`)) {
+                                    runMarkAsPaid(delivery.customer_id);
+                                 }
+                              }} className="flex items-center gap-1.5 text-xs font-bold transition-colors py-2 px-3 rounded-md bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-100/50" title="Settle Full Amount">
+                                 <Wallet2 size={14} /><div className="hidden md:block">Settle</div>
+                              </button>
+                              <button onClick={async (e) => {
+                                 e.stopPropagation();
+                                 router.push(`/customers/${delivery.customer_id}`);
+                              }} className="flex items-center justify-center h-8 w-8 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100/50 transition-colors"><ArrowRight size={16} strokeWidth={2.5} /></button>
+                           </div>
                         </div>
                      </motion.div>
                   );

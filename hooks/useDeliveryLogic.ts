@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
 import { syncBatchDeliveries } from "@/lib/automation";
+import { settleAllDues } from "@/lib/financials";
 
 type DeliveryWithCustomer = T.Delivery & { customer: T.Customer & { financials?: { current_balance: number } } };
 
@@ -365,36 +366,80 @@ export function useDeliveryLogic() {
 
    const handleSync = async () => {
       if (changedDeliveries.length === 0 || isSubmitting.current) return;
+      
+      const numChanges = changedDeliveries.length;
       isSubmitting.current = true;
-      setIsSyncing(true);
+      
+      const today = new Date().toLocaleDateString('en-CA');
+      const currentShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
+      const cacheKey = `milkow_staged_changes_${today}_${currentShift}`;
+      
+      // Optimistic UI updates
+      setServerDeliveries([...deliveries]); // Update server deliveries locally to match current view
+      localStorage.removeItem(cacheKey);
+      setIsStagingCollapsed(false);
+
+      setModalConfig({
+         isOpen: true,
+         title: "Sync Successful",
+         message: `Successfully synchronized ${numChanges} delivery changes.`,
+         type: 'success'
+      });
+
       try {
-         await syncBatchDeliveries(changedDeliveries, serverDeliveries);
+         const runAsync = async () => {
+            await syncBatchDeliveries(changedDeliveries, serverDeliveries);
+            fetchData(true);
+         };
 
-         const today = new Date().toLocaleDateString('en-CA');
-         const currentShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
-         const cacheKey = `milkow_staged_changes_${today}_${currentShift}`;
-         localStorage.removeItem(cacheKey);
-         setIsStagingCollapsed(false);
-
-         setModalConfig({
-            isOpen: true,
-            title: "Sync Successful",
-            message: `Successfully synchronized ${changedDeliveries.length} delivery changes.`,
-            type: 'success'
+         runAsync().catch(err => {
+            console.error("Sync error:", err);
+            fetchData(true); // Revert on failure
+         }).finally(() => {
+            isSubmitting.current = false;
          });
-
-         await fetchData(true);
       } catch (err) {
-         console.error("Sync error:", err);
-         setModalConfig({
-            isOpen: true,
-            title: "Sync Failed",
-            message: "Failed to synchronize changes. They are still saved locally.",
-            type: 'danger'
-         });
-      } finally {
+         console.error("Trigger failed:", err);
+         fetchData(true);
          isSubmitting.current = false;
-         setIsSyncing(false);
+      }
+   };
+
+   const runMarkAsPaid = async (customerId: string) => {
+      // Optimistic update
+      setDeliveries(prev => prev.map(d => {
+         if (d.customer_id === customerId && d.customer?.financials) {
+            return { ...d, customer: { ...d.customer, financials: { current_balance: 0 } } };
+         }
+         return d;
+      }));
+      setServerDeliveries(prev => prev.map(d => {
+         if (d.customer_id === customerId && d.customer?.financials) {
+            return { ...d, customer: { ...d.customer, financials: { current_balance: 0 } } };
+         }
+         return d;
+      }));
+
+      setModalConfig({
+         isOpen: true,
+         title: "Payment Recorded",
+         message: "Payment has been recorded and all dues settled successfully!",
+         type: 'success'
+      });
+
+      try {
+         const runAsync = async () => {
+            await settleAllDues(customerId, 'Cash', 'Full Settlement on Route');
+            fetchData(true);
+         };
+
+         runAsync().catch(err => {
+            console.error("Payment failed:", err);
+            fetchData(true);
+         });
+      } catch (err) {
+         console.error("Trigger failed:", err);
+         fetchData(true);
       }
    };
 
@@ -418,6 +463,7 @@ export function useDeliveryLogic() {
       updateProductQty,
       updateMilkQty,
       handleSync,
+      runMarkAsPaid,
       fetchData,
    };
 }

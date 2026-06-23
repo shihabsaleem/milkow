@@ -123,71 +123,105 @@ export function useInventoryLogic() {
     return () => { sub.unsubscribe(); };
   }, [fetchData]);
 
-  const handleSaveProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProduct.name || !newProduct.price || isSubmitting) return;
-    try {
+   const handleSaveProduct = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newProduct.name || !newProduct.price || isSubmitting) return;
+      
       setIsSubmitting(true);
       const productToSave = {
-        name: newProduct.name,
-        size: newProduct.size,
-        stock: parseInt(newProduct.stock.toString() || "0"),
-        price: Number(newProduct.price) || 0,
-        unit: newProduct.unit
+         name: newProduct.name,
+         size: newProduct.size,
+         stock: parseInt(newProduct.stock.toString() || "0"),
+         price: Number(newProduct.price) || 0,
+         unit: newProduct.unit
       };
 
-      if (editingIndex !== null && products[editingIndex].id) {
-        const oldStock = products[editingIndex].stock || 0;
-        const newStock = productToSave.stock;
-        const delta = newStock - oldStock;
-
-        await supabase.from('products').update(productToSave).eq('id', products[editingIndex].id);
-
-        const { data: invItem } = await supabase.from('inventory').select('loaded').eq('product_id', products[editingIndex].id).single();
-        const currentLoaded = invItem?.loaded || 0;
-        const newLoaded = Math.max(0, currentLoaded + delta);
-
-        await supabase.from('inventory').update({
-          name: productToSave.name,
-          unit: productToSave.unit,
-          count: productToSave.stock,
-          loaded: newLoaded
-        }).eq('product_id', products[editingIndex].id);
-      } else {
-        const { data: insertedProduct, error: insertError } = await supabase.from('products').insert(productToSave).select().single();
-        if (!insertError && insertedProduct) {
-          await supabase.from('inventory').insert({
-            product_id: insertedProduct.id,
-            name: insertedProduct.name,
-            unit: insertedProduct.unit,
-            count: productToSave.stock,
-            loaded: productToSave.stock,
-            vol: insertedProduct.size
-          });
-        }
+      const isEdit = editingIndex !== null && products[editingIndex].id;
+      const targetId = isEdit ? products[editingIndex].id : null;
+      const oldStock = isEdit ? (products[editingIndex].stock || 0) : 0;
+      
+      // Optimistic UI updates
+      if (isEdit) {
+         setProducts(prev => prev.map((p, idx) => idx === editingIndex ? { ...p, ...productToSave } : p));
+         setPipeline(prev => prev.map(p => p.productId === targetId ? { ...p, label: productToSave.name, unit: productToSave.unit, value: productToSave.stock } : p));
       }
+
       setIsModalOpen(false);
       setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
       setEditingIndex(null);
-      await fetchData();
-    } catch (err) { console.error(err); } finally {
-      setIsSubmitting(false);
-    }
-  };
 
-  const runDeleteProduct = async () => {
-    if (editingIndex === null || !products[editingIndex].id) return;
-    try {
+      try {
+         const runAsync = async () => {
+            if (isEdit && targetId) {
+               const newStock = productToSave.stock;
+               const delta = newStock - oldStock;
+
+               await supabase.from('products').update(productToSave).eq('id', targetId);
+
+               const { data: invItem } = await supabase.from('inventory').select('loaded').eq('product_id', targetId).single();
+               const currentLoaded = invItem?.loaded || 0;
+               const newLoaded = Math.max(0, currentLoaded + delta);
+
+               await supabase.from('inventory').update({
+                  name: productToSave.name,
+                  unit: productToSave.unit,
+                  count: productToSave.stock,
+                  loaded: newLoaded
+               }).eq('product_id', targetId);
+            } else {
+               const { data: insertedProduct, error: insertError } = await supabase.from('products').insert(productToSave).select().single();
+               if (!insertError && insertedProduct) {
+                  await supabase.from('inventory').insert({
+                     product_id: insertedProduct.id,
+                     name: insertedProduct.name,
+                     unit: insertedProduct.unit,
+                     count: productToSave.stock,
+                     loaded: productToSave.stock,
+                     vol: insertedProduct.size
+                  });
+               }
+            }
+            fetchData(true);
+         };
+
+         runAsync().catch(err => {
+            console.error(err);
+            fetchData(true);
+         }).finally(() => {
+            setIsSubmitting(false);
+         });
+      } catch (err) {
+         console.error(err);
+         fetchData(true);
+         setIsSubmitting(false);
+      }
+   };
+
+   const runDeleteProduct = async () => {
+      if (editingIndex === null || !products[editingIndex].id) return;
+      
       const productId = products[editingIndex].id;
-      await supabase.from('products').delete().eq('id', productId);
-      await supabase.from('inventory').delete().eq('product_id', productId);
 
+      // Optimistic update
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      setPipeline(prev => prev.filter(p => p.productId !== productId));
+      
       setIsModalOpen(false);
       setEditingIndex(null);
       setModalConfig(prev => ({ ...prev, isOpen: false }));
-      await fetchData();
-    } catch (err) { console.error(err); }
-  };
+      
+      try {
+         const runAsync = async () => {
+            await supabase.from('products').delete().eq('id', productId);
+            await supabase.from('inventory').delete().eq('product_id', productId);
+            fetchData(true);
+         };
+         runAsync().catch(err => {
+            console.error(err);
+            fetchData(true);
+         });
+      } catch (err) { console.error(err); }
+   };
 
   const handleDeleteProduct = async () => {
     if (editingIndex === null || !products[editingIndex].id) return;
@@ -239,61 +273,69 @@ export function useInventoryLogic() {
     }
   };
 
-  const handleCloseShiftSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-    try {
-      setIsSubmitting(true);
-      const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
-      const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
-      const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
-
-      const todayData = dailyPrices[date] || {};
-      todayData[closingShift] = {
-        prices: currentPrices,
-        closed_at: new Date().toISOString()
-      };
-
-      await supabase.from('system_settings').upsert({
-        key: 'daily_prices',
-        value: { ...dailyPrices, [date]: todayData }
-      });
-
-      const productIds = products.map(p => p.id).filter(id => id);
-      const inventoryIds = pipeline.map(p => p.id).filter(id => id);
+   const handleCloseShiftSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (isSubmitting) return;
       
-      if (productIds.length > 0) {
-        await supabase.from('products').update({ stock: 0 }).in('id', productIds);
-      }
-      if (inventoryIds.length > 0) {
-        await supabase.from('inventory').update({ count: 0, loaded: 0 }).in('id', inventoryIds);
-      }
-
-      await fetchData(true);
-
+      setIsSubmitting(true);
+      
+      // Optimistic update
+      setProducts(prev => prev.map(p => ({ ...p, stock: 0 })));
+      setPipeline(prev => prev.map(p => ({ ...p, value: "", loaded: 0 })));
+      
       setIsCloseShiftModalOpen(false);
       setModalConfig({
-        isOpen: true,
-        title: "Shift Closed",
-        message: `${closingShift} has been closed successfully. All stock levels have been reset to zero.`,
-        type: 'success',
-        confirmText: "Done",
-        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+         isOpen: true,
+         title: "Shift Closed",
+         message: `${closingShift} has been closed successfully. All stock levels have been reset to zero.`,
+         type: 'success',
+         confirmText: "Done",
+         onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
       });
-    } catch (err) {
-      console.error(err);
-      setModalConfig({
-        isOpen: true,
-        title: "Error",
-        message: "Failed to close shift. Please try again.",
-        type: 'danger',
-        confirmText: "Close",
-        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
+      try {
+         const runAsync = async () => {
+            const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
+            const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
+            const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
+
+            const todayData = dailyPrices[date] || {};
+            todayData[closingShift] = {
+               prices: currentPrices,
+               closed_at: new Date().toISOString()
+            };
+
+            await supabase.from('system_settings').upsert({
+               key: 'daily_prices',
+               value: { ...dailyPrices, [date]: todayData }
+            });
+
+            const productIds = products.map(p => p.id).filter(id => id);
+            const inventoryIds = pipeline.map(p => p.id).filter(id => id);
+            
+            if (productIds.length > 0) {
+               await supabase.from('products').update({ stock: 0 }).in('id', productIds);
+            }
+            if (inventoryIds.length > 0) {
+               await supabase.from('inventory').update({ count: 0, loaded: 0 }).in('id', inventoryIds);
+            }
+
+            fetchData(true);
+         };
+
+         runAsync().catch(err => {
+            console.error(err);
+            fetchData(true); // revert
+         }).finally(() => {
+            setIsSubmitting(false);
+         });
+
+      } catch (err) {
+         console.error(err);
+         setIsSubmitting(false);
+         fetchData(true);
+      }
+   };
 
   return {
     date,

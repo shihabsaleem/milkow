@@ -102,69 +102,82 @@ export function useCustomersLogic() {
     e.preventDefault();
     if (isSubmitting) return;
     if (!newCustomer.name || !newCustomer.phone || !newCustomer.area_id) return;
+
+    setIsSubmitting(true);
+
+    const customerToSave = { ...newCustomer };
+
+    setIsModalOpen(false);
+    setNewCustomer({
+      name: "",
+      phone: "",
+      area_id: "",
+      frequency: "Morning Only",
+      outstanding: "",
+      default_qty: "1",
+      default_product_id: ""
+    });
+
+    setModalConfig({
+      isOpen: true,
+      title: "Registration Success",
+      message: `${customerToSave.name} has been added to the system successfully!`,
+      type: 'success',
+      onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+      confirmText: "Great"
+    });
+
     try {
-      setIsSubmitting(true);
+      // Background execution
+      const runAsync = async () => {
+        const { data: lastCustomer } = await supabase
+          .from('customers')
+          .select('delivery_order')
+          .eq('area_id', parseInt(customerToSave.area_id))
+          .order('delivery_order', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      const { data: lastCustomer } = await supabase
-        .from('customers')
-        .select('delivery_order')
-        .eq('area_id', parseInt(newCustomer.area_id))
-        .order('delivery_order', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        const newOrder = lastCustomer ? Number(lastCustomer.delivery_order) + 1000 : 1000;
 
-      const newOrder = lastCustomer ? Number(lastCustomer.delivery_order) + 1000 : 1000;
+        const { error: insertError } = await supabase.from('customers').insert({
+          name: customerToSave.name,
+          phone: customerToSave.phone,
+          area_id: parseInt(customerToSave.area_id),
+          frequency: customerToSave.frequency,
+          status: 'Active',
+          default_qty: parseInt(customerToSave.default_qty) || 1,
+          default_product_id: customerToSave.default_product_id || null,
+          past_outstanding: parseFloat(customerToSave.outstanding) || 0,
+          delivery_order: newOrder
+        });
 
-      const { error: insertError } = await supabase.from('customers').insert({
-        name: newCustomer.name,
-        phone: newCustomer.phone,
-        area_id: parseInt(newCustomer.area_id),
-        frequency: newCustomer.frequency,
-        status: 'Active',
-        default_qty: parseInt(newCustomer.default_qty) || 1,
-        default_product_id: newCustomer.default_product_id || null,
-        past_outstanding: parseFloat(newCustomer.outstanding) || 0,
-        delivery_order: newOrder
+        if (insertError) {
+          console.error("Insert error:", insertError);
+          throw insertError;
+        }
+
+        await checkAndRunAutomations();
+        fetchData(true);
+      };
+
+      runAsync().catch((err: any) => {
+        console.error("Failed to add customer:", err);
+        // Show failure modal if they are still on page
+        setModalConfig({
+          isOpen: true,
+          title: "Registration Failed",
+          message: err.message || "Something went wrong while adding the customer. Please try again.",
+          type: 'danger',
+          onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
+          confirmText: "Try Again"
+        });
+      }).finally(() => {
+        setIsSubmitting(false);
       });
 
-      if (insertError) {
-        console.error("Insert error:", insertError);
-        throw insertError;
-      }
-
-      await checkAndRunAutomations();
-
-      setIsModalOpen(false);
-      setNewCustomer({
-        name: "",
-        phone: "",
-        area_id: "",
-        frequency: "Morning Only",
-        outstanding: "",
-        default_qty: "1",
-        default_product_id: ""
-      });
-      await fetchData();
-
-      setModalConfig({
-        isOpen: true,
-        title: "Registration Success",
-        message: `${newCustomer.name} has been added to the system successfully!`,
-        type: 'success',
-        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-        confirmText: "Great"
-      });
     } catch (err: any) {
-      console.error("Failed to add customer:", err);
-      setModalConfig({
-        isOpen: true,
-        title: "Registration Failed",
-        message: err.message || "Something went wrong while adding the customer. Please try again.",
-        type: 'danger',
-        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
-        confirmText: "Try Again"
-      });
-    } finally {
+      console.error("Trigger failed:", err);
       setIsSubmitting(false);
     }
   };

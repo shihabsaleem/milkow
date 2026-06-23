@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import config from "@/config.json";
 import { getPublicBill, FullLedgerResponse } from "@/app/bill/actions";
 import * as T from "@/types/database";
 
@@ -32,7 +33,7 @@ export function usePublicBillLogic(initialPhone?: string) {
       fetchInitial();
     }
   }, [initialPhone]);
-  
+
   // View options
   const [viewDate, setViewDate] = useState(new Date());
 
@@ -108,7 +109,7 @@ export function usePublicBillLogic(initialPhone?: string) {
     if (!billData || !billData.settings?.payment) return "";
     const payment = billData.settings.payment;
     const balance = billData.financials.current_balance;
-    return `upi://pay?pa=${payment.upi_id}&pn=${encodeURIComponent(payment.payee_name)}&am=${balance.toFixed(2)}&cu=${payment.currency_code}`;
+    return `upi://pay?pa=${payment.upi_id}&pn=${encodeURIComponent(payment.payee_name)}&am=${balance.toFixed(2)}&cu=${payment.currency_code}&aid=${config.aid}`;
   };
 
   // Helper functions for Ledger View
@@ -122,7 +123,7 @@ export function usePublicBillLogic(initialPhone?: string) {
     if (d.total_cost != null && d.total_cost > 0) return Number(d.total_cost);
 
     if (!billData) return 0;
-    
+
     // We recreate the price map from the fetched products
     const prices: Record<string, number> = {};
     billData.products.forEach(p => prices[p.name] = Number(p.price));
@@ -130,12 +131,12 @@ export function usePublicBillLogic(initialPhone?: string) {
 
     const product = billData.products.find(p => p.id === d.product_id);
     const basePrice = product ? Number(product.price) : milkPrice;
-    
+
     let total = (Number(d.milk_qty) || 0) * basePrice;
     const extras = (d.misc_items as any[]) || [];
     extras.forEach((item: any) => {
-       const itemPrice = prices[item.name] || 0;
-       total += (item.qty || 0) * itemPrice;
+      const itemPrice = prices[item.name] || 0;
+      total += (item.qty || 0) * itemPrice;
     });
     return total;
   };

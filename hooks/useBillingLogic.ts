@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import config from "@/config.json";
 import QRCode from "qrcode";
 import { supabase } from "@/lib/supabase";
 import * as T from "@/types/database";
@@ -101,29 +102,33 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
    }, []);
 
    const runMarkAsPaid = async (id: string, setSelectedInvoice: (val: null) => void) => {
-      if (isLoading || isSubmitting.current) return;
+      if (isSubmitting.current) return;
+
+      const entry = bills.find(b => b.id === id);
+      if (!entry) return;
+
       isSubmitting.current = true;
-      try {
-         setIsLoading(true);
-         const entry = bills.find(b => b.id === id);
-         if (!entry) {
-            isSubmitting.current = false;
-            setIsLoading(false);
-            return;
-         }
 
-         await settleAllDues(entry.customer_id, 'Cash', 'Full Settlement from Billing');
-
-         setShowToast(true);
-         setTimeout(() => setShowToast(false), 3000);
-         await fetchData(true);
-      } catch (err) {
-         console.error("Failed to mark as paid:", err);
-      } finally {
-         isSubmitting.current = false;
-         setIsLoading(false);
-      }
+      // Optimistic UI Update: remove bill from list instantly
+      setBills(prev => prev.filter(b => b.id !== id));
       setSelectedInvoice(null);
+      
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+
+      // Background DB call
+      settleAllDues(entry.customer_id, 'Cash', 'Full Settlement from Billing')
+         .then(() => {
+            fetchData(true);
+         })
+         .catch((err) => {
+            console.error("Failed to mark as paid:", err);
+            // Revert on failure by fetching actual data
+            fetchData(true);
+         })
+         .finally(() => {
+            isSubmitting.current = false;
+         });
    };
 
    const handleMarkAsPaid = (id: string, setSelectedInvoice: (val: null) => void) => {
@@ -257,7 +262,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       // Generate QR code directly onto an offscreen canvas — no DOM dependency,
       // no tainted-canvas issues from embedded SVG logos.
       if (paymentSettings) {
-         const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
+         const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}&aid=${config.aid}`;
          const qrOffscreen = document.createElement("canvas");
          await QRCode.toCanvas(qrOffscreen, upiValue, {
             width: qrSize,
@@ -337,7 +342,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
    const handleWhatsAppShare = async (invoice: (T.Bill & { customer: T.Customer })) => {
       if (!paymentSettings) return;
       const amount = Number(invoice.amount).toFixed(2);
-      const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}`;
+      const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}&aid=${config.aid}`;
       const message = `Hi ${invoice.customer?.name}, your total outstanding bill is ₹${amount}. Please scan the UPI QR or pay via: ${upiLink}`;
 
       // Normalise phone: strip non-digits, then only prepend 91 if the number is

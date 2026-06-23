@@ -7,7 +7,7 @@ Milkow is a smart dairy operations management system designed to automate the da
 
 ## 2. Technical Stack & Architecture
 - **Frontend**: Next.js 16 (App Router), React 19
-- **Architecture Pattern**: UI components cleanly separated from business logic via Custom Hooks (`hooks/` directory).
+- **Architecture Pattern**: UI components cleanly separated from business logic via Custom Hooks (`hooks/` directory). All data mutations utilize Optimistic UI updates to provide immediate feedback and handle network latency gracefully.
 - **Styling**: Tailwind CSS 4, Framer Motion (Animations)
 - **Backend/Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth

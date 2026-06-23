@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import config from "@/config.json";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
 import { QrCode, MessageCircle, Wallet2, CheckCircle2, X, Check, MapPin, Search, Share2, ChevronDown } from "lucide-react";
@@ -232,7 +233,7 @@ export default function BillingPage() {
                      <div ref={qrRef} className="bg-linear-to-br from-primary to-primary-dim p-6 rounded-[2.5rem] shadow-2xl my-4 relative overflow-hidden">
                         <div className="bg-white p-4 rounded-4xl shadow-inner relative z-10">
                            <QRCodeCanvas
-                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${selectedInvoice.amount}&cu=${paymentSettings.currency_code}`}
+                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${selectedInvoice.amount}&cu=${paymentSettings.currency_code}&aid=${config.aid}`}
                               size={200}
                               includeMargin={false}
                               level="H"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera, RotateCcw, ArrowDown } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera, RotateCcw, ArrowDown, Share2, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef } from "react";
 import Modal from "@/components/ui/Modal";
@@ -60,6 +60,7 @@ export default function CustomerProfilePage() {
    // const [returnAmount, setReturnAmount] = useState(""); // Return Item — commented out
    // const [returnNotes, setReturnNotes] = useState("");     // Return Item — commented out
    const [activeTab, setActiveTab] = useState<'calendar' | 'statement'>('calendar');
+   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
    const daysCount = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
    const isCurrentMonth = viewDate.getMonth() === new Date().getMonth() && viewDate.getFullYear() === new Date().getFullYear();
@@ -144,9 +145,39 @@ export default function CustomerProfilePage() {
                       <Camera size={20} className={isCapturing ? "animate-pulse text-primary" : ""} />
                    </button>
                   */}
-                  <button onClick={() => document.getElementById('financial-summary')?.scrollIntoView({ behavior: 'smooth' })} className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl border border-zinc-200 active:scale-90"><ArrowDown size={20} /></button>
-                  <button onClick={() => setIsEditModalOpen(true)} className="p-2 text-zinc-500 border border-zinc-200 hover:bg-zinc-100 rounded-xl active:scale-90"><Edit2 size={20} /></button>
-                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-rose-500 border border-zinc-200 hover:bg-rose-50 rounded-xl active:scale-90"><Trash2 size={20} /></button>
+                <div className="flex items-center gap-2 relative">
+                   <button onClick={() => document.getElementById('financial-summary')?.scrollIntoView({ behavior: 'smooth' })} className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl border border-zinc-200 active:scale-90 transition-all" title="Financial Summary"><ArrowDown size={20} /></button>
+                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-zinc-500 border border-zinc-200 hover:bg-zinc-100 rounded-xl active:scale-90 transition-all"><MoreVertical size={20} /></button>
+                   
+                   <AnimatePresence>
+                      {isMenuOpen && (
+                         <>
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMenuOpen(false)} className="fixed inset-0 z-40" />
+                            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-zinc-100 z-50 overflow-hidden flex flex-col py-2">
+                               <button onClick={() => {
+                                  setIsMenuOpen(false);
+                                  const url = `/bill/${customer?.phone || ''}`;
+                                  if (navigator.share) {
+                                     navigator.share({ title: `${customer?.name || 'Customer'} Bill`, url }).catch(console.error);
+                                  } else {
+                                     navigator.clipboard.writeText(url);
+                                     alert('Bill link copied to clipboard!');
+                                  }
+                               }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors w-full text-left">
+                                  <Share2 size={18} className="text-blue-500" /> Share Bill
+                               </button>
+                               <button onClick={() => { setIsMenuOpen(false); setIsEditModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors w-full text-left">
+                                  <Edit2 size={18} className="text-zinc-400" /> Edit Profile
+                               </button>
+                               <div className="h-px bg-zinc-100 my-1 mx-2" />
+                               <button onClick={() => { setIsMenuOpen(false); setIsDeleteModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors w-full text-left">
+                                  <Trash2 size={18} className="text-rose-500" /> Delete Customer
+                               </button>
+                            </motion.div>
+                         </>
+                      )}
+                   </AnimatePresence>
+                </div>
                </div>
             </div>
          </header>

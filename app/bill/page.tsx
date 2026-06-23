@@ -11,7 +11,7 @@ import {
 import Image from "next/image";
 import { usePublicBillLogic } from "@/hooks/usePublicBillLogic";
 
-export default function PublicBillPage() {
+export default function PublicBillPage({ initialPhone }: { initialPhone?: string } = {}) {
   const {
     phone,
     isLoading,
@@ -30,7 +30,7 @@ export default function PublicBillPage() {
     getUpiLink,
     changeMonth,
     calculateDeliveryTotal
-  } = usePublicBillLogic();
+  } = usePublicBillLogic(initialPhone);
 
   const [activeTab, setActiveTab] = useState<'calendar' | 'statement' | 'pay'>('calendar');
 

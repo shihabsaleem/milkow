@@ -1,13 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getPublicBill, FullLedgerResponse } from "@/app/bill/actions";
 import * as T from "@/types/database";
 
-export function usePublicBillLogic() {
-  const [phone, setPhone] = useState("");
+export function usePublicBillLogic(initialPhone?: string) {
+  const [phone, setPhone] = useState(initialPhone || "");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [billData, setBillData] = useState<FullLedgerResponse | null>(null);
   const [copied, setCopied] = useState(false);
+  
+  // Auto-fetch if initialPhone is provided
+  useEffect(() => {
+    if (initialPhone && initialPhone.length >= 10) {
+      const fetchInitial = async () => {
+        setIsLoading(true);
+        setError("");
+        try {
+          const res = await getPublicBill(initialPhone);
+          if (res.error) {
+            setError(res.error);
+            setBillData(null);
+          } else if (res.success && res.data) {
+            setBillData(res.data);
+          }
+        } catch (err) {
+          setError("Failed to fetch bill details. Please check your connection.");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchInitial();
+    }
+  }, [initialPhone]);
   
   // View options
   const [viewDate, setViewDate] = useState(new Date());
@@ -60,7 +84,7 @@ export function usePublicBillLogic() {
 
   const shareBillLink = async () => {
     if (!billData) return;
-    const url = typeof window !== "undefined" ? window.location.href : "";
+    const url = typeof window !== "undefined" ? `${window.location.origin}/bill/${billData.customer.phone}` : "";
     const balance = billData.financials.current_balance;
     const text = `Hi, view your latest milk bill outstanding balance of ₹${balance.toFixed(2)} on Milkow.`;
 

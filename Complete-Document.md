@@ -5,8 +5,9 @@ Milkow is a smart dairy operations management system designed to automate the da
 
 ---
 
-## 2. Technical Stack
+## 2. Technical Stack & Architecture
 - **Frontend**: Next.js 16 (App Router), React 19
+- **Architecture Pattern**: UI components cleanly separated from business logic via Custom Hooks (`hooks/` directory). All data mutations utilize Optimistic UI updates to provide immediate feedback and handle network latency gracefully.
 - **Styling**: Tailwind CSS 4, Framer Motion (Animations)
 - **Backend/Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
@@ -55,27 +56,29 @@ Located in `02_triggers.sql`. This trigger automatically marks pending bills as 
 
 ---
 
-## 5. Application Features & Pages
+## 5. Application Features & Hooks
 
-### 📊 Dashboard (`/`)
+All complex logic, side effects, and state management for these features have been extracted into custom hooks (found in `hooks/`) to keep the UI components pure and declarative.
+
+### 📊 Dashboard (`/` & `useDashboardLogic.ts`)
 Real-time overview of business health, including inventory alerts, delivery progress, and financial summaries.
 
-### 🚚 Delivery Management (`/delivery`)
+### 🚚 Delivery Management (`/delivery` & `useDeliveryLogic.ts`)
 The operational core. Allows delivery drivers to follow a pre-planned route, mark deliveries as complete, and add "Misc Items" on the fly.
 
-### 💰 Billing & Payments (`/billing`)
+### 💰 Billing & Payments (`/billing` & `useBillingLogic.ts`)
 A comprehensive financial dashboard to track receivables, generate UPI QR codes for payments, and manage customer ledgers.
 
-### 👥 Customer Directory (`/customers`)
+### 👥 Customer Directory (`/customers` & `useCustomersLogic.ts`)
 Manage customer profiles, delivery frequencies, and their exact position in the delivery route using the "Delivery Order" decimal system.
 
-### 📦 Inventory Control (`/inventory`)
+### 📦 Inventory Control (`/inventory` & `useInventoryLogic.ts`)
 Track stock levels in real-time. Features "Auto-Deduction" where marking a delivery as complete automatically decrements the corresponding stock.
 
-### 👤 System Settings (`/profile`)
+### 👤 System Settings (`/profile` & `useProfileLogic.ts`)
 Configure business details (UPI ID, Payee Name) and security. Changing the PIN here automatically updates the user's Supabase Auth login password.
 
-### 🧾 Public Billing Portal (`/bill`)
+### 🧾 Public Billing Portal (`/bill` & `usePublicBillLogic.ts`)
 A secure, minimalist, light-themed public-facing portal allowing customers to check their outstanding bills and payment QR code simply by entering their registered phone number. Requires no user login.
 
 ---
@@ -111,7 +114,7 @@ The background tasks and automated data manipulations are handled centrally in `
 ---
 
 ## 8. Security & RLS
-- **Authentication**: Secured via Supabase Auth.
+- **Authentication**: Secured via Supabase Auth. Extracted into `useLoginLogic.ts`.
 - **RLS (Row Level Security)**: All tables are protected. Only authenticated users can view or modify data.
 - **PIN Security**: The administrative PIN is synced with the Supabase account password for unified security.
 - **Public Data Access**: The `/bill` portal uses a `SECURITY DEFINER` Postgres RPC function (`get_customer_bill_by_phone`) to securely fetch specific customer financial data and payment settings for unauthenticated users, completely avoiding the need for exposed service role keys.
@@ -122,6 +125,3 @@ The background tasks and automated data manipulations are handled centrally in `
 - **Build**: `npm run build`
 - **Database Migrations**: If changes are needed, update `supabase/01_schema.sql` and run the queries in the Supabase SQL Editor.
 - **Static Assets**: Logos and assets are located in `/public/assets`.
-
----
-

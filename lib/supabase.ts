@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
@@ -60,29 +59,18 @@ let clientInstance: any = null;
 const getSupabaseClient = () => {
   if (isOff || isPlaceholder || !hasKeys) return mockSupabase;
 
-  // Browser-side initialization with @supabase/ssr
-  if (typeof window !== 'undefined') {
-    if (!clientInstance) {
-      clientInstance = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-        },
-      });
-    }
-    return clientInstance;
+  if (!clientInstance) {
+    const isBrowser = typeof window !== 'undefined';
+    clientInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: isBrowser,
+        autoRefreshToken: isBrowser,
+        detectSessionInUrl: isBrowser,
+      },
+    });
   }
-
-  // Server-side initialization
-  return createClient(supabaseUrl, supabaseAnonKey);
+  
+  return clientInstance;
 };
 
 export const supabase = getSupabaseClient();
-
-if (typeof window !== 'undefined') {
-  const status = (isOff || isPlaceholder || !hasKeys) 
-    ? "🛠️ Using MOCK Supabase client" 
-    : "🚀 Using REAL Supabase client";
-  console.log(status);
-}

@@ -1,317 +1,47 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
 import { Plus, ChevronRight, X, Calendar as CalendarIcon, Droplet, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import CustomSelect from "@/components/ui/CustomSelect";
 import PullToRefresh from "@/components/ui/PullToRefresh";
-import * as T from "@/types/database";
+import { useInventoryLogic } from "@/hooks/useInventoryLogic";
 
-type PipelineStage = { label: string; value: number; unit: string; id: number; productId?: string | number; loaded: number };
+const fmtDate = (s: string) => {
+  const d = new Date(s);
+  return d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
+};
 
 export default function InventoryPage() {
-  const router = useRouter();
-  const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/404");
-    }
-  }, [user, loading, router]);
-
-  const [date, setDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pipeline, setPipeline] = useState<PipelineStage[]>([]);
-  const [products, setProducts] = useState<T.Product[]>([]);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
-
-  // Close Shift States
-  const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
-  const [closingShift, setClosingShift] = useState("Morning Only");
-  const [closedShifts, setClosedShifts] = useState<{ [date: string]: string[] }>({});
-  const [dailyPrices, setDailyPrices] = useState<any>({});
-  const dateInputRef = useRef<HTMLInputElement>(null);
-
-  // Modal States
-  const [modalConfig, setModalConfig] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: (dontShowAgain?: boolean) => void;
-    type: 'danger' | 'info' | 'success';
-    confirmText?: string;
-    showDontShowAgain?: boolean;
-  }>({
-    isOpen: false,
-    title: "",
-    message: "",
-    onConfirm: () => { },
-    type: 'info',
-    showDontShowAgain: false
-  });
-
-  const fmtDate = (s: string) => {
-    const d = new Date(s);
-    return d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
-  };
-
-  const getProductPriceForDate = (product: T.Product) => {
-    if (!product.name) return Number(product.price) || 0;
-    const dateData = dailyPrices[date];
-    if (!dateData) return Number(product.price) || 0;
-
-    // Check if the structure contains shift keys (e.g. { "Morning Only": { prices: ... } })
-    const keys = Object.keys(dateData);
-    let shiftPrice: number | undefined;
-    for (const key of keys) {
-      if (dateData[key] && typeof dateData[key] === 'object' && 'prices' in dateData[key]) {
-        const prices = dateData[key].prices;
-        if (prices && prices[product.name] !== undefined) {
-          shiftPrice = Number(prices[product.name]);
-        }
-      }
-    }
-    if (shiftPrice !== undefined) return shiftPrice;
-
-    // Check if it's the simpler schema (e.g. { "Raw Buffalo Milk": 72 })
-    if (dateData[product.name] !== undefined && typeof dateData[product.name] === 'number') {
-      return Number(dateData[product.name]);
-    }
-
-    return Number(product.price) || 0;
-  };
-
-  const openEditModal = (index: number) => {
-    setEditingIndex(index);
-    const targetProduct = products[index];
-    setNewProduct({
-      ...targetProduct,
-      stock: targetProduct.stock?.toString() || "0",
-      price: getProductPriceForDate(targetProduct),
-      unit: targetProduct.unit || "Bottles"
-    });
-    setIsModalOpen(true);
-  };
-
-  const fetchData = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    const [{ data: prods }, { data: pipes }, { data: settings }] = await Promise.all([
-      supabase.from('products').select('*'),
-      supabase.from('inventory').select('*').not('product_id', 'is', null),
-      supabase.from('system_settings').select('value').eq('key', 'daily_prices').single()
-    ]);
-    if (prods) setProducts(prods as T.Product[]);
-    // Note: mapping 'inventory' to pipeline for this view
-    if (pipes) setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count, unit: p.unit, id: p.id, productId: p.product_id, loaded: p.loaded || 0 })));
-    
-    if (settings && settings.value) {
-      const dbDailyPrices = settings.value as any;
-      setDailyPrices(dbDailyPrices);
-      const closed: { [date: string]: string[] } = {};
-      Object.keys(dbDailyPrices).forEach(d => {
-        closed[d] = Object.keys(dbDailyPrices[d] || {});
-      });
-      setClosedShifts(closed);
-    }
-
-    if (!silent) setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-
-    const sub = supabase.channel('inv_page')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, fetchData)
-      .subscribe();
-
-    return () => { sub.unsubscribe(); };
-  }, [fetchData]);
-
-  const handleSaveProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProduct.name || !newProduct.price) return;
-    try {
-      const productToSave = {
-        name: newProduct.name,
-        size: newProduct.size,
-        stock: parseInt(newProduct.stock.toString() || "0"),
-        price: Number(newProduct.price) || 0,
-        unit: newProduct.unit
-      };
-
-      if (editingIndex !== null && products[editingIndex].id) {
-        const oldStock = products[editingIndex].stock || 0;
-        const newStock = productToSave.stock;
-        const delta = newStock - oldStock;
-
-        await supabase.from('products').update(productToSave).eq('id', products[editingIndex].id);
-
-        // Find the current inventory loaded value to adjust it by delta
-        const { data: invItem } = await supabase.from('inventory').select('loaded').eq('product_id', products[editingIndex].id).single();
-        const currentLoaded = invItem?.loaded || 0;
-        const newLoaded = Math.max(0, currentLoaded + delta);
-
-        // Also update inventory name and count if it exists
-        await supabase.from('inventory').update({
-          name: productToSave.name,
-          unit: productToSave.unit,
-          count: productToSave.stock,
-          loaded: newLoaded
-        }).eq('product_id', products[editingIndex].id);
-      } else {
-        const { data: insertedProduct, error: insertError } = await supabase.from('products').insert(productToSave).select().single();
-        if (!insertError && insertedProduct) {
-          await supabase.from('inventory').insert({
-            product_id: insertedProduct.id,
-            name: insertedProduct.name,
-            unit: insertedProduct.unit,
-            count: productToSave.stock,
-            loaded: productToSave.stock,
-            vol: insertedProduct.size
-          });
-        }
-      }
-      setIsModalOpen(false);
-      setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
-      setEditingIndex(null);
-      await fetchData();
-    } catch (err) { console.error(err); }
-  };
-
-  const runDeleteProduct = async () => {
-    if (editingIndex === null || !products[editingIndex].id) return;
-    try {
-      const productId = products[editingIndex].id;
-      // 1. Delete from products
-      await supabase.from('products').delete().eq('id', productId);
-      // 2. Delete from inventory
-      await supabase.from('inventory').delete().eq('product_id', productId);
-
-      setIsModalOpen(false);
-      setEditingIndex(null);
-      setModalConfig(prev => ({ ...prev, isOpen: false }));
-      await fetchData();
-    } catch (err) { console.error(err); }
-  };
-
-  const handleDeleteProduct = async () => {
-    if (editingIndex === null || !products[editingIndex].id) return;
-
-    const skip = localStorage.getItem('skip_delete_product_confirm') === 'true';
-    if (skip) {
-      runDeleteProduct();
-      return;
-    }
-
-    setModalConfig({
-      isOpen: true,
-      title: "Delete Product",
-      message: `Are you sure you want to delete ${products[editingIndex].name}? This action cannot be undone.`,
-      type: 'danger',
-      confirmText: "Delete",
-      showDontShowAgain: true,
-      onConfirm: async (dontShow) => {
-        if (dontShow) localStorage.setItem('skip_delete_product_confirm', 'true');
-        await runDeleteProduct();
-      }
-    });
-  };
-
-  const updatePipelineValue = async (id: number, newValue: string) => {
-    const numValue = parseInt(newValue) || 0;
-
-    const stage = pipeline.find(p => p.id === id);
-    if (!stage) return;
-
-    const currentCount = stage.value;
-    const currentLoaded = stage.loaded || 0;
-    const delta = numValue - currentCount;
-    const newLoaded = Math.max(0, currentLoaded + delta);
-
-    // 1. Optimistic UI update
-    setPipeline(prev => prev.map(p => p.id === id ? { ...p, value: numValue, loaded: newLoaded } : p));
-
-    try {
-      // 2. Sync to Supabase (update both count AND loaded so dashboard stays in sync)
-      const { error } = await supabase.from('inventory').update({ count: numValue, loaded: newLoaded }).eq('id', id);
-      if (error) throw error;
-
-      // 3. Update linked Product stock
-      if (stage.productId) {
-        await supabase.from('products').update({ stock: numValue }).eq('id', stage.productId);
-      }
-    } catch (err) {
-      console.error(err);
-      // Revert if failed (fetch data again)
-      await fetchData(true);
-    }
-  };
-
-  const handleCloseShiftSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      // 1. Store Prices & Shift Log
-      const currentPrices = products.reduce((acc, p) => ({ ...acc, [p.name]: p.price }), {});
-      const { data: existingPricesData } = await supabase.from('system_settings').select('value').eq('key', 'daily_prices').single();
-      const dailyPrices = existingPricesData ? (existingPricesData.value as any) : {};
-
-      // Save it grouped by Date -> Shift
-      const todayData = dailyPrices[date] || {};
-      todayData[closingShift] = {
-        prices: currentPrices,
-        closed_at: new Date().toISOString()
-      };
-
-      await supabase.from('system_settings').upsert({
-        key: 'daily_prices',
-        value: { ...dailyPrices, [date]: todayData }
-      });
-
-      // 2. Reset stock levels to zero
-      const productIds = products.map(p => p.id).filter(id => id);
-      const inventoryIds = pipeline.map(p => p.id).filter(id => id);
-      
-      if (productIds.length > 0) {
-        await supabase.from('products').update({ stock: 0 }).in('id', productIds);
-      }
-      if (inventoryIds.length > 0) {
-        await supabase.from('inventory').update({ count: 0, loaded: 0 }).in('id', inventoryIds);
-      }
-
-      // Refresh data
-      await fetchData(true);
-
-      setIsCloseShiftModalOpen(false);
-      setModalConfig({
-        isOpen: true,
-        title: "Shift Closed",
-        message: `${closingShift} has been closed successfully. All stock levels have been reset to zero.`,
-        type: 'success',
-        confirmText: "Done",
-        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
-      });
-    } catch (err) {
-      console.error(err);
-      setModalConfig({
-        isOpen: true,
-        title: "Error",
-        message: "Failed to close shift. Please try again.",
-        type: 'danger',
-        confirmText: "Close",
-        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
-      });
-    }
-  };
+  const {
+    date,
+    setDate,
+    isModalOpen,
+    setIsModalOpen,
+    pipeline,
+    products,
+    editingIndex,
+    setEditingIndex,
+    isLoading,
+    newProduct,
+    setNewProduct,
+    isCloseShiftModalOpen,
+    setIsCloseShiftModalOpen,
+    closingShift,
+    setClosingShift,
+    closedShifts,
+    dateInputRef,
+    modalConfig,
+    setModalConfig,
+    getProductPriceForDate,
+    openEditModal,
+    handleSaveProduct,
+    handleDeleteProduct,
+    updatePipelineValue,
+    handleCloseShiftSubmit,
+    fetchData,
+    isSubmitting
+  } = useInventoryLogic();
 
   return (
     <PullToRefresh onRefresh={() => fetchData(true)} className="pb-32 bg-slate-50">
@@ -340,7 +70,7 @@ export default function InventoryPage() {
               pipeline.map((stage, i) => (
                 <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 transition-transform bg-primary/10 border-2 border-primary/5 group relative">
                   <div className="text-primary"><Droplet size={20} /></div>
-                  <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none" /><span className="text-[13px] font-medium ml-2 shrink-0 text-zinc-400">{stage.unit}</span></div></div>
+                  <div><p className="text-[13px] font-semibold text-zinc-600">{stage.label}</p><div className="flex items-center mt-1"><input type="number" placeholder="0" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} onFocus={(e) => e.target.select()} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-extrabold rounded-xl py-1.5 px-2 text-primary focus:outline-none placeholder:text-zinc-300" /><span className="text-[13px] font-medium ml-2 shrink-0 text-zinc-400">{stage.unit}</span></div></div>
                 </div>
               ))
             )}
@@ -405,7 +135,9 @@ export default function InventoryPage() {
                   {editingIndex !== null && (
                     <button type="button" onClick={handleDeleteProduct} className="shrink-0 w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center hover:bg-rose-100 transition-colors"><Trash2 size={20} /></button>
                   )}
-                  <button type="submit" className="grow bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-xl">{editingIndex !== null ? "Save Changes" : "Create Product"}</button>
+                  <button type="submit" disabled={isSubmitting} className="grow bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
+                    {isSubmitting ? "Saving..." : (editingIndex !== null ? "Save Changes" : "Create Product")}
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -432,7 +164,9 @@ export default function InventoryPage() {
                 <div className="bg-primary/5 border border-primary/10 p-4 rounded-xl">
                   <p className="text-xs font-medium text-primary">This will record the end of the shift and archive current prices for the ledger. All inventory and stock levels will be reset to zero.</p>
                 </div>
-                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 transition-all shadow-xl">Confirm Close Shift</button>
+                <button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
+                  {isSubmitting ? "Closing Shift..." : "Confirm Close Shift"}
+                </button>
               </form>
             </motion.div>
           </div>

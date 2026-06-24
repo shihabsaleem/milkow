@@ -212,43 +212,34 @@ ALTER TABLE payments        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
 -- ─── POLICIES ─────────────────────────────
--- Full access for authenticated users on all tables
-DO $$
-DECLARE
-    t text;
-BEGIN
-    FOR t IN (
-        SELECT table_name
-        FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-    ) LOOP
-        EXECUTE format('DROP POLICY IF EXISTS "Full access" ON %I', t);
-        EXECUTE format(
-            'CREATE POLICY "Full access" ON %I FOR ALL USING (auth.role() = ''authenticated'')', t
-        );
-    END LOOP;
-END $$;
+-- First, ensure any temporary public policies are removed
+DROP POLICY IF EXISTS "Public access areas" ON areas;
+DROP POLICY IF EXISTS "Public access products" ON products;
+DROP POLICY IF EXISTS "Public access customers" ON customers;
+DROP POLICY IF EXISTS "Public access inventory" ON inventory;
+DROP POLICY IF EXISTS "Public access deliveries" ON deliveries;
+DROP POLICY IF EXISTS "Public access bills" ON bills;
+DROP POLICY IF EXISTS "Public access payments" ON payments;
 
--- Additional fine‑grained RLS policies
--- Customers: owners can read/write their own rows
-CREATE POLICY "Customer owner" ON customers
-FOR ALL USING (auth.uid() = id)
-WITH CHECK (auth.uid() = id);
+-- Then, drop any existing admin policies to avoid duplication errors
+DROP POLICY IF EXISTS "Admin access areas" ON areas;
+DROP POLICY IF EXISTS "Admin access products" ON products;
+DROP POLICY IF EXISTS "Admin access customers" ON customers;
+DROP POLICY IF EXISTS "Admin access inventory" ON inventory;
+DROP POLICY IF EXISTS "Admin access deliveries" ON deliveries;
+DROP POLICY IF EXISTS "Admin access bills" ON bills;
+DROP POLICY IF EXISTS "Admin access payments" ON payments;
+DROP POLICY IF EXISTS "Admin access system_settings" ON system_settings;
 
--- Deliveries: owners can read/write their own rows
-CREATE POLICY "Delivery owner" ON deliveries
-FOR ALL USING (auth.uid() = customer_id)
-WITH CHECK (auth.uid() = customer_id);
-
--- Bills: owners can read/write their own rows
-CREATE POLICY "Bill owner" ON bills
-FOR ALL USING (auth.uid() = customer_id)
-WITH CHECK (auth.uid() = customer_id);
-
--- Payments: owners can read/write their own rows
-CREATE POLICY "Payment owner" ON payments
-FOR ALL USING (auth.uid() = customer_id)
-WITH CHECK (auth.uid() = customer_id);
+-- Allow all authenticated users (admins) full access to all tables
+CREATE POLICY "Admin access areas" ON areas FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access products" ON products FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access customers" ON customers FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access inventory" ON inventory FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access deliveries" ON deliveries FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access bills" ON bills FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access payments" ON payments FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin access system_settings" ON system_settings FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 
 -- ─── DATA INTEGRITY — ONE-TIME FIXES ──────
@@ -256,46 +247,59 @@ WITH CHECK (auth.uid() = customer_id);
 
 -- ─── RPC FUNCTIONS ────────────────────────
 -- Public-facing bill retrieval by phone number
-CREATE OR REPLACE FUNCTION get_customer_bill_by_phone(phone_input text)
-RETURNS TABLE (
-  customer_name text,
-  phone text,
-  area_name text,
-  current_balance numeric,
-  upi_id text,
-  payee_name text,
-  currency_code text
-)
+CREATE OR REPLACE FUNCTION get_full_customer_ledger_by_phone(phone_input text)
+RETURNS jsonb
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
+  target_customer record;
+  target_financials record;
   general_settings jsonb;
-  pay_upi text := 'milkow@ybl';
-  pay_name text := 'Milkow Distributor';
-  pay_curr text := 'INR';
+  bills_data jsonb;
+  deliveries_data jsonb;
+  unbilled_data jsonb;
+  payments_data jsonb;
+  products_data jsonb;
+  result jsonb;
 BEGIN
-  SELECT value INTO general_settings FROM system_settings WHERE key = 'general';
-  IF general_settings IS NOT NULL AND general_settings ? 'payment' THEN
-    pay_upi := COALESCE((general_settings->'payment'->>'upi_id'), pay_upi);
-    pay_name := COALESCE((general_settings->'payment'->>'payee_name'), pay_name);
-    pay_curr := COALESCE((general_settings->'payment'->>'currency_code'), pay_curr);
+  -- 1. Find Customer
+  SELECT c.*, a.name as area_name INTO target_customer
+  FROM customers c
+  LEFT JOIN areas a ON a.id = c.area_id
+  WHERE c.phone = phone_input OR (length(phone_input) >= 10 AND c.phone LIKE '%' || right(phone_input, 10))
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
   END IF;
 
-  RETURN QUERY
-  SELECT 
-    cf.name::text AS customer_name,
-    c.phone::text AS phone,
-    COALESCE(a.name::text, 'No Area') AS area_name,
-    cf.current_balance::numeric AS current_balance,
-    pay_upi AS upi_id,
-    pay_name AS payee_name,
-    pay_curr AS currency_code
-  FROM customer_financials cf
-  JOIN customers c ON c.id = cf.id
-  LEFT JOIN areas a ON a.id = cf.area_id
-  WHERE c.phone = phone_input
-     OR (length(phone_input) >= 10 AND c.phone LIKE '%' || right(phone_input, 10));
+  -- 2. Find Financials
+  SELECT * INTO target_financials FROM customer_financials WHERE id = target_customer.id;
+
+  -- 3. Find Settings
+  SELECT value INTO general_settings FROM system_settings WHERE key = 'general';
+
+  -- 4. Get Data
+  SELECT jsonb_agg(row_to_json(b)) INTO bills_data FROM bills b WHERE customer_id = target_customer.id;
+  SELECT jsonb_agg(row_to_json(d)) INTO deliveries_data FROM deliveries d WHERE customer_id = target_customer.id AND delivery_date >= date_trunc('month', CURRENT_DATE);
+  SELECT jsonb_agg(row_to_json(u)) INTO unbilled_data FROM deliveries u WHERE customer_id = target_customer.id AND delivered = true AND billed = false;
+  SELECT jsonb_agg(row_to_json(p)) INTO payments_data FROM payments p WHERE customer_id = target_customer.id;
+  SELECT jsonb_agg(row_to_json(pr)) INTO products_data FROM products pr;
+
+  -- Assemble Response
+  result := jsonb_build_object(
+    'customer', row_to_json(target_customer),
+    'financials', row_to_json(target_financials),
+    'settings', general_settings,
+    'bills', COALESCE(bills_data, '[]'::jsonb),
+    'deliveries', COALESCE(deliveries_data, '[]'::jsonb),
+    'unbilled', COALESCE(unbilled_data, '[]'::jsonb),
+    'payments', COALESCE(payments_data, '[]'::jsonb),
+    'products', COALESCE(products_data, '[]'::jsonb)
+  );
+
+  RETURN result;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -428,3 +432,14 @@ INSERT INTO system_settings (key, value)
 VALUES ('general', '{"payment":{"upi_id":"milkow@ybl","payee_name":"Milkow Distributor","currency_code":"INR"}}'::jsonb)
 ON CONFLICT DO NOTHING;
 
+INSERT INTO system_settings (key, value)
+VALUES (
+  'automation',
+  '{"autoCloseEnabled": true, "morningCloseTime": "12:00", "eveningCloseTime": "22:00"}'::jsonb
+)
+ON CONFLICT (key) DO UPDATE 
+SET value = system_settings.value || '{"autoCloseEnabled": true, "morningCloseTime": "12:00", "eveningCloseTime": "22:00"}'::jsonb;
+
+INSERT INTO system_settings (key, value)
+VALUES ('daily_prices', '{}'::jsonb)
+ON CONFLICT DO NOTHING;

@@ -139,7 +139,7 @@ export async function deductInventoryOnDelivery(
           .from('products')
           .update({ stock: Math.max(0, (prod.stock || 0) - milkQty) })
           .eq('id', prod.id);
-        
+
         // Also update the linked inventory pipeline record if it exists
         // NOTE: Only deduct from product stock, NOT from 'loaded' — loaded is a static snapshot until shift close
       }
@@ -202,7 +202,7 @@ export async function restoreInventoryOnUndelivery(
           .from('products')
           .update({ stock: (prod.stock || 0) + milkQty })
           .eq('id', prod.id);
-        
+
         // Also update the linked inventory pipeline record if it exists
         // NOTE: Only restore product stock, NOT 'loaded' — loaded is a static snapshot until shift close
       }
@@ -339,7 +339,7 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
     // Find all delivered+unbilled deliveries for this shift today
     const { data: unbilled, error } = await supabase
       .from('deliveries')
-      .select('id')
+      .select('id, customer_id, total_cost')
       .eq('delivery_date', today)
       .eq('shift', shift)
       .eq('delivered', true)
@@ -356,6 +356,23 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
       return { ran: false, count: 0, message: `No unbilled deliveries for ${shift} on ${today}.` };
     }
 
+    // 2. Create Bills for the delivered items using pre-calculated total_cost
+    const billsToCreate = unbilled.map((d: any) => {
+      return {
+        customer_id: d.customer_id,
+        type: 'Spot',
+        amount: Number(d.total_cost) || 0,
+        status: 'Pending',
+        created_at: new Date().toISOString(),
+      };
+    });
+
+    if (billsToCreate.length > 0) {
+      const { error: insertError } = await supabase.from('bills').insert(billsToCreate);
+      if (insertError) throw insertError;
+    }
+
+    // 3. Mark deliveries as billed AND update their total_cost
     const ids = unbilled.map((d: any) => d.id);
     const { error: updateError } = await supabase
       .from('deliveries')
@@ -392,16 +409,29 @@ export async function checkAndRunAutomations(): Promise<void> {
     console.log("[Automation] 🚀 Running daily checks (Supabase)...");
     await resetDailyRoute();
 
-    const hour = new Date().getHours();
+    const { data: autoData } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
+    const autoVal = (autoData?.value as T.AutomationSettings) || {};
 
-    // Morning shift closes at 12pm (noon)
-    if (hour >= 12) {
-      await closeShift('Morning Only');
-    }
+    const autoCloseEnabled = autoVal.autoCloseEnabled ?? true;
+    const morningTime = autoVal.morningCloseTime ?? "23:59";
+    const eveningTime = autoVal.eveningCloseTime ?? "23:59";
 
-    // Evening shift closes at 10pm
-    if (hour >= 22) {
-      await closeShift('Evening Only');
+    const d = new Date();
+    const currentMins = d.getHours() * 60 + d.getMinutes();
+
+    const parseMins = (timeStr: string) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return (h || 0) * 60 + (m || 0);
+    };
+
+    if (autoCloseEnabled) {
+      if (currentMins >= parseMins(morningTime)) {
+        await closeShift('Morning Only');
+      }
+
+      if (currentMins >= parseMins(eveningTime)) {
+        await closeShift('Evening Only');
+      }
     }
   } finally {
     isRunning = false;
@@ -418,20 +448,39 @@ export async function syncBatchDeliveries(
 ): Promise<void> {
   if (changedDeliveries.length === 0) return;
 
-  // 1. Bulk Update deliveries
-  const dbUpdates = changedDeliveries.map(d => ({
-    id: d.id,
-    customer_id: d.customer_id,
-    delivery_date: d.delivery_date,
-    shift: d.shift,
-    product_id: d.product_id,
-    milk_qty: d.milk_qty,
-    misc_items: d.misc_items,
-    delivered: d.delivered,
-    sequence_no: d.sequence_no,
-    inventory_deducted: d.delivered,
-    billed: d.billed
-  }));
+  // 1. Fetch all products to get stock levels and name maps
+  const { data: productsData } = await supabase.from('products').select('*');
+  const products = (productsData || []) as T.Product[];
+  const productByName = new Map(products.map(p => [p.name, p]));
+  const productById = new Map(products.map(p => [p.id, p]));
+
+  // 2. Bulk Update deliveries
+  const dbUpdates = changedDeliveries.map(d => {
+    // Calculate total cost
+    const mainProd = productById.get(d.product_id || "");
+    const mainPrice = mainProd ? mainProd.price : 0;
+    let total = (d.milk_qty || 0) * mainPrice;
+
+    (d.misc_items || []).forEach((item: any) => {
+      const p = productByName.get(item.name);
+      if (p) total += (item.qty || 0) * p.price;
+    });
+
+    return {
+      id: d.id,
+      customer_id: d.customer_id,
+      delivery_date: d.delivery_date,
+      shift: d.shift,
+      product_id: d.product_id,
+      milk_qty: d.milk_qty,
+      misc_items: d.misc_items,
+      delivered: d.delivered,
+      sequence_no: d.sequence_no,
+      inventory_deducted: d.delivered,
+      billed: d.billed,
+      total_cost: total
+    };
+  });
 
   const { error: upsertError } = await supabase
     .from('deliveries')
@@ -441,11 +490,53 @@ export async function syncBatchDeliveries(
     throw upsertError;
   }
 
-  // 2. Fetch all products to get stock levels and name maps
-  const { data: productsData } = await supabase.from('products').select('*');
-  const products = (productsData || []) as T.Product[];
-  const productByName = new Map(products.map(p => [p.name, p]));
-  const productById = new Map(products.map(p => [p.id, p]));
+  // ── Supplementary billing for already-billed deliveries that gained extra items ──
+  // If a delivery was already billed (billed=true) and the new total_cost > old total_cost,
+  // create a Spot bill for the difference so the extra amount is captured in the ledger.
+  const supplementaryBills: any[] = [];
+  for (const d of changedDeliveries) {
+    const initial = initialDeliveries.find(sd => sd.id === d.id);
+    if (!initial) continue;
+
+    // Only care about deliveries that were already billed before this sync
+    if (!initial.billed) continue;
+    // Only care if delivery stays delivered (not being un-delivered)
+    if (!d.delivered) continue;
+
+    // Recalculate new total cost using current product prices
+    const mainProd = productById.get(d.product_id || "");
+    const mainPrice = mainProd ? mainProd.price : 0;
+    let newTotal = (d.milk_qty || 0) * mainPrice;
+    (d.misc_items || []).forEach((item: any) => {
+      const p = productByName.get(item.name);
+      if (p) newTotal += (item.qty || 0) * p.price;
+    });
+
+    // Old total cost (what was already billed)
+    const oldTotal = Number(initial.total_cost) || 0;
+    const diff = newTotal - oldTotal;
+
+    if (diff > 0.001) {
+      // Extra items were added — charge the difference
+      supplementaryBills.push({
+        customer_id: d.customer_id,
+        type: 'Spot',
+        amount: Math.round(diff * 100) / 100,
+        status: 'Pending',
+        notes: `Supplementary charge for extra items added after billing`,
+        created_at: new Date().toISOString()
+      });
+    }
+  }
+
+  if (supplementaryBills.length > 0) {
+    const { error: billError } = await supabase.from('bills').insert(supplementaryBills);
+    if (billError) {
+      console.error('[Sync] ⚠️ Failed to create supplementary bills:', billError);
+    } else {
+      console.log(`[Sync] ✅ Created ${supplementaryBills.length} supplementary bill(s) for extra items.`);
+    }
+  }
 
   // Calculate net changes for each product ID
   // Positive delta: ADD back to stock (restoring undelivered)

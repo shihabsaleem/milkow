@@ -15,6 +15,9 @@ export interface Admin {
 export interface AutomationSettings {
   lastRouteReset: string;
   lastBillGeneration: string;
+  autoCloseEnabled?: boolean;
+  morningCloseTime?: string;
+  eveningCloseTime?: string;
 }
 
 export interface Settings {
@@ -111,5 +114,5 @@ export interface CustomerFinancials {
   total_billed: number;
   total_paid: number;
   current_balance: number;
-  account_status: 'Credit/Advance' | 'Debt';
+  account_status: 'Advance' | 'Credit';
 }

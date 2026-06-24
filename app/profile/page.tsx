@@ -1,16 +1,18 @@
 "use client";
 
+<<<<<<< HEAD
 import { ArrowLeft, Save, LogOut, X, Plus, Shield, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
+=======
+import { ArrowLeft, Save, LogOut, X, Plus, Edit2, Check } from "lucide-react";
+>>>>>>> 5390a2c8f8ecc85b09342307bb409e77768b9c59
 import { motion, AnimatePresence } from "framer-motion";
 import PullToRefresh from "@/components/ui/PullToRefresh";
-
-import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
-import * as T from "@/types/database";
+import { useProfileLogic } from "@/hooks/useProfileLogic";
 
 export default function UserProfilePage() {
+<<<<<<< HEAD
    const router = useRouter();
    const { logout, user, loading, role } = useAuth();
 
@@ -215,6 +217,46 @@ export default function UserProfilePage() {
       document.cookie = "milkow_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       router.push("/login");
    };
+=======
+   const {
+      router,
+      user,
+      loading,
+      adminName,
+      setAdminName,
+      payeeName,
+      setPayeeName,
+      upiId,
+      setUpiId,
+      pin,
+      setPin,
+      isSaved,
+      autoCloseEnabled,
+      setAutoCloseEnabled,
+      morningCloseTime,
+      setMorningCloseTime,
+      eveningCloseTime,
+      setEveningCloseTime,
+      areas,
+      newRoute,
+      setNewRoute,
+      isAddingRoute,
+      routeSuccess,
+      listEndRef,
+      handleSave,
+      addRoute,
+      removeRoute,
+      editRoute,
+      editingRouteId,
+      setEditingRouteId,
+      editingRouteName,
+      setEditingRouteName,
+      handleLogout,
+      fetchSettings
+   } = useProfileLogic();
+
+
+>>>>>>> 5390a2c8f8ecc85b09342307bb409e77768b9c59
 
    if (loading || !user) {
       return (
@@ -324,6 +366,7 @@ export default function UserProfilePage() {
                         Delivery Routes
                      </h3>
 
+<<<<<<< HEAD
                      <div className="flex flex-col gap-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
                         <AnimatePresence initial={false}>
                            {areas.map((area) => (
@@ -378,6 +421,111 @@ export default function UserProfilePage() {
                            )}
                         </motion.button>
                      </div>
+=======
+               {/* Automation Settings Section */}
+               <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
+                  <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                     Automation & Shifts
+                  </h3>
+
+                  <div className="flex items-center justify-between">
+                     <div className="flex flex-col">
+                        <label className="text-sm font-bold text-zinc-900">Auto-Close Shifts</label>
+                        <p className="text-[10px] text-zinc-400">Automatically blocks deliveries and generates bills</p>
+                     </div>
+                     <button
+                        onClick={() => setAutoCloseEnabled(!autoCloseEnabled)}
+                        className={`w-12 h-6 rounded-full p-1 transition-colors ${autoCloseEnabled ? 'bg-emerald-500' : 'bg-zinc-200'}`}
+                     >
+                        <motion.div
+                           className="w-4 h-4 bg-white rounded-full shadow-sm"
+                           animate={{ x: autoCloseEnabled ? 24 : 0 }}
+                           transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        />
+                     </button>
+                  </div>
+
+                  <AnimatePresence>
+                     {autoCloseEnabled && (
+                        <motion.div
+                           initial={{ height: 0, opacity: 0 }}
+                           animate={{ height: "auto", opacity: 1 }}
+                           exit={{ height: 0, opacity: 0 }}
+                           className="flex flex-col gap-4 overflow-hidden"
+                        >
+                           <div className="flex flex-col gap-1.5 pt-2 border-t border-zinc-50">
+                              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Morning Auto-Close Time</label>
+                              <input
+                                 type="time"
+                                 value={morningCloseTime}
+                                 onChange={(e) => setMorningCloseTime(e.target.value)}
+                                 className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                              />
+                           </div>
+                           <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Evening Auto-Close Time</label>
+                              <input
+                                 type="time"
+                                 value={eveningCloseTime}
+                                 onChange={(e) => setEveningCloseTime(e.target.value)}
+                                 className="w-full bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                              />
+                           </div>
+                        </motion.div>
+                     )}
+                  </AnimatePresence>
+               </div>
+
+               {/* Delivery Routes Section */}
+               <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">
+                  <h3 className="font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                     Delivery Routes
+                  </h3>
+
+                  <div className="flex flex-col gap-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                     <AnimatePresence initial={false}>
+                        {areas.map((area) => (
+                           <motion.div
+                              key={area.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              className="flex items-center justify-between bg-slate-50 border border-zinc-200 rounded-xl px-4 py-3"
+                           >
+                              {editingRouteId === area.id ? (
+                                 <>
+                                    <input
+                                       autoFocus
+                                       value={editingRouteName}
+                                       onChange={e => setEditingRouteName(e.target.value)}
+                                       onKeyDown={e => { if (e.key === 'Enter') editRoute(area.id, editingRouteName); if (e.key === 'Escape') { setEditingRouteId(null); setEditingRouteName(''); } }}
+                                       className="flex-1 bg-white border border-primary/30 rounded-lg px-3 py-1.5 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary/20 mr-2"
+                                    />
+                                    <button onClick={() => editRoute(area.id, editingRouteName)} className="text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
+                                       <Check size={16} />
+                                    </button>
+                                    <button onClick={() => { setEditingRouteId(null); setEditingRouteName(''); }} className="text-zinc-400 hover:bg-zinc-100 p-1.5 rounded-lg transition-colors ml-1">
+                                       <X size={16} />
+                                    </button>
+                                 </>
+                              ) : (
+                                 <>
+                                    <span className="text-sm font-bold text-zinc-900 flex-1">{area.name}</span>
+                                    <button onClick={() => { setEditingRouteId(area.id); setEditingRouteName(area.name); }} className="text-zinc-400 hover:bg-zinc-100 p-1.5 rounded-lg transition-colors mr-1">
+                                       <Edit2 size={15} />
+                                    </button>
+                                    <button onClick={() => removeRoute(area.id)} className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors">
+                                       <X size={16} />
+                                    </button>
+                                 </>
+                              )}
+                           </motion.div>
+                        ))}
+                     </AnimatePresence>
+                     <div ref={listEndRef} />
+>>>>>>> 5390a2c8f8ecc85b09342307bb409e77768b9c59
                   </div>
 
                   {/* Manage Team & Roles Section */}
@@ -454,6 +602,7 @@ export default function UserProfilePage() {
                         />
                      </div>
 
+<<<<<<< HEAD
                      <div className="flex flex-col gap-1.5 opacity-60">
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Email Address</label>
                         <input
@@ -464,6 +613,11 @@ export default function UserProfilePage() {
                         />
                      </div>
                   </div>
+=======
+               <button onClick={handleLogout} className="w-full bg-rose-600 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm border border-rose-100 flex items-center justify-center gap-2">
+                  <LogOut size={18} /> Sign Out
+               </button>
+>>>>>>> 5390a2c8f8ecc85b09342307bb409e77768b9c59
 
                   <button
                      onClick={handleDriverSave}

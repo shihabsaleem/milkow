@@ -43,7 +43,11 @@ export const viewport: Viewport = {
 };
 
 import { AuthProvider } from "@/context/AuthContext";
+<<<<<<< HEAD
 import RouteGuard from "@/components/layout/RouteGuard";
+=======
+import AuthGuard from "@/components/auth/AuthGuard";
+>>>>>>> 5390a2c8f8ecc85b09342307bb409e77768b9c59
 
 export default function RootLayout({
   children,
@@ -52,12 +56,20 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable} h-full`} style={{ colorScheme: "light" }}>
       <body className="flex h-full flex-col relative font-(family-name:var(--font-geist))">
         <AuthProvider>
+<<<<<<< HEAD
           <RouteGuard>
+=======
+          <AuthGuard>
+>>>>>>> 5390a2c8f8ecc85b09342307bb409e77768b9c59
             <main className="flex-1 overflow-y-auto overflow-x-hidden">
               {children}
             </main>
             <BottomNav />
+<<<<<<< HEAD
           </RouteGuard>
+=======
+          </AuthGuard>
+>>>>>>> 5390a2c8f8ecc85b09342307bb409e77768b9c59
         </AuthProvider>
       </body>
     </html>

@@ -19,7 +19,6 @@ export default function BottomNav() {
     { icon: Package, label: "Inventory", href: "/inventory" },
     { icon: Users, label: "Customers", href: "/customers" },
     { icon: Truck, label: "Delivery", href: "/delivery" },
-    { icon: Wallet2, label: "Billing", href: "/billing" },
   ];
 
   return (

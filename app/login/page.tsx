@@ -1,47 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useLoginLogic } from "@/hooks/useLoginLogic";
 import Image from "next/image";
 import Link from "next/link";
-import { Milk, ArrowRight, Mail, Lock, ShieldCheck, Sparkles, Building2 } from "lucide-react";
+import { Mail, Lock, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
-   const router = useRouter();
-   const { user, loading } = useAuth();
-   const [email, setEmail] = useState("");
-   const [password, setPassword] = useState("");
-   const [isLoading, setIsLoading] = useState(false);
-   const [error, setError] = useState("");
-
-   useEffect(() => {
-      if (!loading && user) {
-         router.push("/");
-      }
-   }, [user, loading, router]);
-
-   const handleLogin = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setIsLoading(true);
-      setError("");
-
-      try {
-         const { error: authError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-         });
-
-         if (authError) throw authError;
-         router.push("/");
-      } catch (err: any) {
-         setError(err.message || "Invalid credentials. Please try again.");
-      } finally {
-         setIsLoading(false);
-      }
-   };
+   const {
+      email,
+      setEmail,
+      password,
+      setPassword,
+      isLoading,
+      error,
+      handleLogin
+   } = useLoginLogic();
 
    return (
       <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden">
@@ -82,6 +56,7 @@ export default function LoginPage() {
                <div className="absolute -inset-1 bg-linear-to-br from-primary/20 to-emerald-400/20 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-70 transition-opacity -z-10" />
                <div className="absolute inset-0 bg-white/60 rounded-[2.5rem] -z-10 backdrop-blur-3xl" />
 
+<<<<<<< HEAD
                 <div className="text-center mb-8">
                    <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Welcome Back</h2>
                    <p className="text-xs font-medium text-zinc-500 mt-1.5">Sign in securely to your dashboard</p>
@@ -105,36 +80,45 @@ export default function LoginPage() {
                       </button>
                    </div>
                 </div>
+=======
+               <div className="text-center mb-8">
+                  <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Welcome Back</h2>
+                  <p className="text-xs font-medium text-zinc-500 mt-1.5">Sign in</p>
+               </div>
+>>>>>>> 5390a2c8f8ecc85b09342307bb409e77768b9c59
 
                <form onSubmit={handleLogin} className="flex flex-col gap-5">
                   <div className="flex flex-col gap-1.5 relative group/input">
                      <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
                      <div className="relative flex items-center">
-                        <div className="absolute left-4 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors">
-                           <Mail size={18} strokeWidth={2.5} />
+                        <div className="absolute left-4 z-10 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors pointer-events-none">
+                           <Mail size={18} strokeWidth={2} />
                         </div>
                         <input
                            type="email"
                            value={email}
                            onChange={(e) => setEmail(e.target.value)}
-                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2 border-zinc-100 hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
+                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2  border-zinc-200 shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
                            placeholder="Email address"
                            required
                         />
                      </div>
                   </div>
 
+                  
+
+
                   <div className="flex flex-col gap-1.5 relative group/input">
                      <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-transparent rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity -z-10 blur-md" />
                      <div className="relative flex items-center">
-                        <div className="absolute left-4 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors">
+                        <div className="absolute left-4 z-10 flex items-center justify-center text-zinc-400 group-focus-within/input:text-primary transition-colors pointer-events-none">
                            <Lock size={18} strokeWidth={2.5} />
                         </div>
                         <input
                            type="password"
                            value={password}
                            onChange={(e) => setPassword(e.target.value)}
-                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2 border-zinc-100 hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
+                           className="w-full bg-slate-50/50 backdrop-blur-sm border-2 border-zinc-200 shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] hover:border-zinc-200 focus:border-primary focus:bg-white rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-zinc-400"
                            placeholder="Password"
                            required
                         />
@@ -165,22 +149,22 @@ export default function LoginPage() {
                         <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                      ) : (
                         <>
-                           Sign In Securely
+                           Sign in
                            <ArrowRight size={18} className="group-hover/btn:translate-x-1 group-hover/btn:scale-110 transition-all" />
                         </>
                      )}
                   </button>
-                </form>
+               </form>
 
-                <div className="flex justify-center mt-6 pt-4 border-t border-zinc-100">
-                   <Link
-                      href="/bill"
-                      className="text-xs font-bold text-zinc-500 hover:text-primary transition-colors flex items-center gap-1 active:scale-95"
-                   >
-                      Looking for your bill? View Client Bill
-                   </Link>
-                </div>
-             </div>
+               <div className="flex justify-center mt-6 pt-4 border-t border-zinc-100">
+                  <Link
+                     href="/bill"
+                     className="text-xs font-bold text-zinc-500 hover:text-primary transition-colors flex items-center gap-1 active:scale-95"
+                  >
+                     Looking for your bill? View Client Bill
+                  </Link>
+               </div>
+            </div>
 
             {/* Copyright */}
             <p className="text-center mt-10 text-zinc-400 text-[10px] font-medium tracking-wide uppercase">

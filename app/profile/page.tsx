@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, Save, LogOut, X, Plus, Edit2, Check } from "lucide-react";
+import { ArrowLeft, Save, LogOut, X, Plus, Edit2, Check, ShieldAlert } from "lucide-react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import { useProfileLogic } from "@/hooks/useProfileLogic";
@@ -40,7 +41,8 @@ export default function UserProfilePage() {
       editingRouteName,
       setEditingRouteName,
       handleLogout,
-      fetchSettings
+      fetchSettings,
+      role
    } = useProfileLogic();
 
 
@@ -85,6 +87,22 @@ export default function UserProfilePage() {
 
             {/* Editable Settings Blocks */}
             <div className="flex flex-col gap-6">
+
+               {/* Superadmin Quick Access */}
+               {role === 'superadmin' && (
+                  <Link href="/superadmin" className="bg-emerald-50 hover:bg-emerald-100/80 rounded-3xl p-6 shadow-sm border border-emerald-200/50 flex items-center justify-between transition-colors active:scale-95 group">
+                     <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                           <ShieldAlert size={20} />
+                        </div>
+                        <div>
+                           <h3 className="font-bold text-emerald-900">Superadmin Dashboard</h3>
+                           <p className="text-xs text-emerald-600/80">Manage all franchises & system settings</p>
+                        </div>
+                     </div>
+                     <ArrowLeft size={20} className="text-emerald-400 rotate-180 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+               )}
 
                {/* Account Security Section */}
                <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 flex flex-col gap-5">

@@ -12,7 +12,7 @@ export function useCustomerLogic(
 ) {
    const router = useRouter();
    const { franchiseId, impersonatedFranchiseId, role } = useAuth();
-   const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+   const activeFranchiseId = role === 'superadmin' ? ((impersonatedFranchiseId || franchiseId || '00000000-0000-0000-0000-000000000000')) : (franchiseId || '00000000-0000-0000-0000-000000000000');
 
    const [customer, setCustomer] = useState<(T.Customer & { area: T.Area }) | null>(null);
    const [financials, setFinancials] = useState<T.CustomerFinancials | null>(null);

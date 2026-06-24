@@ -8,7 +8,7 @@ import { recordPayment, settleAllDues } from "@/lib/financials";
 
 export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
    const { franchiseId, impersonatedFranchiseId, role } = useAuth();
-   const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+   const activeFranchiseId = role === 'superadmin' ? ((impersonatedFranchiseId || franchiseId || '00000000-0000-0000-0000-000000000000')) : (franchiseId || '00000000-0000-0000-0000-000000000000');
 
    const [bills, setBills] = useState<(T.Bill & { customer: T.Customer })[]>([]);
    const [products, setProducts] = useState<T.Product[]>([]);

@@ -17,10 +17,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading && !user && !isPublicRoute) {
       router.replace("/login");
-    } else if (!loading && user && role === 'superadmin' && !impersonatedFranchiseId) {
-      if (!pathname.startsWith('/superadmin') && !isPublicRoute) {
-        router.replace("/superadmin");
-      }
     }
   }, [user, loading, role, impersonatedFranchiseId, pathname, isPublicRoute, router]);
 

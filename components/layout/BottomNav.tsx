@@ -6,24 +6,20 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { user, role, impersonatedFranchiseId } = useAuth();
+  const { user, role, impersonatedFranchiseId, franchiseId } = useAuth();
   
 
   if (!user || pathname === "/login" || pathname === "/bill" || pathname === "/bill/") return null;
 
   const navItems = [];
 
-  if (role === 'franchise' || (role === 'superadmin' && impersonatedFranchiseId)) {
+  if (role === 'franchise' || (role === 'superadmin' && (impersonatedFranchiseId || franchiseId))) {
     navItems.push(
       { icon: Home, label: "Home", href: "/" },
       { icon: Package, label: "Inventory", href: "/inventory" },
       { icon: Users, label: "Customers", href: "/customers" },
       { icon: Truck, label: "Delivery", href: "/delivery" }
     );
-  }
-
-  if (role === 'superadmin') {
-    navItems.push({ icon: ShieldCheck, label: "Superadmin", href: "/superadmin" });
   }
 
   return (

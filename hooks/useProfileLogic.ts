@@ -40,7 +40,7 @@ export function useProfileLogic() {
   }, [routeSuccess]);
 
   const { franchiseId, impersonatedFranchiseId, role } = useAuth();
-  const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+  const activeFranchiseId = role === 'superadmin' ? ((impersonatedFranchiseId || franchiseId || '00000000-0000-0000-0000-000000000000')) : (franchiseId || '00000000-0000-0000-0000-000000000000');
 
   const fetchSettings = useCallback(async (silent = false) => {
     const { data } = await supabase.from('system_settings').select('*').eq('franchise_id', activeFranchiseId).eq('key', 'general').maybeSingle();

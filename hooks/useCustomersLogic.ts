@@ -56,7 +56,7 @@ export function useCustomersLogic() {
   });
 
   const { franchiseId, impersonatedFranchiseId, role } = useAuth();
-  const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+  const activeFranchiseId = role === 'superadmin' ? ((impersonatedFranchiseId || franchiseId || '00000000-0000-0000-0000-000000000000')) : (franchiseId || '00000000-0000-0000-0000-000000000000');
 
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -162,7 +162,7 @@ export function useCustomersLogic() {
           throw insertError;
         }
 
-        await checkAndRunAutomations();
+        await checkAndRunAutomations(activeFranchiseId);
         fetchData(true);
       };
 

@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const result = await fetchUserRole(currentUser.id);
         const fId = result?.franchiseId;
         // Determine active franchise ID logic (similar to hooks)
-        const activeFranchiseId = result?.role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (fId || '00000000-0000-0000-0000-000000000000');
+        const activeFranchiseId = result?.role === 'superadmin' ? ((impersonatedFranchiseId || franchiseId || '00000000-0000-0000-0000-000000000000')) : (fId || '00000000-0000-0000-0000-000000000000');
         
         // 🤖 Run automations on login
         checkAndRunAutomations(activeFranchiseId).catch((err) =>
@@ -134,7 +134,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (_event === 'SIGNED_IN' && currentUser) {
         // Determine active franchise ID logic (similar to hooks)
-        const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (currentFranchiseId || '00000000-0000-0000-0000-000000000000');
+        const activeFranchiseId = role === 'superadmin' ? ((impersonatedFranchiseId || franchiseId || '00000000-0000-0000-0000-000000000000')) : (currentFranchiseId || '00000000-0000-0000-0000-000000000000');
         
         checkAndRunAutomations(activeFranchiseId).catch((err) =>
            console.error("[Automation] Unhandled error:", err)

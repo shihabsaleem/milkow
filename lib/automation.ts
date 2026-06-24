@@ -20,7 +20,7 @@ function todayStr(): string {
 // 1. DAILY ROUTE RESET
 // ─────────────────────────────────────────────
 
-export async function resetDailyRoute(): Promise<{ ran: boolean; message: string }> {
+export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boolean; message: string }> {
   const today = todayStr();
 
   try {
@@ -28,6 +28,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
     const { data: customers } = await supabase
       .from('customers')
       .select('*, default_product_id, default_qty')
+      .eq('franchise_id', franchiseId)
       .eq('status', 'Active')
       .order('delivery_order', { ascending: true });
 
@@ -39,6 +40,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
     const { data: existingDeliveries } = await supabase
       .from('deliveries')
       .select('customer_id, shift')
+      .eq('franchise_id', franchiseId)
       .eq('delivery_date', today);
 
     const existingMap = new Set(existingDeliveries?.map((d: any) => `${d.customer_id}-${d.shift}`) || []);
@@ -54,6 +56,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
       if (needsMorning && !existingMap.has(`${c.id}-Morning Only`)) {
         deliveriesToCreate.push({
           customer_id: c.id,
+          franchise_id: c.franchise_id,
           delivery_date: today,
           shift: 'Morning Only',
           product_id: c.default_product_id,
@@ -68,6 +71,7 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
       if (needsEvening && !existingMap.has(`${c.id}-Evening Only`)) {
         deliveriesToCreate.push({
           customer_id: c.id,
+          franchise_id: c.franchise_id,
           delivery_date: today,
           shift: 'Evening Only',
           product_id: c.default_product_id,
@@ -85,12 +89,13 @@ export async function resetDailyRoute(): Promise<{ ran: boolean; message: string
       if (insertError) throw insertError;
 
       // 1. Fetch current settings to merge
-      const { data: currentSettings } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
+      const { data: currentSettings } = await supabase.from('system_settings').select('value').eq('franchise_id', franchiseId).eq('key', 'automation').maybeSingle();
       const existingValue = (currentSettings as any)?.value || {};
 
       // 2. Update lastReset timestamp without losing other keys
       await supabase.from('system_settings').upsert({
         key: 'automation',
+        franchise_id: franchiseId,
         value: { ...existingValue, lastRouteReset: today }
       });
 
@@ -236,13 +241,14 @@ export async function restoreInventoryOnUndelivery(
 // 3. AUTO BILL GENERATION
 // ─────────────────────────────────────────────
 
-export async function generateDailyBills(): Promise<{ ran: boolean; count: number; message: string }> {
+export async function generateDailyBills(franchiseId: string): Promise<{ ran: boolean; count: number; message: string }> {
   const today = todayStr();
 
   try {
     const { data: settingsData } = await supabase
       .from('system_settings')
       .select('value')
+      .eq('franchise_id', franchiseId)
       .eq('key', 'automation')
       .maybeSingle();
 
@@ -255,6 +261,7 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
     const { data: deliveryData } = await supabase
       .from('deliveries')
       .select('*, customer:customers(*)')
+      .eq('franchise_id', franchiseId)
       .eq('delivered', true)
       .eq('billed', false)
       .eq('delivery_date', today);
@@ -265,7 +272,7 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
       return { ran: false, count: 0, message: "No completed deliveries found for today." };
     }
 
-    const { data: productsData } = await supabase.from('products').select('*');
+    const { data: productsData } = await supabase.from('products').select('*').eq('franchise_id', franchiseId);
     const productsList = productsData as T.Product[] | null;
     const prices: Record<string, number> = {};
     productsList?.forEach(p => {
@@ -287,6 +294,7 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
 
       return {
         customer_id: delivery.customer_id,
+        franchise_id: delivery.franchise_id,
         type: 'Monthly',
         amount: totalAmount,
         status: 'Pending',
@@ -304,7 +312,7 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
 
     // Update timestamp
     const newValue = { ...(settings?.value || {}), lastBillGeneration: today };
-    await supabase.from('system_settings').upsert({ key: 'automation', value: newValue });
+    await supabase.from('system_settings').upsert({ key: 'automation', franchise_id: franchiseId, value: newValue });
 
     return { ran: true, count: billsToCreate.length, message: `Generated ${billsToCreate.length} bills.` };
   } catch (err: any) {
@@ -319,7 +327,7 @@ export async function generateDailyBills(): Promise<{ ran: boolean; count: numbe
 // 4. SHIFT CLOSE — AUTO BILL DELIVERED ITEMS
 // ─────────────────────────────────────────────
 
-export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promise<{ ran: boolean; count: number; message: string }> {
+export async function closeShift(shift: 'Morning Only' | 'Evening Only', franchiseId: string): Promise<{ ran: boolean; count: number; message: string }> {
   const today = todayStr();
   const settingsKey = shift === 'Morning Only' ? 'lastMorningClose' : 'lastEveningClose';
 
@@ -328,6 +336,7 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
     const { data: settingsData } = await supabase
       .from('system_settings')
       .select('value')
+      .eq('franchise_id', franchiseId)
       .eq('key', 'automation')
       .maybeSingle();
 
@@ -339,7 +348,8 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
     // Find all delivered+unbilled deliveries for this shift today
     const { data: unbilled, error } = await supabase
       .from('deliveries')
-      .select('id, customer_id, total_cost')
+      .select('id, customer_id, total_cost, franchise_id')
+      .eq('franchise_id', franchiseId)
       .eq('delivery_date', today)
       .eq('shift', shift)
       .eq('delivered', true)
@@ -351,6 +361,7 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
       // Still stamp the timestamp so we don't re-check repeatedly
       await supabase.from('system_settings').upsert({
         key: 'automation',
+        franchise_id: franchiseId,
         value: { ...settings, [settingsKey]: today }
       });
       return { ran: false, count: 0, message: `No unbilled deliveries for ${shift} on ${today}.` };
@@ -360,6 +371,7 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
     const billsToCreate = unbilled.map((d: any) => {
       return {
         customer_id: d.customer_id,
+        franchise_id: d.franchise_id,
         type: 'Spot',
         amount: Number(d.total_cost) || 0,
         status: 'Pending',
@@ -384,6 +396,7 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
     // Stamp close time
     await supabase.from('system_settings').upsert({
       key: 'automation',
+      franchise_id: franchiseId,
       value: { ...settings, [settingsKey]: today }
     });
 
@@ -402,14 +415,14 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only'): Promis
 
 let isRunning = false;
 
-export async function checkAndRunAutomations(): Promise<void> {
+export async function checkAndRunAutomations(franchiseId: string): Promise<void> {
   if (isRunning) return;
   isRunning = true;
   try {
     console.log("[Automation] 🚀 Running daily checks (Supabase)...");
-    await resetDailyRoute();
+    await resetDailyRoute(franchiseId);
 
-    const { data: autoData } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
+    const { data: autoData } = await supabase.from('system_settings').select('value').eq('franchise_id', franchiseId).eq('key', 'automation').maybeSingle();
     const autoVal = (autoData?.value as T.AutomationSettings) || {};
 
     const autoCloseEnabled = autoVal.autoCloseEnabled ?? true;
@@ -426,11 +439,11 @@ export async function checkAndRunAutomations(): Promise<void> {
 
     if (autoCloseEnabled) {
       if (currentMins >= parseMins(morningTime)) {
-        await closeShift('Morning Only');
+        await closeShift('Morning Only', franchiseId);
       }
 
       if (currentMins >= parseMins(eveningTime)) {
-        await closeShift('Evening Only');
+        await closeShift('Evening Only', franchiseId);
       }
     }
   } finally {
@@ -469,6 +482,7 @@ export async function syncBatchDeliveries(
     return {
       id: d.id,
       customer_id: d.customer_id,
+      franchise_id: d.franchise_id,
       delivery_date: d.delivery_date,
       shift: d.shift,
       product_id: d.product_id,
@@ -520,6 +534,7 @@ export async function syncBatchDeliveries(
       // Extra items were added — charge the difference
       supplementaryBills.push({
         customer_id: d.customer_id,
+        franchise_id: d.franchise_id,
         type: 'Spot',
         amount: Math.round(diff * 100) / 100,
         status: 'Pending',

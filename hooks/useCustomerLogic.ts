@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import * as T from "@/types/database";
 // import { toPng } from "html-to-image"; // commented out — long screenshot setup
 import { recordPayment, settleAllDues/*, recordReturn*/ } from "@/lib/financials"; // recordReturn commented out — Return Item disabled
@@ -10,6 +11,9 @@ export function useCustomerLogic(
    screenshotRef: React.RefObject<HTMLDivElement | null>
 ) {
    const router = useRouter();
+   const { franchiseId, impersonatedFranchiseId, role } = useAuth();
+   const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+
    const [customer, setCustomer] = useState<(T.Customer & { area: T.Area }) | null>(null);
    const [financials, setFinancials] = useState<T.CustomerFinancials | null>(null);
    const [isCapturing, setIsCapturing] = useState(false);
@@ -64,14 +68,14 @@ export function useCustomerLogic(
          { data: productData },
          { data: finData }
       ] = await Promise.all([
-         supabase.from('customers').select('*, area:areas(*)').eq('id', customerIdParam).single(),
-         supabase.from('areas').select('*').order('name', { ascending: true }),
-         supabase.from('bills').select('*').eq('customer_id', customerIdParam).order('created_at', { ascending: false }),
-         supabase.from('deliveries').select('*').eq('customer_id', customerIdParam).gte('delivery_date', monthStart).lte('delivery_date', monthEnd).order('delivery_date', { ascending: true }),
-         supabase.from('deliveries').select('*').eq('customer_id', customerIdParam).eq('delivered', true).eq('billed', false),
-         supabase.from('payments').select('*').eq('customer_id', customerIdParam).order('payment_date', { ascending: false }),
-         supabase.from('products').select('*'),
-         supabase.from('customer_financials').select('*').eq('id', customerIdParam).single()
+         supabase.from('customers').select('*, area:areas(*)').eq('franchise_id', activeFranchiseId).eq('id', customerIdParam).single(),
+         supabase.from('areas').select('*').eq('franchise_id', activeFranchiseId).order('name', { ascending: true }),
+         supabase.from('bills').select('*').eq('franchise_id', activeFranchiseId).eq('customer_id', customerIdParam).order('created_at', { ascending: false }),
+         supabase.from('deliveries').select('*').eq('franchise_id', activeFranchiseId).eq('customer_id', customerIdParam).gte('delivery_date', monthStart).lte('delivery_date', monthEnd).order('delivery_date', { ascending: true }),
+         supabase.from('deliveries').select('*').eq('franchise_id', activeFranchiseId).eq('customer_id', customerIdParam).eq('delivered', true).eq('billed', false),
+         supabase.from('payments').select('*').eq('franchise_id', activeFranchiseId).eq('customer_id', customerIdParam).order('payment_date', { ascending: false }),
+         supabase.from('products').select('*').eq('franchise_id', activeFranchiseId),
+         supabase.from('customer_financials').select('*').eq('franchise_id', activeFranchiseId).eq('id', customerIdParam).single()
       ]);
 
       if (areaList) setAreas(areaList as T.Area[]);
@@ -97,16 +101,16 @@ export function useCustomerLogic(
          });
       }
       if (!silent) setIsLoading(false);
-   }, [customerIdParam, viewDate]);
+   }, [customerIdParam, viewDate, activeFranchiseId]);
 
    useEffect(() => {
       fetchData();
 
       const sub = supabase.channel('cust_profile')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => fetchData(true))
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => fetchData(true))
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => fetchData(true))
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'bills', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
          .subscribe();
 
       return () => { sub.unsubscribe(); };

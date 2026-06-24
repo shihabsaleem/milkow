@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import * as T from "@/types/database";
 import { syncBatchDeliveries } from "@/lib/automation";
 import { settleAllDues } from "@/lib/financials";
@@ -7,6 +8,9 @@ import { settleAllDues } from "@/lib/financials";
 type DeliveryWithCustomer = T.Delivery & { customer: T.Customer & { financials?: { current_balance: number } } };
 
 export function useDeliveryLogic() {
+   const { franchiseId, impersonatedFranchiseId, role } = useAuth();
+   const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+
    const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [serverDeliveries, setServerDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [isSyncing, setIsSyncing] = useState(false);
@@ -36,7 +40,7 @@ export function useDeliveryLogic() {
       return new Date().getHours() < 14 ? 'morning' : 'evening';
    }, [manualShift]);
 
-   const fetchData = async (isSilent = false) => {
+   const fetchData = useCallback(async (isSilent = false) => {
       if (!isSilent) setIsLoading(true);
       const today = new Date().toLocaleDateString('en-CA');
 
@@ -47,14 +51,15 @@ export function useDeliveryLogic() {
          { data: settingsData },
          { data: financialsData }
       ] = await Promise.all([
-         supabase.from('areas').select('*').order('name', { ascending: true }),
-         supabase.from('products').select('*').order('name', { ascending: true }),
+         supabase.from('areas').select('*').eq('franchise_id', activeFranchiseId).order('name', { ascending: true }),
+         supabase.from('products').select('*').eq('franchise_id', activeFranchiseId).order('name', { ascending: true }),
          supabase.from('deliveries')
             .select('*, customer:customers(*)')
+            .eq('franchise_id', activeFranchiseId)
             .eq('delivery_date', today)
             .eq('shift', shift === 'morning' ? 'Morning Only' : 'Evening Only'),
-         supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle(),
-         supabase.from('customer_financials').select('id, current_balance')
+         supabase.from('system_settings').select('value').eq('franchise_id', activeFranchiseId).eq('key', 'automation').maybeSingle(),
+         supabase.from('customer_financials').select('id, current_balance').eq('franchise_id', activeFranchiseId)
       ]);
 
       if (settingsData) {
@@ -115,20 +120,20 @@ export function useDeliveryLogic() {
          }
       }
       setIsLoading(false);
-   };
+   }, [activeFranchiseId, shift]);
 
    useEffect(() => {
       fetchData();
 
       const sub = supabase.channel('route_page')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => fetchData(true))
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData(true))
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => fetchData(true))
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'bills', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
          .subscribe();
 
       return () => { sub.unsubscribe(); };
-   }, [shift]); // eslint-disable-line react-hooks/exhaustive-deps
+   }, [shift, activeFranchiseId, fetchData]);
 
    const saveStagedChange = (id: string, update: Partial<T.Delivery>) => {
       const today = new Date().toLocaleDateString('en-CA');

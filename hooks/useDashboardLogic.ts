@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import * as T from "@/types/database";
 
 export interface DeliveredItem {
@@ -19,7 +20,7 @@ export function useDashboardLogic() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [inventory, setInventory] = useState<T.InventoryItem[]>([]);
   const [delivered, setDelivered] = useState<DeliveredItem[]>([]);
-  const [adminName, setAdminName] = useState("Sayas R.");
+  const [adminName, setAdminName] = useState("Franchisee .");
   const [toCollectAmount, setToCollectAmount] = useState(0);
   const [advanceAmount, setAdvanceAmount] = useState(0);
   const [customerCount, setCustomerCount] = useState(0);
@@ -38,6 +39,9 @@ export function useDashboardLogic() {
     return hour < 14 ? "morning" : "evening";
   }, [manualOverride, internalShift]);
 
+  const { franchiseId, impersonatedFranchiseId, role } = useAuth();
+  const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+
   const fetchDashboardData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     const dbShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
@@ -55,13 +59,13 @@ export function useDashboardLogic() {
       { data: setsData },
       { data: paymentsData }
     ] = await Promise.all([
-      supabase.from('inventory').select('*').not('product_id', 'is', null),
-      supabase.from('deliveries').select('*').eq('delivered', true).eq('delivery_date', date),
-      supabase.from('products').select('*'),
-      supabase.from('customer_financials').select('*'),
-      supabase.from('customers').select('*', { count: 'exact', head: true }),
-      supabase.from('system_settings').select('value').eq('key', 'general').single(),
-      supabase.from('payments').select('amount').gte('payment_date', startIso).lte('payment_date', endIso)
+      supabase.from('inventory').select('*').eq('franchise_id', activeFranchiseId).not('product_id', 'is', null),
+      supabase.from('deliveries').select('*').eq('franchise_id', activeFranchiseId).eq('delivered', true).eq('delivery_date', date),
+      supabase.from('products').select('*').eq('franchise_id', activeFranchiseId),
+      supabase.from('customer_financials').select('*').eq('franchise_id', activeFranchiseId),
+      supabase.from('customers').select('*', { count: 'exact', head: true }).eq('franchise_id', activeFranchiseId),
+      supabase.from('system_settings').select('value').eq('franchise_id', activeFranchiseId).eq('key', 'general').maybeSingle(),
+      supabase.from('payments').select('amount').eq('franchise_id', activeFranchiseId).gte('payment_date', startIso).lte('payment_date', endIso)
     ]);
 
     if (invData) setInventory(invData as T.InventoryItem[]);
@@ -69,7 +73,7 @@ export function useDashboardLogic() {
 
     if (setsData) {
       const val = setsData.value as T.Settings | null;
-      if (val) setAdminName(val.system_user?.name || "Sayas R.");
+      if (val) setAdminName(val.system_user?.name || "Franchisee.");
     }
 
     if (paymentsData) {
@@ -124,12 +128,12 @@ export function useDashboardLogic() {
   useEffect(() => {
     fetchDashboardData();
 
-    const invSub = supabase.channel('inv').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, fetchDashboardData).subscribe();
-    const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, fetchDashboardData).subscribe();
-    const billsSub = supabase.channel('bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, fetchDashboardData).subscribe();
-    const custSub = supabase.channel('cust').on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, fetchDashboardData).subscribe();
-    const setSub = supabase.channel('sets').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchDashboardData).subscribe();
-    const paySub = supabase.channel('payments').on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchDashboardData).subscribe();
+    const invSub = supabase.channel('inv').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
+    const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
+    const billsSub = supabase.channel('bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
+    const custSub = supabase.channel('cust').on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
+    const setSub = supabase.channel('sets').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
+    const paySub = supabase.channel('payments').on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
 
     return () => {
       invSub.unsubscribe();

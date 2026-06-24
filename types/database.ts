@@ -31,6 +31,7 @@ export interface Settings {
 
 export interface InventoryItem {
   id: number;
+  franchise_id?: string;
   name: string;
   vol: string;
   count: number;
@@ -40,6 +41,7 @@ export interface InventoryItem {
 
 export interface Product {
   id: string;
+  franchise_id?: string;
   name: string;
   size: string;
   stock: number;
@@ -49,6 +51,7 @@ export interface Product {
 
 export interface Customer {
   id: string;
+  franchise_id?: string;
   name: string;
   phone: string;
   area_id: number;
@@ -64,6 +67,7 @@ export interface Customer {
 export interface Delivery {
   id: string;
   customer_id: string;
+  franchise_id?: string;
   delivery_date: string;
   shift: 'Morning Only' | 'Evening Only';
   product_id?: string | null;
@@ -79,6 +83,7 @@ export interface Delivery {
 export interface Bill {
   id: string;
   customer_id: string;
+  franchise_id?: string;
   type: 'Weekly' | 'Monthly' | 'Spot' | 'Opening Balance';
   amount: number;
   status: 'Pending' | 'Paid';
@@ -90,6 +95,7 @@ export interface Bill {
 
 export interface Area {
   id: number;
+  franchise_id?: string;
   name: string;
 }
 
@@ -98,6 +104,7 @@ export type PaymentMethod = 'Cash' | 'UPI' | 'Bank Transfer' | 'Other';
 export interface Payment {
   id: string;
   customer_id: string;
+  franchise_id?: string;
   bill_id?: string | null;
   amount: number;
   method: PaymentMethod;

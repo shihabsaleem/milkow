@@ -10,6 +10,7 @@
 -- ==========================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'customer_status') THEN
@@ -37,14 +38,14 @@ END $$;
 -- Areas: Master list of delivery regions
 CREATE TABLE IF NOT EXISTS areas (
     id SERIAL PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Products: All items sold (Milk, Ghee, etc.)
 CREATE TABLE IF NOT EXISTS products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
     size TEXT,
     price DECIMAL(10, 2) NOT NULL,
     stock INTEGER DEFAULT 0,
@@ -149,7 +150,7 @@ CREATE TABLE IF NOT EXISTS payments (
 
 -- System Settings: Key-value config store
 CREATE TABLE IF NOT EXISTS system_settings (
-    key TEXT PRIMARY KEY,
+    key TEXT,
     value JSONB,
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -184,9 +185,10 @@ payment_summary AS (
     GROUP BY customer_id
 )
 SELECT
-    c.id,
+        c.id,
     c.name,
     c.area_id,
+    c.franchise_id,
     c.past_outstanding,
     (COALESCE(bs.total_billed_manual, 0) + COALESCE(ud.total_unbilled, 0)) AS total_billed,
     COALESCE(ps.total_paid, 0)                                            AS total_paid,
@@ -201,7 +203,54 @@ LEFT JOIN bill_summary         bs ON bs.customer_id = c.id
 LEFT JOIN unbilled_deliveries  ud ON ud.customer_id = c.id
 LEFT JOIN payment_summary      ps ON ps.customer_id = c.id;
 
+-- ─── FRANCHISE & ROLE TABLES ───────────────────
+CREATE TABLE IF NOT EXISTS franchises (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role_type') THEN
+        CREATE TYPE user_role_type AS ENUM ('superadmin', 'franchise');
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id UUID PRIMARY KEY,
+    role user_role_type NOT NULL DEFAULT 'franchise',
+    franchise_id UUID REFERENCES franchises(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Ensure a default franchise exists
+INSERT INTO franchises (id, name)
+VALUES ('00000000-0000-0000-0000-000000000000', 'Default Franchise')
+ON CONFLICT (id) DO NOTHING;
+
+-- Add franchise_id column to existing tables if not present
+ALTER TABLE areas ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE deliveries ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE bills ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
+
+-- Add multi-tenant unique constraints
+ALTER TABLE areas DROP CONSTRAINT IF EXISTS areas_name_key;
+ALTER TABLE areas ADD CONSTRAINT areas_name_franchise_id_key UNIQUE (name, franchise_id);
+
+ALTER TABLE products DROP CONSTRAINT IF EXISTS products_name_key;
+ALTER TABLE products ADD CONSTRAINT products_name_franchise_id_key UNIQUE (name, franchise_id);
+
+ALTER TABLE system_settings DROP CONSTRAINT IF EXISTS system_settings_pkey;
+ALTER TABLE system_settings ADD PRIMARY KEY (key, franchise_id);
+
 -- ─── ROW LEVEL SECURITY ───────────────────
+ALTER TABLE franchises      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_roles      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE areas           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers       ENABLE ROW LEVEL SECURITY;
@@ -211,17 +260,24 @@ ALTER TABLE bills           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
--- ─── POLICIES ─────────────────────────────
--- First, ensure any temporary public policies are removed
-DROP POLICY IF EXISTS "Public access areas" ON areas;
-DROP POLICY IF EXISTS "Public access products" ON products;
-DROP POLICY IF EXISTS "Public access customers" ON customers;
-DROP POLICY IF EXISTS "Public access inventory" ON inventory;
-DROP POLICY IF EXISTS "Public access deliveries" ON deliveries;
-DROP POLICY IF EXISTS "Public access bills" ON bills;
-DROP POLICY IF EXISTS "Public access payments" ON payments;
+-- ─── HELPER RLS FUNCTIONS ─────────────────
+CREATE OR REPLACE FUNCTION get_user_role(usr_id UUID)
+RETURNS user_role_type SECURITY DEFINER AS $$
+  SELECT role FROM user_roles WHERE user_id = usr_id;
+$$ LANGUAGE sql;
 
--- Then, drop any existing admin policies to avoid duplication errors
+CREATE OR REPLACE FUNCTION get_user_franchise(usr_id UUID)
+RETURNS UUID SECURITY DEFINER AS $$
+  SELECT franchise_id FROM user_roles WHERE user_id = usr_id;
+$$ LANGUAGE sql;
+
+-- ─── POLICIES ─────────────────────────────
+-- Drop any existing policies
+DROP POLICY IF EXISTS "Policy read franchises" ON franchises;
+DROP POLICY IF EXISTS "Policy write franchises" ON franchises;
+DROP POLICY IF EXISTS "Policy read user_roles" ON user_roles;
+DROP POLICY IF EXISTS "Policy write user_roles" ON user_roles;
+
 DROP POLICY IF EXISTS "Admin access areas" ON areas;
 DROP POLICY IF EXISTS "Admin access products" ON products;
 DROP POLICY IF EXISTS "Admin access customers" ON customers;
@@ -231,15 +287,68 @@ DROP POLICY IF EXISTS "Admin access bills" ON bills;
 DROP POLICY IF EXISTS "Admin access payments" ON payments;
 DROP POLICY IF EXISTS "Admin access system_settings" ON system_settings;
 
--- Allow all authenticated users (admins) full access to all tables
-CREATE POLICY "Admin access areas" ON areas FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Admin access products" ON products FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Admin access customers" ON customers FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Admin access inventory" ON inventory FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Admin access deliveries" ON deliveries FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Admin access bills" ON bills FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Admin access payments" ON payments FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Admin access system_settings" ON system_settings FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+-- Franchises Policy
+CREATE POLICY "Policy read franchises" ON franchises FOR SELECT
+  USING (get_user_role(auth.uid()) = 'superadmin' OR id = get_user_franchise(auth.uid()));
+CREATE POLICY "Policy write franchises" ON franchises FOR ALL
+  USING (get_user_role(auth.uid()) = 'superadmin')
+  WITH CHECK (get_user_role(auth.uid()) = 'superadmin');
+
+-- User Roles Policy
+CREATE POLICY "Policy read user_roles" ON user_roles FOR SELECT
+  USING (get_user_role(auth.uid()) = 'superadmin' OR user_id = auth.uid());
+CREATE POLICY "Policy write user_roles" ON user_roles FOR ALL
+  USING (get_user_role(auth.uid()) = 'superadmin')
+  WITH CHECK (get_user_role(auth.uid()) = 'superadmin');
+
+-- Multi-tenant Policies
+CREATE POLICY "Policy access areas" ON areas FOR ALL USING (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+) WITH CHECK (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+);
+
+CREATE POLICY "Policy access products" ON products FOR ALL USING (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+) WITH CHECK (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+);
+
+CREATE POLICY "Policy access customers" ON customers FOR ALL USING (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+) WITH CHECK (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+);
+
+CREATE POLICY "Policy access inventory" ON inventory FOR ALL USING (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+) WITH CHECK (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+);
+
+CREATE POLICY "Policy access deliveries" ON deliveries FOR ALL USING (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+) WITH CHECK (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+);
+
+CREATE POLICY "Policy access bills" ON bills FOR ALL USING (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+) WITH CHECK (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+);
+
+CREATE POLICY "Policy access payments" ON payments FOR ALL USING (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+) WITH CHECK (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+);
+
+CREATE POLICY "Policy access system_settings" ON system_settings FOR ALL USING (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+) WITH CHECK (
+  get_user_role(auth.uid()) = 'superadmin' OR franchise_id = get_user_franchise(auth.uid())
+);
 
 
 -- ─── DATA INTEGRITY — ONE-TIME FIXES ──────
@@ -428,18 +537,89 @@ CREATE TRIGGER tr_product_inventory_sync AFTER UPDATE ON products FOR EACH ROW E
 
 DROP TRIGGER IF EXISTS tr_calculate_delivery_cost ON deliveries;
 CREATE TRIGGER tr_calculate_delivery_cost BEFORE INSERT OR UPDATE ON deliveries FOR EACH ROW EXECUTE FUNCTION calculate_delivery_cost();
-INSERT INTO system_settings (key, value)
-VALUES ('general', '{"payment":{"upi_id":"milkow@ybl","payee_name":"Milkow Distributor","currency_code":"INR"}}'::jsonb)
-ON CONFLICT DO NOTHING;
+INSERT INTO system_settings (key, franchise_id, value)
+VALUES ('general', '00000000-0000-0000-0000-000000000000', '{"payment":{"upi_id":"milkow@ybl","payee_name":"Milkow Distributor","currency_code":"INR"}}'::jsonb)
+ON CONFLICT (key, franchise_id) DO NOTHING;
 
-INSERT INTO system_settings (key, value)
+INSERT INTO system_settings (key, franchise_id, value)
 VALUES (
   'automation',
+  '00000000-0000-0000-0000-000000000000',
   '{"autoCloseEnabled": true, "morningCloseTime": "12:00", "eveningCloseTime": "22:00"}'::jsonb
 )
-ON CONFLICT (key) DO UPDATE 
+ON CONFLICT (key, franchise_id) DO UPDATE 
 SET value = system_settings.value || '{"autoCloseEnabled": true, "morningCloseTime": "12:00", "eveningCloseTime": "22:00"}'::jsonb;
 
-INSERT INTO system_settings (key, value)
-VALUES ('daily_prices', '{}'::jsonb)
-ON CONFLICT DO NOTHING;
+INSERT INTO system_settings (key, franchise_id, value)
+VALUES ('daily_prices', '00000000-0000-0000-0000-000000000000', '{}'::jsonb)
+ON CONFLICT (key, franchise_id) DO NOTHING;
+
+-- ─── SECURITY DEFINER FUNCTIONS ───────────
+-- Allows superadmin to create a new user and assign their franchise and role
+CREATE OR REPLACE FUNCTION superadmin_create_franchise_owner(
+  owner_email TEXT,
+  owner_password TEXT,
+  franchise_name TEXT
+)
+RETURNS UUID
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+  new_user_id UUID;
+  new_franchise_id UUID;
+BEGIN
+  -- Verify calling user is indeed a superadmin
+  IF NOT EXISTS (
+    SELECT 1 FROM public.user_roles 
+    WHERE user_id = auth.uid() AND role = 'superadmin'
+  ) THEN
+    -- If there are no user_roles at all in the system, allow the first registration
+    IF EXISTS (SELECT 1 FROM public.user_roles) THEN
+      RAISE EXCEPTION 'Access Denied: Only superadmins can create franchise owners.';
+    END IF;
+  END IF;
+
+  -- Create Franchise
+  INSERT INTO public.franchises (name)
+  VALUES (franchise_name)
+  RETURNING id INTO new_franchise_id;
+
+  -- Create Auth User
+  INSERT INTO auth.users (instance_id, id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, role, created_at, updated_at)
+  VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    gen_random_uuid(),
+    owner_email,
+    extensions.crypt(owner_password, extensions.gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{}'::jsonb,
+    false,
+    'authenticated',
+    now(),
+    now()
+  )
+  RETURNING id INTO new_user_id;
+
+  -- Create Auth Identity (REQUIRED for login to work!)
+  INSERT INTO auth.identities (id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+  VALUES (
+    gen_random_uuid(),
+    new_user_id::text,
+    new_user_id,
+    format('{"sub":"%s","email":"%s","email_verified":false,"phone_verified":false}', new_user_id, owner_email)::jsonb,
+    'email',
+    now(),
+    now(),
+    now()
+  );
+
+  -- Insert User Role mapping
+  INSERT INTO public.user_roles (user_id, role, franchise_id)
+  VALUES (new_user_id, 'franchise', new_franchise_id);
+
+  RETURN new_user_id;
+END;
+$$ LANGUAGE plpgsql;
+

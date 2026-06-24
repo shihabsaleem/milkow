@@ -14,7 +14,7 @@ export function useProfileLogic() {
     }
   }, [user, loading, router]);
 
-  const [adminName, setAdminName] = useState("Sayas R.");
+  const [adminName, setAdminName] = useState("Franchisee.");
   const [payeeName, setPayeeName] = useState("");
   const [upiId, setUpiId] = useState("");
   const [pin, setPin] = useState("");
@@ -39,17 +39,20 @@ export function useProfileLogic() {
     }
   }, [routeSuccess]);
 
+  const { franchiseId, impersonatedFranchiseId, role } = useAuth();
+  const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+
   const fetchSettings = useCallback(async (silent = false) => {
-    const { data } = await supabase.from('system_settings').select('*').eq('key', 'general').single();
+    const { data } = await supabase.from('system_settings').select('*').eq('franchise_id', activeFranchiseId).eq('key', 'general').maybeSingle();
     if (data) {
       const val = data.value as T.Settings;
-      setAdminName(val.system_user?.name || "Sayas R.");
+      setAdminName(val.system_user?.name || "Franchisee.");
       setPin(val.system_user?.pin || "");
       setPayeeName(val.payment?.payee_name || "");
       setUpiId(val.payment?.upi_id || "");
     }
 
-    const { data: autoData } = await supabase.from('system_settings').select('*').eq('key', 'automation').maybeSingle();
+    const { data: autoData } = await supabase.from('system_settings').select('*').eq('franchise_id', activeFranchiseId).eq('key', 'automation').maybeSingle();
     if (autoData && autoData.value) {
       const autoVal = autoData.value as T.AutomationSettings;
       setAutoCloseEnabled(autoVal.autoCloseEnabled ?? true);
@@ -57,15 +60,15 @@ export function useProfileLogic() {
       setEveningCloseTime(autoVal.eveningCloseTime ?? "23:59");
     }
 
-    const { data: areaData } = await supabase.from('areas').select('*').order('name', { ascending: true });
+    const { data: areaData } = await supabase.from('areas').select('*').eq('franchise_id', activeFranchiseId).order('name', { ascending: true });
     if (areaData) setAreas(areaData as T.Area[]);
-  }, []);
+  }, [activeFranchiseId]);
 
   useEffect(() => {
     fetchSettings();
     const sub = supabase.channel('profile_settings')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, () => fetchSettings(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => fetchSettings(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchSettings(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'areas', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchSettings(true))
       .subscribe();
     return () => { sub.unsubscribe(); };
   }, [fetchSettings]);
@@ -78,37 +81,39 @@ export function useProfileLogic() {
 
     try {
       const runAsync = async () => {
-         await supabase.from('system_settings').upsert({
-         key: 'general',
-         value: {
+        await supabase.from('system_settings').upsert({
+          key: 'general',
+          franchise_id: activeFranchiseId,
+          value: {
             payment: { payee_name: payeeName, upi_id: upiId, currency_code: "INR" },
             system_user: { name: adminName, pin: pinToSave }
-         }
-         });
+          }
+        });
 
-         if (pinToSave && pinToSave.length >= 6) {
-         const { error: authError } = await supabase.auth.updateUser({ password: pinToSave });
-         if (authError) throw authError;
-         }
+        if (pinToSave && pinToSave.length >= 6) {
+          const { error: authError } = await supabase.auth.updateUser({ password: pinToSave });
+          if (authError) throw authError;
+        }
 
-         const { data: autoData } = await supabase.from('system_settings').select('value').eq('key', 'automation').maybeSingle();
-         const existingAuto = (autoData?.value as T.AutomationSettings) || { lastRouteReset: '', lastBillGeneration: '' };
-         await supabase.from('system_settings').upsert({
-         key: 'automation',
-         value: {
+        const { data: autoData } = await supabase.from('system_settings').select('value').eq('franchise_id', activeFranchiseId).eq('key', 'automation').maybeSingle();
+        const existingAuto = (autoData?.value as T.AutomationSettings) || { lastRouteReset: '', lastBillGeneration: '' };
+        await supabase.from('system_settings').upsert({
+          key: 'automation',
+          franchise_id: activeFranchiseId,
+          value: {
             ...existingAuto,
             autoCloseEnabled,
             morningCloseTime,
             eveningCloseTime
-         }
-         });
-         fetchSettings(true);
+          }
+        });
+        fetchSettings(true);
       };
 
       runAsync().catch(e => {
-         const err = e as Error;
-         console.error("Failed to save settings:", err.message);
-         fetchSettings(true);
+        const err = e as Error;
+        console.error("Failed to save settings:", err.message);
+        fetchSettings(true);
       });
     } catch (e: unknown) {
       const err = e as Error;
@@ -123,7 +128,7 @@ export function useProfileLogic() {
 
     setIsAddingRoute(true);
     try {
-      const { data, error } = await supabase.from('areas').insert({ name }).select().single();
+      const { data, error } = await supabase.from('areas').insert({ name, franchise_id: activeFranchiseId }).select().single();
       if (error) throw error;
 
       if (data) {
@@ -144,16 +149,16 @@ export function useProfileLogic() {
   const removeRoute = async (id: number) => {
     // Optimistic UI Update
     setAreas(prev => prev.filter(a => a.id !== id));
-    
+
     try {
       const runAsync = async () => {
-         const { error } = await supabase.from('areas').delete().eq('id', id);
-         if (error) throw error;
-         fetchSettings(true);
+        const { error } = await supabase.from('areas').delete().eq('id', id);
+        if (error) throw error;
+        fetchSettings(true);
       };
       runAsync().catch((err) => {
-         console.error("Failed to remove route:", err.message);
-         fetchSettings(true); // revert
+        console.error("Failed to remove route:", err.message);
+        fetchSettings(true); // revert
       });
     } catch (e: unknown) {
       const err = e as Error;
@@ -165,7 +170,7 @@ export function useProfileLogic() {
   const editRoute = async (id: number, name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    
+
     // Optimistic UI Update
     setAreas(prev => prev.map(a => a.id === id ? { ...a, name: trimmed } : a).sort((a, b) => a.name.localeCompare(b.name)));
     setEditingRouteId(null);
@@ -173,13 +178,13 @@ export function useProfileLogic() {
 
     try {
       const runAsync = async () => {
-         const { error } = await supabase.from('areas').update({ name: trimmed }).eq('id', id);
-         if (error) throw error;
-         fetchSettings(true);
+        const { error } = await supabase.from('areas').update({ name: trimmed }).eq('id', id);
+        if (error) throw error;
+        fetchSettings(true);
       };
       runAsync().catch((err) => {
-         console.error("Failed to edit route:", err.message);
-         fetchSettings(true); // revert
+        console.error("Failed to edit route:", err.message);
+        fetchSettings(true); // revert
       });
     } catch (e: unknown) {
       const err = e as Error;

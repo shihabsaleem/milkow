@@ -1,22 +1,30 @@
 "use client";
-import { Home, Truck, Wallet2, Users, Package } from "lucide-react";
+import { Home, Truck, Wallet2, Users, Package, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, role, impersonatedFranchiseId } = useAuth();
   
 
   if (!user || pathname === "/login" || pathname === "/bill" || pathname === "/bill/") return null;
 
-  const navItems = [
-    { icon: Home, label: "Home", href: "/" },
-    { icon: Package, label: "Inventory", href: "/inventory" },
-    { icon: Users, label: "Customers", href: "/customers" },
-    { icon: Truck, label: "Delivery", href: "/delivery" },
-  ];
+  const navItems = [];
+
+  if (role === 'franchise' || (role === 'superadmin' && impersonatedFranchiseId)) {
+    navItems.push(
+      { icon: Home, label: "Home", href: "/" },
+      { icon: Package, label: "Inventory", href: "/inventory" },
+      { icon: Users, label: "Customers", href: "/customers" },
+      { icon: Truck, label: "Delivery", href: "/delivery" }
+    );
+  }
+
+  if (role === 'superadmin') {
+    navItems.push({ icon: ShieldCheck, label: "Superadmin", href: "/superadmin" });
+  }
 
   return (
     <nav

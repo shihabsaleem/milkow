@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 const PUBLIC_ROUTES = ["/login", "/bill"];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, role, impersonatedFranchiseId } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -17,8 +17,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading && !user && !isPublicRoute) {
       router.replace("/login");
+    } else if (!loading && user && role === 'superadmin' && !impersonatedFranchiseId) {
+      if (!pathname.startsWith('/superadmin') && !isPublicRoute) {
+        router.replace("/superadmin");
+      }
     }
-  }, [user, loading, isPublicRoute, router]);
+  }, [user, loading, role, impersonatedFranchiseId, pathname, isPublicRoute, router]);
 
   // Public routes always render
   if (isPublicRoute) return <>{children}</>;

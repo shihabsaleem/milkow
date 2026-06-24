@@ -87,12 +87,15 @@ export function useInventoryLogic() {
     setIsModalOpen(true);
   };
 
+  const { franchiseId, impersonatedFranchiseId, role } = useAuth();
+  const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     const [{ data: prods }, { data: pipes }, { data: settings }] = await Promise.all([
-      supabase.from('products').select('*'),
-      supabase.from('inventory').select('*').not('product_id', 'is', null),
-      supabase.from('system_settings').select('value').eq('key', 'daily_prices').single()
+      supabase.from('products').select('*').eq('franchise_id', activeFranchiseId),
+      supabase.from('inventory').select('*').eq('franchise_id', activeFranchiseId).not('product_id', 'is', null),
+      supabase.from('system_settings').select('value').eq('franchise_id', activeFranchiseId).eq('key', 'daily_prices').maybeSingle()
     ]);
     if (prods) setProducts(prods as T.Product[]);
     if (pipes) {
@@ -110,20 +113,20 @@ export function useInventoryLogic() {
     }
 
     if (!silent) setIsLoading(false);
-  }, []);
+  }, [activeFranchiseId]);
 
   useEffect(() => {
     fetchData();
 
     const sub = supabase.channel('inv_page')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, () => fetchData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
       .subscribe();
 
     return () => { sub.unsubscribe(); };
   }, [fetchData]);
 
-   const handleSaveProduct = async (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!newProduct.name || !newProduct.price || isSubmitting) return;
       
@@ -133,7 +136,8 @@ export function useInventoryLogic() {
          size: newProduct.size,
          stock: parseInt(newProduct.stock.toString() || "0"),
          price: Number(newProduct.price) || 0,
-         unit: newProduct.unit
+         unit: newProduct.unit,
+         franchise_id: activeFranchiseId
       };
 
       const isEdit = editingIndex !== null && products[editingIndex].id;

@@ -1,11 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import config from "@/config.json";
 import QRCode from "qrcode";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import * as T from "@/types/database";
 import { recordPayment, settleAllDues } from "@/lib/financials";
 
 export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
+   const { franchiseId, impersonatedFranchiseId, role } = useAuth();
+   const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+
    const [bills, setBills] = useState<(T.Bill & { customer: T.Customer })[]>([]);
    const [products, setProducts] = useState<T.Product[]>([]);
    const [routesList, setRoutesList] = useState<T.Area[]>([]);
@@ -31,7 +35,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
 
    const isSubmitting = useRef(false);
 
-   const fetchData = async (silent = false) => {
+   const fetchData = useCallback(async (silent = false) => {
       if (!silent) setIsLoading(true);
       const [
          { data: routeSets },
@@ -41,12 +45,12 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          { data: settingsData },
          { data: customersData }
       ] = await Promise.all([
-         supabase.from('areas').select('*').order('name', { ascending: true }),
-         supabase.from('customer_financials').select('*'),
-         supabase.from('products').select('*'),
-         supabase.from('deliveries').select('*, customers(*)').eq('delivered', true).eq('billed', false),
-         supabase.from('system_settings').select('value').eq('key', 'general').single(),
-         supabase.from('customers').select('id, phone')
+         supabase.from('areas').select('*').eq('franchise_id', activeFranchiseId).order('name', { ascending: true }),
+         supabase.from('customer_financials').select('*').eq('franchise_id', activeFranchiseId),
+         supabase.from('products').select('*').eq('franchise_id', activeFranchiseId),
+         supabase.from('deliveries').select('*, customers(*)').eq('franchise_id', activeFranchiseId).eq('delivered', true).eq('billed', false),
+         supabase.from('system_settings').select('value').eq('franchise_id', activeFranchiseId).eq('key', 'general').maybeSingle(),
+         supabase.from('customers').select('id, phone').eq('franchise_id', activeFranchiseId)
       ]);
 
       if (routeSets) setRoutesList(routeSets as T.Area[]);
@@ -86,20 +90,20 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          if (general?.payment) setPaymentSettings(general.payment);
       }
       if (!silent) setIsLoading(false);
-   };
+   }, [activeFranchiseId]);
 
    useEffect(() => {
       fetchData();
 
       const sub = supabase.channel('bills_page')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => fetchData(true))
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => fetchData(true))
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => fetchData(true))
-         .on('postgres_changes', { event: '*', table: 'payments' }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'bills', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+         .on('postgres_changes', { event: '*', table: 'payments', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
          .subscribe();
 
       return () => { sub.unsubscribe(); };
-   }, []);
+   }, [activeFranchiseId, fetchData]);
 
    const runMarkAsPaid = async (id: string, setSelectedInvoice: (val: null) => void) => {
       if (isSubmitting.current) return;

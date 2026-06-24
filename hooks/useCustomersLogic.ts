@@ -55,6 +55,9 @@ export function useCustomersLogic() {
     type: 'info'
   });
 
+  const { franchiseId, impersonatedFranchiseId, role } = useAuth();
+  const activeFranchiseId = role === 'superadmin' ? (impersonatedFranchiseId || '00000000-0000-0000-0000-000000000000') : (franchiseId || '00000000-0000-0000-0000-000000000000');
+
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     const [
@@ -63,10 +66,10 @@ export function useCustomersLogic() {
       { data: productList },
       { data: financialData }
     ] = await Promise.all([
-      supabase.from('customers').select('*, area:areas(*)').order('name', { ascending: true }),
-      supabase.from('areas').select('*').order('name', { ascending: true }),
-      supabase.from('products').select('*').order('name', { ascending: true }),
-      supabase.from('customer_financials').select('*')
+      supabase.from('customers').select('*, area:areas(*)').eq('franchise_id', activeFranchiseId).order('name', { ascending: true }),
+      supabase.from('areas').select('*').eq('franchise_id', activeFranchiseId).order('name', { ascending: true }),
+      supabase.from('products').select('*').eq('franchise_id', activeFranchiseId).order('name', { ascending: true }),
+      supabase.from('customer_financials').select('*').eq('franchise_id', activeFranchiseId)
     ]);
 
     if (custs) {
@@ -79,16 +82,16 @@ export function useCustomersLogic() {
     if (areaList) setAreas(areaList as T.Area[]);
     if (productList) setProducts(productList as T.Product[]);
     if (!silent) setIsLoading(false);
-  }, []);
+  }, [activeFranchiseId]);
 
   useEffect(() => {
     fetchData();
 
     const sub = supabase.channel('cust_list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => fetchData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => fetchData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => fetchData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => fetchData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'areas', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bills', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))
       .subscribe();
 
     return () => { sub.unsubscribe(); };
@@ -133,6 +136,7 @@ export function useCustomersLogic() {
         const { data: lastCustomer } = await supabase
           .from('customers')
           .select('delivery_order')
+          .eq('franchise_id', activeFranchiseId)
           .eq('area_id', parseInt(customerToSave.area_id))
           .order('delivery_order', { ascending: false })
           .limit(1)
@@ -144,6 +148,7 @@ export function useCustomersLogic() {
           name: customerToSave.name,
           phone: customerToSave.phone,
           area_id: parseInt(customerToSave.area_id),
+          franchise_id: activeFranchiseId,
           frequency: customerToSave.frequency,
           status: 'Active',
           default_qty: parseInt(customerToSave.default_qty) || 1,

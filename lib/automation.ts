@@ -116,6 +116,7 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
 // ─────────────────────────────────────────────
 
 export async function deductInventoryOnDelivery(
+  franchiseId: string,
   stopId: string,
   productId: string | null,
   milkQty: number,
@@ -153,7 +154,7 @@ export async function deductInventoryOnDelivery(
     // 3. Deduct Extras from products
     for (const [name, qtyUsed] of Object.entries(miscProducts)) {
       if (qtyUsed > 0) {
-        const { data: prodData } = await supabase.from('products').select('*').eq('name', name).single();
+        const { data: prodData } = await supabase.from('products').select('*').eq('name', name).eq('franchise_id', franchiseId).single();
         const prod = prodData as T.Product | null;
         if (prod) {
           await supabase
@@ -179,6 +180,7 @@ export async function deductInventoryOnDelivery(
 // ─────────────────────────────────────────────
 
 export async function restoreInventoryOnUndelivery(
+  franchiseId: string,
   stopId: string,
   productId: string | null,
   milkQty: number,
@@ -216,7 +218,7 @@ export async function restoreInventoryOnUndelivery(
     // 3. Restore Extras to products
     for (const [name, qtyUsed] of Object.entries(miscProducts)) {
       if (qtyUsed > 0) {
-        const { data: prodData } = await supabase.from('products').select('*').eq('name', name).single();
+        const { data: prodData } = await supabase.from('products').select('*').eq('name', name).eq('franchise_id', franchiseId).single();
         const prod = prodData as T.Product | null;
         if (prod) {
           await supabase
@@ -456,13 +458,14 @@ export async function checkAndRunAutomations(franchiseId: string): Promise<void>
 // ─────────────────────────────────────────────
 
 export async function syncBatchDeliveries(
+  franchiseId: string,
   changedDeliveries: any[],
   initialDeliveries: any[]
 ): Promise<void> {
   if (changedDeliveries.length === 0) return;
 
   // 1. Fetch all products to get stock levels and name maps
-  const { data: productsData } = await supabase.from('products').select('*');
+  const { data: productsData } = await supabase.from('products').select('*').eq('franchise_id', franchiseId);
   const products = (productsData || []) as T.Product[];
   const productByName = new Map(products.map(p => [p.name, p]));
   const productById = new Map(products.map(p => [p.id, p]));

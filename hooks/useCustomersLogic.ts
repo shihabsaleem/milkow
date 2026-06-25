@@ -101,6 +101,14 @@ export function useCustomersLogic() {
     localStorage.setItem('milkow_selected_route', selectedAreaId);
   }, [selectedAreaId]);
 
+  // Reset invalid selected area from localStorage if it doesn't belong to this franchise
+  useEffect(() => {
+    if (areas.length > 0 && selectedAreaId !== "") {
+      const isValid = areas.some(a => a.id.toString() === selectedAreaId);
+      if (!isValid) setSelectedAreaId("");
+    }
+  }, [areas, selectedAreaId]);
+
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;

@@ -140,7 +140,7 @@ export default function SuperadminDashboard() {
                 onClick={handleClearImpersonation}
                 className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center gap-2 transition-all active:scale-[0.98]"
               >
-                Clear Impersonation
+                Exit Dashboard View
               </button>
             )}
             <button
@@ -305,7 +305,7 @@ export default function SuperadminDashboard() {
                         }`}
                     >
                       <LogIn size={13} />
-                      {impersonatedFranchiseId === franchise.id ? "Enter Dashboard" : "Impersonate"}
+                      {impersonatedFranchiseId === franchise.id ? "Enter Dashboard" : "Dashboard"}
                     </button>
                   </div>
                 ))}

@@ -167,7 +167,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setImpersonatedFranchiseId: handleSetImpersonatedFranchiseId, 
       logout 
     }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

@@ -110,11 +110,74 @@ RETURNS UUID SECURITY DEFINER AS $$
   SELECT franchise_id FROM user_roles WHERE user_id = usr_id;
 $$ LANGUAGE sql;
 
--- 7. Apply Policies
+-- 7. Auto-heal: Ensure all products have an inventory pipeline record
+INSERT INTO inventory (product_id, name, vol, count, loaded, unit, franchise_id)
+SELECT id, name, size, stock, stock, COALESCE(unit, 'Bottles'), franchise_id
+FROM products
+WHERE id NOT IN (SELECT product_id FROM inventory WHERE product_id IS NOT NULL);
+
+-- 8. Apply Policies
 DROP POLICY IF EXISTS "Policy read franchises" ON franchises;
 DROP POLICY IF EXISTS "Policy write franchises" ON franchises;
 DROP POLICY IF EXISTS "Policy read user_roles" ON user_roles;
 DROP POLICY IF EXISTS "Policy write user_roles" ON user_roles;
+-- 9. Update Public Billing RPC for Multi-Tenancy
+CREATE OR REPLACE FUNCTION get_full_customer_ledger_by_phone(phone_input text)
+RETURNS jsonb
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  target_customer record;
+  target_financials record;
+  general_settings jsonb;
+  bills_data jsonb;
+  deliveries_data jsonb;
+  unbilled_data jsonb;
+  payments_data jsonb;
+  products_data jsonb;
+  result jsonb;
+BEGIN
+  -- 1. Find Customer
+  SELECT c.*, a.name as area_name INTO target_customer
+  FROM customers c
+  LEFT JOIN areas a ON a.id = c.area_id
+  WHERE c.phone = phone_input OR (length(phone_input) >= 10 AND c.phone LIKE '%' || right(phone_input, 10))
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  -- 2. Find Financials
+  SELECT * INTO target_financials FROM customer_financials WHERE id = target_customer.id;
+
+  -- 3. Find Settings (Restricted to franchise)
+  SELECT value INTO general_settings FROM system_settings WHERE key = 'general' AND franchise_id = target_customer.franchise_id;
+
+  -- 4. Get Data
+  SELECT jsonb_agg(row_to_json(b)) INTO bills_data FROM bills b WHERE customer_id = target_customer.id;
+  SELECT jsonb_agg(row_to_json(d)) INTO deliveries_data FROM deliveries d WHERE customer_id = target_customer.id AND delivery_date >= date_trunc('month', CURRENT_DATE);
+  SELECT jsonb_agg(row_to_json(u)) INTO unbilled_data FROM deliveries u WHERE customer_id = target_customer.id AND delivered = true AND billed = false;
+  SELECT jsonb_agg(row_to_json(p)) INTO payments_data FROM payments p WHERE customer_id = target_customer.id;
+  SELECT jsonb_agg(row_to_json(pr)) INTO products_data FROM products pr WHERE franchise_id = target_customer.franchise_id;
+
+  -- Assemble Response
+  result := jsonb_build_object(
+    'customer', row_to_json(target_customer),
+    'financials', row_to_json(target_financials),
+    'settings', general_settings,
+    'bills', COALESCE(bills_data, '[]'::jsonb),
+    'deliveries', COALESCE(deliveries_data, '[]'::jsonb),
+    'unbilled', COALESCE(unbilled_data, '[]'::jsonb),
+    'payments', COALESCE(payments_data, '[]'::jsonb),
+    'products', COALESCE(products_data, '[]'::jsonb)
+  );
+
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
 DROP POLICY IF EXISTS "Admin access areas" ON areas;
 DROP POLICY IF EXISTS "Admin access products" ON products;
 DROP POLICY IF EXISTS "Admin access customers" ON customers;

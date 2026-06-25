@@ -98,7 +98,7 @@ export function useDeliveryLogic() {
          }
          setServerDeliveries(dbDeliveries);
 
-         const cacheKey = `milkow_staged_changes_${today}_${shift === 'morning' ? 'Morning Only' : 'Evening Only'}`;
+         const cacheKey = `milkow_staged_changes_${activeFranchiseId}_${today}_${shift === 'morning' ? 'Morning Only' : 'Evening Only'}`;
          const cached = localStorage.getItem(cacheKey);
          if (cached) {
             try {
@@ -138,7 +138,7 @@ export function useDeliveryLogic() {
    const saveStagedChange = (id: string, update: Partial<T.Delivery>) => {
       const today = new Date().toLocaleDateString('en-CA');
       const currentShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
-      const cacheKey = `milkow_staged_changes_${today}_${currentShift}`;
+      const cacheKey = `milkow_staged_changes_${activeFranchiseId}_${today}_${currentShift}`;
 
       const cached = localStorage.getItem(cacheKey);
       let stagedUpdates: Record<string, Partial<T.Delivery>> = {};
@@ -377,7 +377,7 @@ export function useDeliveryLogic() {
       
       const today = new Date().toLocaleDateString('en-CA');
       const currentShift = shift === 'morning' ? 'Morning Only' : 'Evening Only';
-      const cacheKey = `milkow_staged_changes_${today}_${currentShift}`;
+      const cacheKey = `milkow_staged_changes_${activeFranchiseId}_${today}_${currentShift}`;
       
       // Optimistic UI updates
       setServerDeliveries([...deliveries]); // Update server deliveries locally to match current view
@@ -393,7 +393,7 @@ export function useDeliveryLogic() {
 
       try {
          const runAsync = async () => {
-            await syncBatchDeliveries(changedDeliveries, serverDeliveries);
+            await syncBatchDeliveries(activeFranchiseId, changedDeliveries, serverDeliveries);
             fetchData(true);
          };
 

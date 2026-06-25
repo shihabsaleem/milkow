@@ -23,6 +23,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Check, MapPin, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import CustomSelect from "@/components/ui/CustomSelect";
 import * as T from "@/types/database";
 
@@ -101,6 +102,9 @@ export default function RouteOrderPage() {
   const [savedOk, setSavedOk] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const { franchiseId, impersonatedFranchiseId, role } = useAuth();
+  const activeFranchiseId = role === 'superadmin' ? ((impersonatedFranchiseId || franchiseId || '00000000-0000-0000-0000-000000000000')) : (franchiseId || '00000000-0000-0000-0000-000000000000');
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
@@ -110,8 +114,8 @@ export default function RouteOrderPage() {
     async function fetchData() {
       setIsLoading(true);
       const [{ data: areaData }, { data: custData }] = await Promise.all([
-        supabase.from("areas").select("*").order("name"),
-        supabase.from("customers").select("*, area:areas(*)").eq("status", "Active"),
+        supabase.from("areas").select("*").eq("franchise_id", activeFranchiseId).order("name"),
+        supabase.from("customers").select("*, area:areas(*)").eq("franchise_id", activeFranchiseId).eq("status", "Active"),
       ]);
       if (areaData) {
         setAreas(areaData as T.Area[]);
@@ -121,7 +125,7 @@ export default function RouteOrderPage() {
       setIsLoading(false);
     }
     fetchData();
-  }, []);
+  }, [activeFranchiseId]);
 
   useEffect(() => {
     const filtered = customers

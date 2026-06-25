@@ -102,13 +102,10 @@ export default function DeliveryPage() {
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex flex-col gap-3">
                <div className="flex items-center justify-between">
                   <div className="relative">
-                     <div className="flex items-center justify-between ">
-                        <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-1.5 group">
-                           <h1 className="text-xl font-black text-zinc-900">{routesList.find(r => r.id === selectedRoute)?.name || 'All Deliveries'}</h1>
-                           <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
-                        </button>
-                        <span className="text-xs font-bold text-primary tracking-wider mt-0.5">{remainingStops} Stops Remaining</span>
-                     </div>
+                     <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-1.5 group">
+                        <h1 className="text-xl font-black text-zinc-900">{routesList.find(r => r.id === selectedRoute)?.name || 'All Deliveries'}</h1>
+                        <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
+                     </button>
 
                      <AnimatePresence>
                         {isRouteMenuOpen && (
@@ -147,6 +144,7 @@ export default function DeliveryPage() {
                         )}
                      </AnimatePresence>
                   </div>
+                  <span className="text-xs font-bold text-primary tracking-wider mt-0.5 uppercase">{remainingStops} Stops Remaining</span>
                </div>
 
                <div className="flex items-center gap-2">
@@ -255,7 +253,7 @@ export default function DeliveryPage() {
                   const isExpanded = expandedStopId === delivery.id;
                   const activeItems = delivery.misc_items || [];
                   return (
-                     <motion.div key={delivery.id} layout className={` rounded-xl transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-primary/20 shadow-sm'}`}>
+                     <motion.div key={delivery.id} layout className={` rounded-xl transition-all ${delivery.delivered ? 'bg-zinc-50 border-zinc-200 opacity-70 shadow' : 'bg-white border-primary/20 shadow-sm'}`}>
                         <div className="p-4">
 
                            <div className="flex flex-row items-start justify-between gap-4">

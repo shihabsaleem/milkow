@@ -10,7 +10,7 @@ Milkow is a smart dairy operations management system designed to automate the da
 - **Architecture Pattern**: UI components cleanly separated from business logic via Custom Hooks (`hooks/` directory). All data mutations utilize Optimistic UI updates to provide immediate feedback and handle network latency gracefully.
 - **Styling**: Tailwind CSS 4, Framer Motion (Animations)
 - **Backend/Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
+- **Authentication**: Supabase Auth with custom `user_roles` and `franchises` tables for Multi-tenant Role-Based Access Control (RBAC).
 - **Icons**: Lucide React
 - **PWA**: @ducanh2912/next-pwa (Progressive Web App support)
 
@@ -41,6 +41,8 @@ npm run dev
 The system uses a relational PostgreSQL schema leveraging Row Level Security (RLS) and triggers. Setup logic is split across `supabase/01_schema.sql`, `02_triggers.sql`, and `03_dummy_data.sql`.
 
 ### Core Tables
+- `franchises`: The root multi-tenant entity. Every data row in the system is tied to a `franchise_id`.
+- `user_roles`: Links a Supabase Auth User UUID to a specific role (`superadmin` or `franchise`) and their corresponding `franchise_id`.
 - `customers`: Primary customer records tracking default products, subscription frequencies, and route ordering.
 - `products`: Product master list with pricing, dynamic sizing (`vol`), and current physical stock.
 - `deliveries`: Tracks daily delivery stops. Stores extra/spot products as JSONB in `misc_items` instead of a separate normalized table.
@@ -78,6 +80,9 @@ Track stock levels in real-time. Features "Auto-Deduction" where marking a deliv
 ### 👤 System Settings (`/profile` & `useProfileLogic.ts`)
 Configure business details (UPI ID, Payee Name) and security. Changing the PIN here automatically updates the user's Supabase Auth login password.
 
+### 🛡️ Superadmin Dashboard (`/superadmin` & `app/api/franchise/route.ts`)
+Exclusive to users with the `superadmin` role. Allows the superadmin to view a master list of all franchises, instantly "Impersonate" them to view their dashboard seamlessly, and securely provision new franchise owners using the secure Next.js backend API Route (`/api/franchise`) which utilizes the Supabase Service Role Key.
+
 ### 🧾 Public Billing Portal (`/bill` & `usePublicBillLogic.ts`)
 A secure, minimalist, light-themed public-facing portal allowing customers to check their outstanding bills and payment QR code simply by entering their registered phone number. Requires no user login.
 
@@ -113,9 +118,10 @@ The background tasks and automated data manipulations are handled centrally in `
 
 ---
 
-## 8. Security & RLS
+## 8. Security, RBAC & RLS
 - **Authentication**: Secured via Supabase Auth. Extracted into `useLoginLogic.ts`.
-- **RLS (Row Level Security)**: All tables are protected. Only authenticated users can view or modify data.
+- **Multi-Tenant RBAC**: The system operates on a strict multi-tenant architecture. Every query automatically filters by `activeFranchiseId`. If the logged-in user is a `superadmin`, they can switch their active context using an `impersonatedFranchiseId`.
+- **RLS (Row Level Security)**: All tables are strongly protected by RLS policies that enforce `franchise_id` matching, preventing data leakage between franchises.
 - **PIN Security**: The administrative PIN is synced with the Supabase account password for unified security.
 - **Public Data Access**: The `/bill` portal uses a `SECURITY DEFINER` Postgres RPC function (`get_customer_bill_by_phone`) to securely fetch specific customer financial data and payment settings for unauthenticated users, completely avoiding the need for exposed service role keys.
 

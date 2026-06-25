@@ -89,7 +89,7 @@ export function useCustomersLogic() {
     }
     if (areaList) setAreas(areaList as T.Area[]);
     if (productList) setProducts(productList as T.Product[]);
-    if (!silent) setIsLoading(false);
+    setIsLoading(false);
   }, [activeFranchiseId]);
 
   useEffect(() => {

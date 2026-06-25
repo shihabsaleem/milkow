@@ -145,7 +145,7 @@ export function useDashboardLogic() {
     };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
 
-    if (!silent) setIsLoading(false);
+    setIsLoading(false);
   }, [date, shift, activeFranchiseId]);
 
   useEffect(() => {
@@ -169,12 +169,12 @@ export function useDashboardLogic() {
 
     fetchDashboardData(!!cached);
 
-    const invSub = supabase.channel('inv').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
-    const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
-    const billsSub = supabase.channel('bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
-    const custSub = supabase.channel('cust').on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
-    const setSub = supabase.channel('sets').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
-    const paySub = supabase.channel('payments').on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `franchise_id=eq.${activeFranchiseId}` }, fetchDashboardData).subscribe();
+    const invSub = supabase.channel('inv').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchDashboardData(true)).subscribe();
+    const routeSub = supabase.channel('route').on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchDashboardData(true)).subscribe();
+    const billsSub = supabase.channel('bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchDashboardData(true)).subscribe();
+    const custSub = supabase.channel('cust').on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchDashboardData(true)).subscribe();
+    const setSub = supabase.channel('sets').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchDashboardData(true)).subscribe();
+    const paySub = supabase.channel('payments').on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchDashboardData(true)).subscribe();
 
     return () => {
       invSub.unsubscribe();

@@ -123,7 +123,7 @@ export function useInventoryLogic() {
       setClosedShifts(closed);
     }
 
-    if (!silent) setIsLoading(false);
+    setIsLoading(false);
   }, [activeFranchiseId]);
 
   useEffect(() => {

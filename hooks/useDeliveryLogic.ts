@@ -129,7 +129,7 @@ export function useDeliveryLogic() {
          };
          localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
       }
-      if (!isSilent) setIsLoading(false);
+      setIsLoading(false);
    }, [activeFranchiseId, shift]);
 
    useEffect(() => {

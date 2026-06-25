@@ -100,7 +100,7 @@ export function useCustomerLogic(
             default_qty: custData.default_qty?.toString() || "1"
          });
       }
-      if (!silent) setIsLoading(false);
+      setIsLoading(false);
    }, [customerIdParam, viewDate, activeFranchiseId]);
 
    useEffect(() => {

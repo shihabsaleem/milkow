@@ -89,7 +89,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          const general = settingsData.value as { payment?: T.PaymentSetup };
          if (general?.payment) setPaymentSettings(general.payment);
       }
-      if (!silent) setIsLoading(false);
+      setIsLoading(false);
    }, [activeFranchiseId]);
 
    useEffect(() => {

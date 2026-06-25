@@ -230,8 +230,8 @@ export default function BillingPage() {
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full bg-white rounded-t-3xl pt-6 pb-12 px-6 flex flex-col items-center text-center relative max-w-sm">
                      <button onClick={() => setSelectedInvoice(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-500"><X size={20} /></button>
                      <div className="mb-4 mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Payment Request</p><h2 className="text-3xl font-black text-zinc-900">₹{Number(selectedInvoice.amount).toFixed(2)}</h2></div>
-                     <div ref={qrRef} className="bg-linear-to-br from-primary to-primary-dim p-6 rounded-[2.5rem] shadow-2xl my-4 relative overflow-hidden">
-                        <div className="bg-white p-4 rounded-4xl shadow-inner relative z-10">
+                     <div ref={qrRef} className="bg-gray-200 p-6 rounded-4xl shadow-2xl my-4 relative overflow-hidden">
+                        <div className="bg-white p-4 rounded-2xl shadow-inner relative z-10">
                            <QRCodeCanvas
                               value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${selectedInvoice.amount}&cu=${paymentSettings.currency_code}&aid=${config.aid}`}
                               size={200}

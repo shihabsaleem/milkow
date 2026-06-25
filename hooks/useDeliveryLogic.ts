@@ -98,32 +98,58 @@ export function useDeliveryLogic() {
          }
          setServerDeliveries(dbDeliveries);
 
-         const cacheKey = `milkow_staged_changes_${activeFranchiseId}_${today}_${shift === 'morning' ? 'Morning Only' : 'Evening Only'}`;
-         const cached = localStorage.getItem(cacheKey);
-         if (cached) {
+         const stagedCacheKey = `milkow_staged_changes_${activeFranchiseId}_${today}_${shift === 'morning' ? 'Morning Only' : 'Evening Only'}`;
+         const cachedStaged = localStorage.getItem(stagedCacheKey);
+         let finalDeliveries = dbDeliveries;
+         
+         if (cachedStaged) {
             try {
-               const stagedUpdates = JSON.parse(cached) as Record<string, Partial<T.Delivery>>;
-               const merged = dbDeliveries.map(d => {
+               const stagedUpdates = JSON.parse(cachedStaged) as Record<string, Partial<T.Delivery>>;
+               finalDeliveries = dbDeliveries.map(d => {
                   const update = stagedUpdates[d.id];
                   if (update) {
                      return { ...d, ...update } as DeliveryWithCustomer;
                   }
                   return d;
                });
-               setDeliveries(merged);
             } catch (e) {
                console.error("Failed to parse cached staged changes:", e);
-               setDeliveries(dbDeliveries);
             }
-         } else {
-            setDeliveries(dbDeliveries);
          }
+         
+         setDeliveries(finalDeliveries);
+         
+         // Cache full page state for instant render on navigation
+         const pageCacheKey = `milkow_delivery_page_${activeFranchiseId}_${today}_${shift === 'morning' ? 'Morning Only' : 'Evening Only'}`;
+         const pageCacheData = {
+            routesList: routeSets,
+            products: prodData,
+            deliveries: finalDeliveries,
+            isShiftClosed: settingsData ? (shift === 'morning' ? ((settingsData as any).value?.lastMorningClose === today) : ((settingsData as any).value?.lastEveningClose === today)) : false
+         };
+         localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
       }
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
    }, [activeFranchiseId, shift]);
 
    useEffect(() => {
-      fetchData();
+      // Attempt to load full page state from cache first for instant render
+      const today = new Date().toLocaleDateString('en-CA');
+      const pageCacheKey = `milkow_delivery_page_${activeFranchiseId}_${today}_${shift === 'morning' ? 'Morning Only' : 'Evening Only'}`;
+      const cachedPage = localStorage.getItem(pageCacheKey);
+      
+      if (cachedPage) {
+         try {
+            const parsed = JSON.parse(cachedPage);
+            if (parsed.routesList) setRoutesList(parsed.routesList);
+            if (parsed.products) setProducts(parsed.products);
+            if (parsed.deliveries) setDeliveries(parsed.deliveries);
+            if (parsed.isShiftClosed !== undefined) setIsShiftClosed(parsed.isShiftClosed);
+            setIsLoading(false);
+         } catch (e) {}
+      }
+
+      fetchData(!!cachedPage);
 
       const sub = supabase.channel('route_page')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))

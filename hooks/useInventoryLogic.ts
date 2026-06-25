@@ -98,6 +98,17 @@ export function useInventoryLogic() {
       supabase.from('system_settings').select('value').eq('franchise_id', activeFranchiseId).eq('key', 'daily_prices').maybeSingle()
     ]);
     if (prods) setProducts(prods as T.Product[]);
+    
+    if (prods) {
+      setProducts(prods as T.Product[]);
+      
+      const pageCacheKey = `milkow_inventory_page_${activeFranchiseId}`;
+      const pageCacheData = {
+         products: prods || []
+      };
+      localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
+    }
+
     if (pipes) {
       setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count === 0 ? "" : p.count, unit: p.unit, id: p.id, productId: p.product_id, loaded: p.loaded || 0 })));
     }
@@ -116,7 +127,19 @@ export function useInventoryLogic() {
   }, [activeFranchiseId]);
 
   useEffect(() => {
-    fetchData();
+    // Attempt to load full page state from cache first for instant render
+    const pageCacheKey = `milkow_inventory_page_${activeFranchiseId}`;
+    const cachedPage = localStorage.getItem(pageCacheKey);
+    
+    if (cachedPage) {
+       try {
+          const parsed = JSON.parse(cachedPage);
+          if (parsed.products) setProducts(parsed.products);
+          setIsLoading(false);
+       } catch (e) {}
+    }
+
+    fetchData(!!cachedPage);
 
     const sub = supabase.channel('inv_page')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))

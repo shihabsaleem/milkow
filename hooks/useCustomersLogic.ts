@@ -78,6 +78,14 @@ export function useCustomersLogic() {
         financials: (financialData as T.CustomerFinancials[] || []).find(f => f.id === c.id)
       }));
       setCustomers(merged);
+      
+      const pageCacheKey = `milkow_customers_page_${activeFranchiseId}`;
+      const pageCacheData = {
+         customers: merged,
+         areas: areaList || [],
+         products: productList || []
+      };
+      localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
     }
     if (areaList) setAreas(areaList as T.Area[]);
     if (productList) setProducts(productList as T.Product[]);
@@ -85,7 +93,21 @@ export function useCustomersLogic() {
   }, [activeFranchiseId]);
 
   useEffect(() => {
-    fetchData();
+    // Attempt to load full page state from cache first for instant render
+    const pageCacheKey = `milkow_customers_page_${activeFranchiseId}`;
+    const cachedPage = localStorage.getItem(pageCacheKey);
+    
+    if (cachedPage) {
+       try {
+          const parsed = JSON.parse(cachedPage);
+          if (parsed.customers) setCustomers(parsed.customers);
+          if (parsed.areas) setAreas(parsed.areas);
+          if (parsed.products) setProducts(parsed.products);
+          setIsLoading(false);
+       } catch (e) {}
+    }
+
+    fetchData(!!cachedPage);
 
     const sub = supabase.channel('cust_list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))

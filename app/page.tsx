@@ -65,13 +65,25 @@ export default function Dashboard() {
       <div className="sticky top-0 z-40 border-b bg-slate-50/90 border-black/5 backdrop-blur-md">
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-white shadow-sm shrink-0 relative bg-primary flex items-center justify-center">
-              <span className="text-white text-lg font-black">{adminName.charAt(0)}</span>
-            </div>
-            <div className="flex flex-col leading-tight">
-              <p className="text-[12px] font-medium text-zinc-400">{shift === "morning" ? "Good Morning," : "Good Evening,"}</p>
-              <p className="text-[17px] font-extrabold text-primary">{adminName}</p>
-            </div>
+            {isLoading ? (
+              <>
+                <div className="h-10 w-10 rounded-xl bg-zinc-200 animate-pulse shrink-0" />
+                <div className="flex flex-col gap-1.5 w-32">
+                  <div className="h-3 bg-zinc-200 rounded-md w-2/3 animate-pulse" />
+                  <div className="h-4 bg-zinc-200 rounded-md w-full animate-pulse" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-white shadow-sm shrink-0 relative bg-primary flex items-center justify-center">
+                  <span className="text-white text-lg font-black">{adminName.charAt(0)}</span>
+                </div>
+                <div className="flex flex-col leading-tight">
+                  <p className="text-[12px] font-medium text-zinc-400">{shift === "morning" ? "Good Morning," : "Good Evening,"}</p>
+                  <p className="text-[17px] font-extrabold text-primary">{adminName}</p>
+                </div>
+              </>
+            )}
           </div>
           <div className="relative">
             <button onClick={() => setMenuOpen(!menuOpen)} className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 active:scale-95">

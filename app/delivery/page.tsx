@@ -102,11 +102,13 @@ export default function DeliveryPage() {
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex flex-col gap-3">
                <div className="flex items-center justify-between">
                   <div className="relative">
-                     <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-2 group">
-                        <h1 className="text-xl font-black text-zinc-900">{routesList.find(r => r.id === selectedRoute)?.name || 'All Deliveries'}</h1>
-                        <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
-                     </button>
-                     <p className="text-xs font-bold text-primary tracking-wider uppercase mt-0.5">{remainingStops} Stops Remaining</p>
+                     <div className="flex items-center justify-between ">
+                        <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-1.5 group">
+                           <h1 className="text-xl font-black text-zinc-900">{routesList.find(r => r.id === selectedRoute)?.name || 'All Deliveries'}</h1>
+                           <ChevronDown size={18} className={`text-zinc-400 transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        <span className="text-xs font-bold text-primary tracking-wider mt-0.5">{remainingStops} Stops Remaining</span>
+                     </div>
 
                      <AnimatePresence>
                         {isRouteMenuOpen && (

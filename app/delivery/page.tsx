@@ -222,14 +222,29 @@ export default function DeliveryPage() {
 
             {isLoading ? (
                [1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 animate-pulse">
-                     <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 bg-zinc-200 rounded-full shrink-0" />
-                        <div className="flex-1">
-                           <div className="h-4 bg-zinc-200 rounded w-1/2 mb-2" />
-                           <div className="h-3 bg-zinc-100 rounded w-1/3" />
+                  <div key={i} className="bg-white border border-zinc-200 shadow-sm rounded-xl animate-pulse">
+                     <div className="p-4">
+                        <div className="flex flex-row items-start justify-between gap-4">
+                           <div className="flex flex-col flex-1">
+                              <div className="flex items-start gap-3">
+                                 <div className="mt-0.5 shrink-0 w-8 h-8 rounded-lg bg-zinc-200" />
+                                 <div className="flex flex-col w-full">
+                                    <div className="h-5 bg-zinc-200 rounded-md w-3/4 max-w-[160px] mb-1.5" />
+                                    <div className="h-4 bg-zinc-100 rounded-md w-1/2 max-w-[100px]" />
+                                 </div>
+                              </div>
+                           </div>
+                           <div className="flex flex-col justify-center ml-2">
+                              <div className="h-12 w-12 rounded-xl bg-zinc-200" />
+                           </div>
                         </div>
-                        <div className="h-12 w-12 bg-zinc-200 rounded-full" />
+                     </div>
+                     <div className="px-4 pb-2.5 pt-2.5 border-t border-zinc-100 flex items-center justify-between">
+                        <div className="h-6 w-24 bg-zinc-100 rounded-lg" />
+                        <div className="flex items-center gap-2">
+                           <div className="h-8 w-20 bg-zinc-100 rounded-md" />
+                           <div className="h-8 w-8 bg-zinc-100 rounded-md" />
+                        </div>
                      </div>
                   </div>
                ))

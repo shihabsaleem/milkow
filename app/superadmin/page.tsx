@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { LogIn, Plus, Users, ShieldAlert, Sparkles, Building, Key, Mail, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 
 interface Franchise {
   id: string;
@@ -18,6 +19,7 @@ export default function SuperadminDashboard() {
   const { user, role, impersonatedFranchiseId, setImpersonatedFranchiseId, logout } = useAuth();
   const [franchises, setFranchises] = useState<Franchise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -31,8 +33,12 @@ export default function SuperadminDashboard() {
     }
   }, [role, router]);
 
-  const fetchFranchises = async () => {
-    setIsLoading(true);
+  const fetchFranchises = async (isInitialLoad = false) => {
+    if (isInitialLoad) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const { data, error } = await supabase
         .from("franchises")
@@ -45,12 +51,13 @@ export default function SuperadminDashboard() {
       console.error(err);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     if (role === "superadmin") {
-      fetchFranchises();
+      fetchFranchises(true);
     }
   }, [role]);
 
@@ -116,204 +123,174 @@ export default function SuperadminDashboard() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex flex-col p-6 font-sans relative overflow-hidden">
-      {/* Background Decoration */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -right-24 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl" />
-      </div>
-
-      <div className="w-full max-w-6xl mx-auto z-10 flex flex-col gap-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-xl p-6 rounded-4xl border border-white shadow-[0_8px_32px_0_rgba(0,0,0,0.04)]">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="bg-primary/10 text-primary text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1">
-                <Sparkles size={10} /> Superadmin Dashboard
-              </span>
+    <PullToRefresh onRefresh={async () => { await fetchFranchises(); }} className="bg-slate-50 text-zinc-900 font-sans pb-32 min-h-screen">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
+        <div className="max-w-2xl mx-auto w-full px-5 py-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="bg-primary/10 text-primary text-[9px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Sparkles size={8} /> Superadmin
+                </span>
+              </div>
+              <h1 className="text-xl font-black text-zinc-900">Franchises</h1>
             </div>
-            <h1 className="text-2xl font-black text-zinc-900 mt-1.5">Manage Franchises</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {impersonatedFranchiseId && (
+            <div className="flex items-center gap-2">
+              {impersonatedFranchiseId && (
+                <button
+                  onClick={handleClearImpersonation}
+                  className="bg-amber-500 text-white font-bold py-2 px-3 rounded-xl text-[10px] flex items-center transition-all active:scale-[0.98]"
+                >
+                  Exit Dashboard
+                </button>
+              )}
               <button
-                onClick={handleClearImpersonation}
-                className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center gap-2 transition-all active:scale-[0.98]"
+                onClick={() => logout().then(() => router.push("/login"))}
+                className="bg-rose-50 text-rose-600 font-bold py-2 px-3 rounded-xl text-[10px] transition-all active:scale-[0.98]"
               >
-                Exit Dashboard View
+                Sign Out
               </button>
-            )}
-            <button
-              onClick={() => logout().then(() => router.push("/login"))}
-              className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all active:scale-[0.98]"
-            >
-              Sign Out
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-6">
+        {/* Create Franchise Section */}
+        <section className="bg-white border border-zinc-200 rounded-3xl p-5 shadow-sm flex flex-col gap-4">
+          <div>
+            <h2 className="text-sm font-black text-zinc-900 flex items-center gap-2">
+              <Plus className="text-primary" size={16} /> Create Franchise
+            </h2>
+            <p className="text-[11px] text-zinc-500 mt-1">Add a new franchise branch and owner account</p>
+          </div>
+
+          <form onSubmit={handleCreateFranchise} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Franchise Name</label>
+              <div className="relative flex items-center">
+                <Building size={14} className="absolute left-3.5 text-zinc-400" />
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Koduvayur"
+                  className="w-full bg-slate-50 border border-zinc-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl pl-9 pr-4 py-2.5 text-[13px] font-bold text-zinc-900 outline-none transition-all placeholder:text-zinc-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Owner Email</label>
+              <div className="relative flex items-center">
+                <Mail size={14} className="absolute left-3.5 text-zinc-400" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="owner@milkow.in"
+                  className="w-full bg-slate-50 border border-zinc-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl pl-9 pr-4 py-2.5 text-[13px] font-bold text-zinc-900 outline-none transition-all placeholder:text-zinc-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Password</label>
+              <div className="relative flex items-center">
+                <Key size={14} className="absolute left-3.5 text-zinc-400" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-50 border border-zinc-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl pl-9 pr-4 py-2.5 text-[13px] font-bold text-zinc-900 outline-none transition-all placeholder:text-zinc-400"
+                />
+              </div>
+            </div>
+
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
+                  {error}
+                </motion.div>
+              )}
+              {success && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-xl bg-emerald-50 text-emerald-600 text-xs font-bold border border-emerald-100">
+                  {success}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <button disabled={isSubmitting} type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-xl text-[13px] shadow-sm transition-all active:scale-[0.98] disabled:opacity-75 flex items-center justify-center mt-1">
+              {isSubmitting ? "Creating..." : "Create Franchise"}
+            </button>
+          </form>
+        </section>
+
+        {/* Franchise List Section */}
+        <section className="flex flex-col gap-3">
+          <div className="flex justify-between items-center px-1">
+            <h2 className="text-sm font-black text-zinc-900 flex items-center gap-2">
+              <Users className="text-primary" size={16} /> All Franchises
+            </h2>
+            <button onClick={() => fetchFranchises()} className="text-zinc-400 hover:text-zinc-600 transition-colors p-1">
+              <RefreshCw size={14} className={isLoading || isRefreshing ? "animate-spin" : ""} />
             </button>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Create Franchise Column */}
-          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white shadow-[0_8px_32px_0_rgba(0,0,0,0.04)] flex flex-col gap-6">
-            <div>
-              <h2 className="text-lg font-black text-zinc-900 flex items-center gap-2">
-                <Plus className="text-primary" size={20} /> Create Franchise
-              </h2>
-              <p className="text-xs text-zinc-500 mt-1">Add a new franchise branch with an owner account</p>
+          {isLoading ? (
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm animate-pulse h-20" />
+              ))}
             </div>
-
-            <form onSubmit={handleCreateFranchise} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-wider">Franchise Name</label>
-                <div className="relative flex items-center">
-                  <Building size={16} className="absolute left-4 text-zinc-400" />
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Koduvayur"
-                    className="w-full bg-slate-50/50 border border-zinc-200 focus:border-primary rounded-xl pl-11 pr-4 py-3 text-xs font-bold text-zinc-900 outline-none transition-all placeholder:text-zinc-400"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-wider">Owner Email</label>
-                <div className="relative flex items-center">
-                  <Mail size={16} className="absolute left-4 text-zinc-400" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="owner@milkow.in"
-                    className="w-full bg-slate-50/50 border border-zinc-200 focus:border-primary rounded-xl pl-11 pr-4 py-3 text-xs font-bold text-zinc-900 outline-none transition-all placeholder:text-zinc-400"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-wider">Password</label>
-                <div className="relative flex items-center">
-                  <Key size={16} className="absolute left-4 text-zinc-400" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-slate-50/50 border border-zinc-200 focus:border-primary rounded-xl pl-11 pr-4 py-3 text-xs font-bold text-zinc-900 outline-none transition-all placeholder:text-zinc-400"
-                  />
-                </div>
-              </div>
-
-              <AnimatePresence mode="wait">
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="p-3 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100"
-                  >
-                    {error}
-                  </motion.div>
-                )}
-                {success && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="p-3 rounded-xl bg-emerald-50 text-emerald-600 text-xs font-bold border border-emerald-100"
-                  >
-                    {success}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <button
-                disabled={isSubmitting}
-                type="submit"
-                className="w-full bg-primary hover:bg-zinc-800 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all active:scale-[0.98] disabled:opacity-75 flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? "Creating..." : "Create Franchise Owner"}
-              </button>
-            </form>
-          </div>
-
-          {/* Franchise List Column */}
-          <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white shadow-[0_8px_32px_0_rgba(0,0,0,0.04)] flex flex-col gap-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-black text-zinc-900 flex items-center gap-2">
-                  <Users className="text-primary" size={20} /> All Franchises
-                </h2>
-                <p className="text-xs text-zinc-500 mt-1">List of registered active franchise locations</p>
-              </div>
-              <button
-                onClick={fetchFranchises}
-                className="p-2 text-zinc-400 hover:text-zinc-600 transition-colors"
-                title="Refresh List"
-              >
-                <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
-              </button>
+          ) : franchises.length === 0 ? (
+            <div className="text-center py-10 bg-white border border-zinc-200 rounded-3xl flex flex-col items-center justify-center gap-2">
+              <Building className="text-zinc-300 w-8 h-8" />
+              <p className="text-zinc-400 font-bold text-xs">No franchises registered.</p>
             </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {franchises.map((franchise) => (
+                <div key={franchise.id} className={`flex justify-between items-center p-4 rounded-2xl border transition-all shadow-sm ${impersonatedFranchiseId === franchise.id ? "bg-primary/5 border-primary/20" : "bg-white border-zinc-200"}`}>
+                  <div>
+                    <p className="font-bold text-[13px] text-zinc-900 flex items-center gap-2">
+                      {franchise.name}
+                      {impersonatedFranchiseId === franchise.id && (
+                        <span className="bg-amber-500/10 text-amber-600 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                          Active
+                        </span>
+                      )}
+                      {franchise.id === "00000000-0000-0000-0000-000000000000" && (
+                        <span className="bg-zinc-100 text-zinc-500 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                          Default
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-[10px] text-zinc-400 mt-1">
+                      {new Date(franchise.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
 
-            {isLoading ? (
-              <div className="flex-1 flex items-center justify-center py-12">
-                <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-              </div>
-            ) : franchises.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed border-zinc-100 rounded-4xl flex flex-col items-center justify-center gap-2">
-                <Building className="text-zinc-300 w-10 h-10" />
-                <p className="text-zinc-400 font-bold text-xs">No franchises registered yet.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3 max-h-[450px] overflow-y-auto pr-1">
-                {franchises.map((franchise) => (
-                  <div
-                    key={franchise.id}
-                    className={`flex justify-between items-center p-4 rounded-2xl border transition-all ${impersonatedFranchiseId === franchise.id
-                        ? "bg-primary/5 border-primary/20"
-                        : "bg-slate-50/50 border-zinc-100 hover:bg-slate-50"
+                  <button
+                    onClick={() => handleImpersonate(franchise.id)}
+                    className={`font-bold py-2 px-3 rounded-xl text-[10px] flex items-center gap-1.5 shadow-sm active:scale-95 transition-all ${impersonatedFranchiseId === franchise.id
+                        ? "bg-zinc-900 text-white"
+                        : "bg-slate-50 text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
                       }`}
                   >
-                    <div>
-                      <p className="font-extrabold text-sm text-zinc-900 flex items-center gap-2">
-                        {franchise.name}
-                        {impersonatedFranchiseId === franchise.id && (
-                          <span className="bg-amber-500/10 text-amber-600 text-[9px] px-2 py-0.5 rounded-full font-bold">
-                            Active Session
-                          </span>
-                        )}
-                        {franchise.id === "00000000-0000-0000-0000-000000000000" && (
-                          <span className="bg-zinc-200/50 text-zinc-500 text-[9px] px-2 py-0.5 rounded-full font-bold">
-                            System Default
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-[10px] text-zinc-400 mt-0.5">
-                        ID: {franchise.id} &bull; Created: {new Date(franchise.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => handleImpersonate(franchise.id)}
-                      className={`font-extrabold py-2 px-4 rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all ${impersonatedFranchiseId === franchise.id
-                          ? "bg-zinc-800 hover:bg-zinc-900 text-white"
-                          : "bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200"
-                        }`}
-                    >
-                      <LogIn size={13} />
-                      {impersonatedFranchiseId === franchise.id ? "Enter Dashboard" : "Dashboard"}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+                    <LogIn size={12} />
+                    {impersonatedFranchiseId === franchise.id ? "Enter" : "Dashboard"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </PullToRefresh>
   );
 }

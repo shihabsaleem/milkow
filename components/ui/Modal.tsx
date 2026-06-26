@@ -83,8 +83,8 @@ export default function Modal({
               <div className="flex flex-col gap-3 mt-8">
                 <button
                   onClick={() => onConfirm(dontShowAgain)}
-                  className={`w-full py-4 rounded-card font-bold text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${type === 'danger' ? 'bg-mono-surface0 text-white shadow-rose-200' :
-                    'bg-mono-text text-white shadow-primary/20'
+                  className={`w-full py-4 rounded-card font-bold text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${type === 'danger' ? 'bg-mono-text text-white shadow-md' :
+                    'bg-mono-text text-white shadow-sm'
                     }`}
                 >
                   {confirmText}

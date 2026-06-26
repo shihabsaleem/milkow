@@ -35,7 +35,7 @@ export default function BottomNav() {
               <div className="flex flex-col items-center justify-center gap-1 py-2">
                 <item.icon
                   size={22}
-                  strokeWidth={active ? 2.5 : 1.8}
+                  strokeWidth={active ? 2 : 1.8}
                   className={`transition-all duration-200 ${active ? 'text-white' : 'text-white/35'}`}
                 />
                 <span

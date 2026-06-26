@@ -254,22 +254,22 @@ export default function DeliveryPage() {
                   const activeItems = delivery.misc_items || [];
                   return (
                      <motion.div key={delivery.id} layout className={` rounded-card transition-all ${delivery.delivered ? 'bg-mono-bg border-mono-border opacity-70 shadow' : 'bg-white border-mono-border shadow-sm'}`}>
-                        <div className="p-4">
+                        <div className="px-4 py-3.5">
 
-                           <div className="flex flex-row items-start justify-between gap-4">
+                           <div className="flex flex-row items-start justify-between gap-3">
 
                               <div className="flex flex-col flex-1">
                                  <div className="flex items-start gap-3">
-                                    <div className={`mt-0.5 shrink-0 w-8 h-8 flex items-center justify-center rounded-sm font-bold text-xs text-center transition-all ${delivery.delivered ? 'bg-mono-border text-mono-text-muted' : 'bg-mono-text text-white shadow-md'}`}>
+                                    <div className={`mt-0.5 shrink-0 w-7 h-7 flex items-center justify-center rounded-md font-bold text-[11px] text-center transition-all ${delivery.delivered ? 'bg-mono-border text-mono-text-muted' : 'bg-mono-text text-white shadow-md'}`}>
                                        {index + 1}
                                     </div>
                                     <div className="flex flex-col">
-                                       <div className="flex items-center gap-2 flex-wrap">
-                                          <h3 className={`font-bold text-lg leading-tight ${delivery.delivered ? 'text-mono-text-muted line-through' : 'text-mono-text'}`}>{delivery.customer?.name}</h3>
+                                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                          <h3 className={`font-semibold text-[15px] leading-tight ${delivery.delivered ? 'text-mono-text-muted line-through' : 'text-mono-text'}`}>{delivery.customer?.name}</h3>
                                           {delivery.customer?.financials && delivery.customer.financials.current_balance !== 0 && (
                                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${delivery.customer.financials.current_balance < 0
-                                                ? 'bg-mono-text/10 text-mono-text'
-                                                : 'bg-mono-text/10 text-mono-text'
+                                                ? 'bg-mono-text/5 text-mono-text border border-mono-border/10'
+                                                : 'bg-mono-text/5 text-mono-text border border-mono-border/75'
                                                 }`}>
                                                 {delivery.customer.financials.current_balance < 0 ? 'Adv: ' : 'Bal: '}
                                                 ₹{Math.abs(delivery.customer.financials.current_balance).toLocaleString()}
@@ -279,7 +279,7 @@ export default function DeliveryPage() {
                                        {(() => {
                                           const prod = products.find(p => p.id === delivery.product_id);
                                           return (
-                                             <p className="font-semibold text-mono-text text-sm mt-0.5">
+                                             <p className="font-medium text-mono-text-muted text-[13px] leading-tight">
                                                 {delivery.milk_qty} {prod ? `${prod.name} (${prod.size})` : 'Milk'}
                                              </p>
                                           );
@@ -288,22 +288,22 @@ export default function DeliveryPage() {
                                  </div>
 
                                  {!isExpanded && activeItems.length > 0 && (
-                                    <div className="mt-3 flex flex-wrap gap-2 mb-2 pl-11">
-                                       {activeItems.map((item: any) => (<span key={item.name} className="bg-mono-text/10 text-mono-text text-[10px] font-bold px-2 py-1 rounded-md">{item.qty}x {item.name}</span>))}
+                                    <div className="mt-2.5 flex flex-wrap gap-1.5 mb-1 pl-10">
+                                       {activeItems.map((item: any) => (<span key={item.name} className="bg-mono-text/5 border border-mono-border text-mono-text text-[10px] font-semibold px-2 py-0.5 rounded-md">{item.qty}x {item.name}</span>))}
                                     </div>
                                  )}
                               </div>
 
-                              <div className="flex flex-col justify-center ml-2">
-                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-card shadow-xs transition-all ${delivery.delivered ? 'bg-mono-text text-white shadow-emerald-500/20 shadow-md' : 'bg-mono-bg text-mono-text-disabled hover:bg-mono-surface hover:text-mono-text hover:border-mono-text border border-mono-border'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                    <Check size={24} strokeWidth={3} />
+                              <div className="flex flex-col justify-center ml-1 shrink-0">
+                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-11 w-11 flex items-center justify-center rounded-card shadow-xs transition-all ${delivery.delivered ? 'bg-black text-white shadow-emerald-500/20 shadow-md' : 'bg-mono-bg text-mono-text-disabled hover:bg-mono-surface hover:text-mono-text hover:border-mono-text border border-mono-border'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                    <Check size={22} strokeWidth={3} />
                                  </button>
                               </div>
                            </div>
                         </div>
 
-                        <div className="px-4 pb-2 pt-1 border-t border-mono-divider flex items-center justify-between">
-                           <button onClick={(e) => { e.stopPropagation(); setExpandedStopId(delivery.id); }} className={`flex items-center gap-1.5 text-xs font-bold transition-colors py-2 px-3 rounded-card ${isExpanded ? 'text-mono-text' : ' text-mono-text-muted'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extras' : 'Add Products'}</button>
+                        <div className="px-4 pb-2.5 pt-2.5 border-t border-mono-divider flex items-center justify-between">
+                           <button onClick={(e) => { e.stopPropagation(); setExpandedStopId(delivery.id); }} className={`flex items-center gap-1.5 text-[11px] font-semibold transition-colors py-1.5 px-2.5 rounded-card ${isExpanded ? 'text-mono-text bg-mono-surface' : ' text-mono-text-muted hover:bg-mono-surface'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extras' : 'Add Products'}</button>
 
                            <div className="flex items-center gap-2">
                               <button onClick={(e) => {
@@ -311,13 +311,13 @@ export default function DeliveryPage() {
                                  if (confirm(`Settle all dues for ${delivery.customer?.name}?`)) {
                                     runMarkAsPaid(delivery.customer_id);
                                  }
-                              }} className="flex items-center gap-1.5 text-xs font-bold transition-colors py-2 px-3 rounded-md bg-mono-surface text-mono-text hover:bg-orange-100 border border-mono-border/50" title="Settle Full Amount">
-                                 <Wallet2 size={14} /><div className="hidden md:block">Settle</div>
+                              }} className="flex items-center justify-center h-8 w-8 rounded-md bg-mono-surface text-mono-text hover:bg-mono-border border border-mono-border transition-colors" title="Settle Full Amount">
+                                 <Wallet2 size={14} />
                               </button>
                               <button onClick={async (e) => {
                                  e.stopPropagation();
                                  router.push(`/customers/${delivery.customer_id}`);
-                              }} className="flex items-center justify-center h-8 w-8 rounded-md bg-mono-surface text-mono-text hover:bg-mono-border border border-mono-border transition-colors"><ArrowRight size={16} strokeWidth={2.5} /></button>
+                              }} className="flex items-center justify-center h-8 w-8 rounded-md bg-mono-surface text-mono-text hover:bg-mono-border border border-mono-border transition-colors" title="Go to Customer"><ArrowRight size={14} strokeWidth={2.5} /></button>
                            </div>
                         </div>
                      </motion.div>
@@ -463,12 +463,12 @@ export default function DeliveryPage() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 80, opacity: 0 }}
                   transition={{ type: "spring", damping: 25, stiffness: 350 }}
-                  className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-md bg-linear-to-r from-mono-text via-primary/95 to-zinc-950 backdrop-blur-xl text-white rounded-card py-3.5 px-4 shadow-[0_20px_50px_rgba(5,0,68,0.3)] z-110 flex items-center justify-between border border-white/10"
+                  className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-md bg-mono-text text-white rounded-card py-3.5 px-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-110 flex items-center justify-between border border-white/10"
                >
                   <div className="flex items-center gap-3">
                      <div className="relative flex h-3.5 w-3.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-mono-text"></span>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
+                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-white"></span>
                      </div>
                      <div className="flex flex-col text-left">
                         <span className="text-[9px] font-bold uppercase tracking-widest text-mono-text-disabled">Offline Staging</span>
@@ -479,11 +479,11 @@ export default function DeliveryPage() {
                      <button
                         onClick={handleSync}
                         disabled={isSyncing}
-                        className="bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-card flex items-center gap-1.5 active:scale-95 transition-all shadow-[0_8px_20px_rgba(16,185,129,0.3)] disabled:opacity-50"
+                        className="bg-white hover:bg-mono-bg text-mono-text text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-card flex items-center gap-1.5 active:scale-95 transition-all shadow-[0_8px_20px_rgba(0,0,0,0.15)] disabled:opacity-50"
                      >
                         {isSyncing ? (
                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
+                              <div className="animate-spin rounded-full h-3 w-3 border-2 border-mono-text border-t-transparent" />
                               <span>Syncing...</span>
                            </>
                         ) : (
@@ -511,10 +511,10 @@ export default function DeliveryPage() {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.8, opacity: 0 }}
                   onClick={() => setIsStagingCollapsed(false)}
-                  className="fixed bottom-24 right-5 z-110 bg-linear-to-r from-primary/95 to-primary/95 backdrop-blur-md text-white py-2.5 px-4 rounded-full shadow-[0_12px_30px_rgba(5,0,68,0.4)] border border-white/10 flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
+                  className="fixed bottom-24 right-5 z-110 bg-mono-text text-white py-2.5 px-4 rounded-full shadow-[0_12px_30px_rgba(0,0,0,0.3)] border border-white/10 flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
                   title="Expand Staging Banner"
                >
-                  <CloudUpload size={18} className="text-emerald-400 animate-bounce" />
+                  <CloudUpload size={18} className="text-white animate-bounce" />
                   <div className="w-px h-4 bg-white/20" />
                   <span className="text-xs font-bold text-white">{changedDeliveries.length} Pending</span>
                </motion.button>

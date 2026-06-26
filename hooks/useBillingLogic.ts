@@ -57,7 +57,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
 
       const prods = (productList || []) as T.Product[];
       setProducts(prods);
-      
+
       const customersMap = new Map((customersData || []).map((c: any) => [c.id, c]));
 
       const combinedBills: (T.Bill & { customer: T.Customer })[] = [];
@@ -110,7 +110,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       // Attempt to load full page state from cache first for instant render
       const pageCacheKey = `milkow_billing_page_${activeFranchiseId}`;
       const cachedPage = localStorage.getItem(pageCacheKey);
-      
+
       if (cachedPage) {
          try {
             const parsed = JSON.parse(cachedPage);
@@ -119,7 +119,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
             if (parsed.bills) setBills(parsed.bills);
             if (parsed.paymentSettings) setPaymentSettings(parsed.paymentSettings);
             setIsLoading(false);
-         } catch (e) {}
+         } catch (e) { }
       }
 
       fetchData(!!cachedPage);
@@ -145,7 +145,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       // Optimistic UI Update: remove bill from list instantly
       setBills(prev => prev.filter(b => b.id !== id));
       setSelectedInvoice(null);
-      
+
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
 
@@ -295,7 +295,10 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       // Generate QR code directly onto an offscreen canvas — no DOM dependency,
       // no tainted-canvas issues from embedded SVG logos.
       if (paymentSettings) {
-         const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}&aid=${config.aid}`;
+         const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}`
+                                 /*  &am=${selectedInvoice.amount}
+                                   &cu=${paymentSettings.currency_code}
+                                   &aid=${config.aid}` */;
          const qrOffscreen = document.createElement("canvas");
          await QRCode.toCanvas(qrOffscreen, upiValue, {
             width: qrSize,
@@ -375,7 +378,10 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
    const handleWhatsAppShare = async (invoice: (T.Bill & { customer: T.Customer })) => {
       if (!paymentSettings) return;
       const amount = Number(invoice.amount).toFixed(2);
-      const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${invoice.amount}&cu=${paymentSettings.currency_code}&aid=${config.aid}`;
+      const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}`
+                                 /*  &am=${selectedInvoice.amount}
+                                   &cu=${paymentSettings.currency_code}
+                                   &aid=${config.aid}` */;
       const message = `Hi ${invoice.customer?.name}, your total outstanding bill is ₹${amount}. Please scan the UPI QR or pay via: ${upiLink}`;
 
       // Normalise phone: strip non-digits, then only prepend 91 if the number is

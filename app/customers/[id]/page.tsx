@@ -68,40 +68,40 @@ export default function CustomerProfilePage() {
 
    if (!customer && isLoading) {
       return (
-         <div className="flex h-full w-full flex-col bg-slate-50 text-zinc-900 font-sans overflow-hidden">
-            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
+         <div className="flex h-full w-full flex-col bg-mono-bg text-mono-text font-sans overflow-hidden">
+            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-mono-border/50">
                <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                     <div className="w-8 h-8 bg-zinc-100 rounded-full animate-pulse" />
+                     <div className="w-8 h-8 bg-mono-surface rounded-full animate-pulse" />
                      <div className="flex flex-col gap-2">
-                        <div className="w-32 h-4 bg-zinc-100 rounded-md animate-pulse" />
-                        <div className="w-20 h-3 bg-zinc-100 rounded-md animate-pulse" />
+                        <div className="w-32 h-4 bg-mono-surface rounded-md animate-pulse" />
+                        <div className="w-20 h-3 bg-mono-surface rounded-md animate-pulse" />
                      </div>
                   </div>
                </div>
             </header>
             <main className="flex-1 overflow-y-auto">
-               <div className="bg-white rounded-b-3xl shadow-sm border-b border-zinc-200/50 relative overflow-hidden">
+               <div className="bg-white rounded-b-3xl shadow-sm border-b border-mono-border/50 relative overflow-hidden">
                   <div className="max-w-2xl mx-auto w-full px-6 pb-8 pt-4">
                      <div className="flex items-start justify-between mb-6">
                         <div className="flex items-center gap-4">
-                           <div className="h-12 w-12 sm:h-16 sm:w-16 bg-zinc-100 rounded-2xl animate-pulse" />
+                           <div className="h-12 w-12 sm:h-16 sm:w-16 bg-mono-surface rounded-radius-md animate-pulse" />
                            <div className="flex flex-col gap-2">
-                              <div className="w-40 h-5 bg-zinc-100 rounded-md animate-pulse" />
-                              <div className="w-32 h-4 bg-zinc-100 rounded-md animate-pulse" />
+                              <div className="w-40 h-5 bg-mono-surface rounded-md animate-pulse" />
+                              <div className="w-32 h-4 bg-mono-surface rounded-md animate-pulse" />
                            </div>
                         </div>
-                        <div className="w-16 h-6 bg-zinc-100 rounded-xl animate-pulse" />
+                        <div className="w-16 h-6 bg-mono-surface rounded-radius animate-pulse" />
                      </div>
                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                        <div className="h-16 bg-slate-50 rounded-2xl animate-pulse border border-zinc-100" />
-                        <div className="h-16 bg-slate-50 rounded-2xl animate-pulse border border-zinc-100" />
+                        <div className="h-16 bg-mono-bg rounded-radius-md animate-pulse border border-mono-divider" />
+                        <div className="h-16 bg-mono-bg rounded-radius-md animate-pulse border border-mono-divider" />
                      </div>
                   </div>
                </div>
                <div className="max-w-2xl mx-auto w-full px-5 py-8 flex flex-col gap-6">
-                  <div className="h-80 bg-white border border-zinc-100 rounded-3xl animate-pulse" />
-                  <div className="h-48 bg-white border border-zinc-100 rounded-3xl animate-pulse" />
+                  <div className="h-80 bg-white border border-mono-divider rounded-3xl animate-pulse" />
+                  <div className="h-48 bg-white border border-mono-divider rounded-3xl animate-pulse" />
                </div>
             </main>
          </div>
@@ -110,15 +110,15 @@ export default function CustomerProfilePage() {
 
    if (!customer) {
       return (
-         <div className="flex h-full w-full items-center justify-center bg-slate-50 text-zinc-500 flex-col gap-4">
-            <div className="h-16 w-16 bg-zinc-100 rounded-2xl flex items-center justify-center text-zinc-300">
+         <div className="flex h-full w-full items-center justify-center bg-mono-bg text-mono-text-muted flex-col gap-4">
+            <div className="h-16 w-16 bg-mono-surface rounded-radius-md flex items-center justify-center text-mono-border">
                <X size={32} />
             </div>
             <div className="text-center">
-               <p className="font-bold text-zinc-900">Customer not found</p>
-               <p className="text-sm text-zinc-400">The customer you're looking for doesn't exist.</p>
+               <p className="font-bold text-mono-text">Customer not found</p>
+               <p className="text-sm text-mono-text-disabled">The customer you're looking for doesn't exist.</p>
             </div>
-            <button onClick={() => router.back()} className="mt-2 px-6 py-2 bg-white border border-zinc-200 rounded-xl font-bold text-zinc-900 shadow-sm active:scale-95 transition-all">
+            <button onClick={() => router.back()} className="mt-2 px-6 py-2 bg-white border border-mono-border rounded-radius font-bold text-mono-text shadow-sm active:scale-95 transition-all">
                Go Back
             </button>
          </div>
@@ -126,12 +126,12 @@ export default function CustomerProfilePage() {
    }
 
    return (
-      <PullToRefresh onRefresh={() => fetchData(true)} className="bg-slate-50 pb-32">
-         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
+      <PullToRefresh onRefresh={() => fetchData(true)} className="bg-mono-bg pb-32">
+         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-mono-border/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between gap-4">
-               <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-base sm:text-lg font-bold">{customer?.name || 'Customer'}</h1><p className="text-[10px] sm:text-xs text-zinc-500">Customer Profile</p></div></div>
+               <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-mono-text-muted hover:bg-mono-surface rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-base sm:text-lg font-bold">{customer?.name || 'Customer'}</h1><p className="text-[10px] sm:text-xs text-mono-text-muted">Customer Profile</p></div></div>
                <div className="flex items-center gap-2">
-                  {/*<button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer?.name || '')}`)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
+                  {/*<button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer?.name || '')}`)} className="flex items-center gap-2 px-4 py-2 bg-mono-text text-white rounded-radius font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
                      <Receipt size={16} />
                      <span className="hidden sm:inline">QR Bill</span>
                   </button>*/}
@@ -139,21 +139,21 @@ export default function CustomerProfilePage() {
                   <button
                       onClick={handleCaptureScreenshot}
                       disabled={isCapturing}
-                      className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl active:scale-90 disabled:opacity-50 transition-all"
+                      className="p-2 text-mono-text-muted hover:bg-mono-surface rounded-radius active:scale-90 disabled:opacity-50 transition-all"
                       title="Take Screenshot"
                    >
-                      <Camera size={20} className={isCapturing ? "animate-pulse text-primary" : ""} />
+                      <Camera size={20} className={isCapturing ? "animate-pulse text-mono-text" : ""} />
                    </button>
                   */}
                 <div className="flex items-center gap-2 relative">
-                   <button onClick={() => document.getElementById('financial-summary')?.scrollIntoView({ behavior: 'smooth' })} className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-xl border border-zinc-200 active:scale-90 transition-all" title="Financial Summary"><ArrowDown size={20} /></button>
-                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-zinc-500 border border-zinc-200 hover:bg-zinc-100 rounded-xl active:scale-90 transition-all"><MoreVertical size={20} /></button>
+                   <button onClick={() => document.getElementById('financial-summary')?.scrollIntoView({ behavior: 'smooth' })} className="p-2 text-mono-text-muted hover:bg-mono-surface rounded-radius border border-mono-border active:scale-90 transition-all" title="Financial Summary"><ArrowDown size={20} /></button>
+                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-mono-text-muted border border-mono-border hover:bg-mono-surface rounded-radius active:scale-90 transition-all"><MoreVertical size={20} /></button>
                    
                    <AnimatePresence>
                       {isMenuOpen && (
                          <>
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMenuOpen(false)} className="fixed inset-0 z-40" />
-                            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-zinc-100 z-50 overflow-hidden flex flex-col py-2">
+                            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-radius-md shadow-sm border border-mono-divider z-50 overflow-hidden flex flex-col py-2">
                                <button onClick={() => {
                                   setIsMenuOpen(false);
                                   const url = `/bill/${customer?.phone || ''}`;
@@ -163,15 +163,15 @@ export default function CustomerProfilePage() {
                                      navigator.clipboard.writeText(url);
                                      alert('Bill link copied to clipboard!');
                                   }
-                               }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors w-full text-left">
+                               }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-mono-text hover:bg-mono-surface transition-colors w-full text-left">
                                   <Share2 size={18} className="text-blue-500" /> Share Bill
                                </button>
-                               <button onClick={() => { setIsMenuOpen(false); setIsEditModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors w-full text-left">
-                                  <Edit2 size={18} className="text-zinc-400" /> Edit Profile
+                               <button onClick={() => { setIsMenuOpen(false); setIsEditModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-mono-text hover:bg-mono-bg transition-colors w-full text-left">
+                                  <Edit2 size={18} className="text-mono-text-disabled" /> Edit Profile
                                </button>
-                               <div className="h-px bg-zinc-100 my-1 mx-2" />
-                               <button onClick={() => { setIsMenuOpen(false); setIsDeleteModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors w-full text-left">
-                                  <Trash2 size={18} className="text-rose-500" /> Delete Customer
+                               <div className="h-px bg-mono-surface my-1 mx-2" />
+                               <button onClick={() => { setIsMenuOpen(false); setIsDeleteModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-rose-600 hover:bg-mono-surface transition-colors w-full text-left">
+                                  <Trash2 size={18} className="text-mono-text" /> Delete Customer
                                </button>
                             </motion.div>
                          </>
@@ -185,33 +185,33 @@ export default function CustomerProfilePage() {
          <main ref={screenshotRef} className="flex flex-col">
             {isLoading ? (
                <div className="max-w-2xl mx-auto w-full px-5 py-8 flex flex-col gap-6">
-                  <div className="h-48 bg-white border border-zinc-100 rounded-3xl animate-pulse" />
-                  <div className="h-96 bg-white border border-zinc-100 rounded-3xl animate-pulse" />
+                  <div className="h-48 bg-white border border-mono-divider rounded-3xl animate-pulse" />
+                  <div className="h-96 bg-white border border-mono-divider rounded-3xl animate-pulse" />
                </div>
             ) : customer ? (
                <>
-                  <div className="bg-white rounded-b-3xl shadow-sm border-b border-zinc-200/50 relative overflow-hidden">
+                  <div className="bg-white rounded-b-3xl shadow-sm border-b border-mono-border/50 relative overflow-hidden">
                      <div className="max-w-2xl mx-auto w-full px-6 pb-4 pt-4">
                         <div className="flex items-start justify-between mb-6">
                            <div className="flex items-center gap-4">
-                              <div className="h-12 w-12 sm:h-16 sm:w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-primary border border-primary/20">{customer.name.charAt(0)}</div>
+                              <div className="h-12 w-12 sm:h-16 sm:w-16 bg-mono-text/10 rounded-radius-md flex items-center justify-center text-xl sm:text-2xl font-bold text-mono-text border border-mono-border">{customer.name.charAt(0)}</div>
                               <div className="flex flex-col gap-1">
-                                 <div className="flex items-center gap-1.5 text-zinc-500 text-[13px] sm:text-sm font-medium"><MapPin size={14} className="text-zinc-400" /> {customer.area?.name || 'No Area'}</div>
-                                 <div className="flex items-center gap-1.5 text-zinc-500 text-[13px] sm:text-sm font-medium"><Phone size={14} className="text-zinc-400" /> {customer.phone}</div>
+                                 <div className="flex items-center gap-1.5 text-mono-text-muted text-[13px] sm:text-sm font-medium"><MapPin size={14} className="text-mono-text-disabled" /> {customer.area?.name || 'No Area'}</div>
+                                 <div className="flex items-center gap-1.5 text-mono-text-muted text-[13px] sm:text-sm font-medium"><Phone size={14} className="text-mono-text-disabled" /> {customer.phone}</div>
                               </div>
                            </div>
-                           <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>{customer.status}</button>
+                           <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-radius text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-mono-surface text-mono-text border-mono-text' : 'bg-mono-surface text-rose-600 border-rose-200'}`}>{customer.status}</button>
                         </div>
                         <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                           <div className="bg-slate-50 rounded-2xl p-3 sm:p-4 border border-zinc-100"><div className="flex items-center gap-1.5 text-zinc-400 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-zinc-800">{customer.frequency}</p></div>
+                           <div className="bg-mono-bg rounded-radius-md p-3 sm:p-4 border border-mono-divider"><div className="flex items-center gap-1.5 text-mono-text-disabled text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-mono-text">{customer.frequency}</p></div>
                            <div
-                              className={`rounded-2xl p-3 sm:p-4 border cursor-pointer transition-all ${financials?.account_status === 'Advance' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/5 border-primary/10'}`}
+                              className={`rounded-radius-md p-3 sm:p-4 border cursor-pointer transition-all ${financials?.account_status === 'Advance' ? 'bg-mono-surface border-emerald-100' : 'bg-mono-text/5 border-mono-border'}`}
                               onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
                            >
-                              <div className={`flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2 opacity-80 ${financials?.account_status === 'Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                              <div className={`flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2 opacity-80 ${financials?.account_status === 'Advance' ? 'text-mono-text' : 'text-mono-text'}`}>
                                  <Receipt size={12} /> {financials?.account_status === 'Advance' ? 'Advance' : 'Balance'}
                               </div>
-                              <p className={`text-[13px] sm:text-sm font-black ${financials?.account_status === 'Advance' ? 'text-emerald-600' : 'text-primary'}`}>
+                              <p className={`text-[13px] sm:text-sm font-bold ${financials?.account_status === 'Advance' ? 'text-mono-text' : 'text-mono-text'}`}>
                                  {financials ? `₹${Math.abs(financials.current_balance).toFixed(2)}` : '₹0.00'}
                               </p>
                            </div>
@@ -221,20 +221,20 @@ export default function CustomerProfilePage() {
                         <div className="flex relative">
                            <button
                               onClick={() => setActiveTab('calendar')}
-                              className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors ${activeTab === 'calendar' ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}
+                              className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors ${activeTab === 'calendar' ? 'text-mono-text' : 'text-mono-text-disabled hover:text-mono-text-muted'}`}
                            >
                               Calendar
                               {activeTab === 'calendar' && (
-                                 <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
+                                 <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-mono-text rounded-full" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
                               )}
                            </button>
                            <button
                               onClick={() => setActiveTab('statement')}
-                              className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors ${activeTab === 'statement' ? 'text-primary' : 'text-zinc-400 hover:text-zinc-600'}`}
+                              className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors ${activeTab === 'statement' ? 'text-mono-text' : 'text-mono-text-disabled hover:text-mono-text-muted'}`}
                            >
                               Statement
                               {activeTab === 'statement' && (
-                                 <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
+                                 <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-mono-text rounded-full" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
                               )}
                            </button>
                         </div>
@@ -247,10 +247,10 @@ export default function CustomerProfilePage() {
                      {activeTab === 'calendar' ? (
                         <motion.div key="calendar" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15 }}>
                            <div className="max-w-2xl mx-auto w-full px-5 py-2">
-                              <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
+                              <div className="bg-white rounded-3xl sm:rounded-radius-2xl p-5 sm:p-8 shadow-sm border border-mono-divider">
                                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-                                    <div><h3 className="text-lg sm:text-xl font-black text-zinc-900">Delivery History</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-zinc-900 uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-zinc-400 hover:bg-zinc-50"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
-                                    <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-black uppercase">{deliveries.filter(d => d.delivered).length} Deliveries</span></div>
+                                    <div><h3 className="text-lg sm:text-xl font-bold text-mono-text">Delivery History</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-bg"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-mono-text uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-bg"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
+                                    <div className="flex items-center gap-2 bg-mono-surface text-mono-text px-3 py-1.5 rounded-radius border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-bold uppercase">{deliveries.filter(d => d.delivered).length} Deliveries</span></div>
                                  </div>
                                  <div className="flex flex-col gap-3">
                                     {Array.from({ length: displayDays }).map((_, i) => {
@@ -260,16 +260,16 @@ export default function CustomerProfilePage() {
 
                                        if (dayDeliveries.length === 0) {
                                           return (
-                                             <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-zinc-50/50 border-zinc-100/50 opacity-40">
+                                             <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-radius-md border transition-all bg-mono-bg/50 border-mono-divider/50 opacity-40">
                                                 <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                                   <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-zinc-100 text-zinc-400">
+                                                   <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-radius flex flex-col items-center justify-center font-bold bg-mono-surface text-mono-text-disabled">
                                                       <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                                       <span className="text-base sm:text-lg leading-none">{day}</span>
                                                    </div>
-                                                   <p className="text-[11px] sm:text-xs font-bold text-zinc-400 italic tracking-tight">No deliveries scheduled</p>
+                                                   <p className="text-[11px] sm:text-xs font-bold text-mono-text-disabled italic tracking-tight">No deliveries scheduled</p>
                                                 </div>
                                                 <div className="text-right shrink-0 ml-2">
-                                                   <p className="font-black text-[13px] sm:text-sm text-zinc-300">₹0</p>
+                                                   <p className="font-bold text-[13px] sm:text-sm text-mono-border">₹0</p>
                                                 </div>
                                              </div>
                                           );
@@ -278,25 +278,25 @@ export default function CustomerProfilePage() {
                                        const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 
                                        return (
-                                          <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all bg-white border-zinc-100 hover:border-primary/20">
+                                          <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-radius-md border transition-all bg-white border-mono-divider hover:border-mono-border">
                                              <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                                <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black bg-primary/10 text-primary">
+                                                <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-radius flex flex-col items-center justify-center font-bold bg-mono-text/10 text-mono-text">
                                                    <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                                    <span className="text-base sm:text-lg leading-none">{day}</span>
                                                 </div>
                                                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
                                                    {dayDeliveries.map((delivery, dIdx) => (
-                                                      <div key={dIdx} className={`flex flex-col gap-1 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-zinc-100" : ""}`}>
-                                                         <p className="font-black text-[13px] sm:text-[15px] text-zinc-900 leading-tight truncate max-w-[150px] sm:max-w-none">
+                                                      <div key={dIdx} className={`flex flex-col gap-1 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-mono-divider" : ""}`}>
+                                                         <p className="font-bold text-[13px] sm:text-[15px] text-mono-text leading-tight truncate max-w-[150px] sm:max-w-none">
                                                             {[
                                                                delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
                                                                ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
                                                             ].filter(Boolean).join(' + ')}
                                                          </p>
                                                          <div className="flex items-center gap-1.5">
-                                                            <span className={`px-1 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border font-black shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
+                                                            <span className={`px-1 py-0.5 rounded text-[7px] sm:text-[8px] border font-bold shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-mono-text border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
                                                             {delivery.delivered ? (
-                                                               <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-emerald-200 font-bold uppercase tracking-tighter">Delivered</span>
+                                                               <span className="bg-mono-surface text-mono-text px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-text font-bold uppercase tracking-tighter">Delivered</span>
                                                             ) : (() => {
                                                                const now = new Date();
                                                                const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -305,12 +305,12 @@ export default function CustomerProfilePage() {
                                                                const hour = now.getHours();
                                                                const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
                                                                if (isPast || (isToday && isShiftOver)) {
-                                                                  return <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-rose-200 font-bold uppercase tracking-tighter">Undelivered</span>;
+                                                                  return <span className="bg-mono-surface text-rose-600 px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-rose-200 font-bold uppercase tracking-tighter">Undelivered</span>;
                                                                }
-                                                               return <span className="bg-zinc-100 text-zinc-400 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Pending</span>;
+                                                               return <span className="bg-mono-surface text-mono-text-disabled px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold uppercase tracking-tighter">Pending</span>;
                                                             })()}
                                                             {delivery.billed && (
-                                                               <span className="bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-[4px] text-[7px] sm:text-[8px] border border-zinc-200 font-bold uppercase tracking-tighter">Billed</span>
+                                                               <span className="bg-mono-surface text-mono-text-muted px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold uppercase tracking-tighter">Billed</span>
                                                             )}
                                                          </div>
                                                       </div>
@@ -318,14 +318,14 @@ export default function CustomerProfilePage() {
                                                 </div>
                                              </div>
                                              <div className="text-right shrink-0 ml-2">
-                                                <p className="font-black text-[13px] sm:text-sm text-zinc-900">₹{dayTotal.toFixed(0)}</p>
-                                                <p className="text-[8px] sm:text-[10px] font-bold text-zinc-400 uppercase">Total</p>
+                                                <p className="font-bold text-[13px] sm:text-sm text-mono-text">₹{dayTotal.toFixed(0)}</p>
+                                                <p className="text-[8px] sm:text-[10px] font-bold text-mono-text-disabled uppercase">Total</p>
                                              </div>
                                           </div>
                                        );
                                     })}
                                     {deliveries.filter(d => d.delivered).length === 0 && (
-                                       <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
+                                       <div className="py-12 flex flex-col items-center justify-center text-mono-text-disabled gap-2 bg-mono-bg rounded-3xl border-2 border-dashed border-mono-border">
                                           <p className="font-bold">No deliveries recorded</p>
                                           <p className="text-[10px] uppercase tracking-widest">For {monthName} {yearName}</p>
                                        </div>
@@ -337,13 +337,13 @@ export default function CustomerProfilePage() {
                      ) : (
                         <motion.div key="statement" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.15 }}>
                            <div className="max-w-2xl mx-auto w-full px-5 py-2">
-                              <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm border border-zinc-100">
+                              <div className="bg-white rounded-3xl sm:rounded-radius-2xl p-5 sm:p-8 shadow-sm border border-mono-divider">
                                  <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg sm:text-xl font-black text-zinc-900">Payment History</h3>
-                                    <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-primary/5 text-primary rounded-xl border border-primary/10">{payments.length} Records</span>
+                                    <h3 className="text-lg sm:text-xl font-bold text-mono-text">Payment History</h3>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-mono-text/5 text-mono-text rounded-radius border border-mono-border">{payments.length} Records</span>
                                  </div>
                                  {payments.length === 0 ? (
-                                    <div className="py-12 flex flex-col items-center justify-center text-zinc-400 gap-2 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
+                                    <div className="py-12 flex flex-col items-center justify-center text-mono-text-disabled gap-2 bg-mono-bg rounded-3xl border-2 border-dashed border-mono-border">
                                        <p className="font-bold">No payments found</p>
                                        <p className="text-[10px] uppercase tracking-widest">All payments will appear here</p>
                                     </div>
@@ -354,24 +354,24 @@ export default function CustomerProfilePage() {
                                           const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                                           const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
                                           return (
-                                             <div key={i} className="flex items-center justify-between p-4 rounded-2xl border bg-white border-zinc-100 hover:border-emerald-200 transition-all">
+                                             <div key={i} className="flex items-center justify-between p-4 rounded-radius-md border bg-white border-mono-divider hover:border-mono-text transition-all">
                                                 <div className="flex items-center gap-3">
-                                                   <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                                   <div className="h-11 w-11 shrink-0 rounded-radius flex items-center justify-center bg-mono-surface text-mono-text border border-emerald-100">
                                                       <Receipt size={18} />
                                                    </div>
                                                    <div>
-                                                      <p className="font-black text-[13px] text-zinc-900">{dateStr}</p>
+                                                      <p className="font-bold text-[13px] text-mono-text">{dateStr}</p>
                                                       <div className="flex items-center gap-2 mt-0.5">
-                                                         <span className="text-[10px] font-bold text-zinc-400">{timeStr}</span>
-                                                         <span className="w-1 h-1 rounded-full bg-zinc-300" />
-                                                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-500">{(p as any).method || 'Cash'}</span>
+                                                         <span className="text-[10px] font-bold text-mono-text-disabled">{timeStr}</span>
+                                                         <span className="w-1 h-1 rounded-full bg-mono-border" />
+                                                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-mono-surface text-mono-text-muted">{(p as any).method || 'Cash'}</span>
                                                       </div>
-                                                      {(p as any).notes && <p className="text-[10px] text-zinc-400 mt-0.5 italic">{(p as any).notes}</p>}
+                                                      {(p as any).notes && <p className="text-[10px] text-mono-text-disabled mt-0.5 italic">{(p as any).notes}</p>}
                                                    </div>
                                                 </div>
                                                 <div className="text-right shrink-0 ml-2">
-                                                   <p className="font-black text-sm text-emerald-600">+₹{Number(p.amount).toFixed(2)}</p>
-                                                   <p className="text-[9px] font-bold text-zinc-400 uppercase">Received</p>
+                                                   <p className="font-bold text-sm text-mono-text">+₹{Number(p.amount).toFixed(2)}</p>
+                                                   <p className="text-[9px] font-bold text-mono-text-disabled uppercase">Received</p>
                                                 </div>
                                              </div>
                                           );
@@ -393,49 +393,49 @@ export default function CustomerProfilePage() {
 
 
             <div id="financial-summary" className="max-w-2xl mx-auto w-full px-5 py-6">
-               <div className="bg-white rounded-4xl p-6 sm:p-8 shadow-lg text-white relative overflow-hidden border border-primary-dim">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary-dim/10 blur-[80px] rounded-full -mr-16 -mt-16" />
+               <div className="bg-white rounded-4xl p-6 sm:p-8 shadow-lg text-white relative overflow-hidden border border-mono-text-dim">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-mono-text-dim/10 blur-[80px] rounded-full -mr-16 -mt-16" />
 
                   <div className="flex items-center justify-between mb-8 relative z-10">
-                     <h3 className="text-sm font-black uppercase tracking-widest text-primary">Financial Summary</h3>
-                     <span className={`text-[10px] font-bold  tracking-widest px-3 py-1 rounded-lg ${grandTotalAmount < 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-primary-dim/20 text-primary border border-primary/20'}`}>
+                     <h3 className="text-sm font-bold uppercase tracking-widest text-mono-text">Financial Summary</h3>
+                     <span className={`text-[10px] font-bold  tracking-widest px-3 py-1 rounded-radius-xs ${grandTotalAmount < 0 ? 'bg-mono-text/20 text-emerald-400 border border-emerald-500/20' : 'bg-mono-text-dim/20 text-mono-text border border-mono-border'}`}>
                         {grandTotalAmount < 0 ? 'Advance Balance' : 'Credit Balance'}
                      </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-8 mb-8 relative z-10">
                      <div className="flex flex-col gap-2">
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Previous Balance</p>
+                        <p className="text-[10px] font-bold text-mono-text-muted uppercase tracking-wider">Previous Balance</p>
                         <div className="flex flex-col gap-1">
-                           <p className={`text-lg font-black ${billsBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>₹{Math.abs(billsBalance).toFixed(2)}</p>
-                           <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md w-fit ${billsBalance > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                           <p className={`text-lg font-bold ${billsBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>₹{Math.abs(billsBalance).toFixed(2)}</p>
+                           <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit ${billsBalance > 0 ? 'bg-mono-surface0/20 text-rose-400' : 'bg-mono-text/20 text-emerald-400'}`}>
                               {billsBalance > 0 ? 'Dues' : 'Advance'}
                            </span>
                         </div>
                      </div>
                      <div className="flex flex-col gap-2">
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Current Month (Unbilled)</p>
+                        <p className="text-[10px] font-bold text-mono-text-muted uppercase tracking-wider">Current Month (Unbilled)</p>
                         <div className="flex flex-col gap-1">
-                           <p className="text-lg font-black text-primary">₹{currentDeliveriesAmount.toFixed(2)}</p>
-                           <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md w-fit bg-white/5 text-zinc-400">
+                           <p className="text-lg font-bold text-mono-text">₹{currentDeliveriesAmount.toFixed(2)}</p>
+                           <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit bg-white/5 text-mono-text-disabled">
                               Unbilled
                            </span>
                         </div>
                      </div>
                   </div>
 
-                  <div className="pt-6 border-t border-zinc-800/50 flex flex-col gap-6 relative z-10">
+                  <div className="pt-6 border-t border-mono-text/80/50 flex flex-col gap-6 relative z-10">
                      <div className="flex justify-between items-end">
                         <div className="flex flex-col gap-1">
-                           <p className={`text-[10px] font-bold uppercase tracking-widest ${grandTotalAmount < 0 ? 'text-emerald-400' : 'text-primary'}`}>
+                           <p className={`text-[10px] font-bold uppercase tracking-widest ${grandTotalAmount < 0 ? 'text-emerald-400' : 'text-mono-text'}`}>
                               {grandTotalAmount < 0 ? 'Advance Balance' : 'Grand Total Payable'}
                            </p>
-                           <p className={`text-4xl font-black drop-shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] ${grandTotalAmount < 0 ? 'text-emerald-400' : 'text-primary'}`}>
+                           <p className={`text-4xl font-bold drop-shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] ${grandTotalAmount < 0 ? 'text-emerald-400' : 'text-mono-text'}`}>
                               ₹{Math.abs(grandTotalAmount).toFixed(2)}
                            </p>
                         </div>
                         <div className="text-right hidden sm:block">
-                           <p className="text-[9px] text-zinc-500 font-medium italic mb-2">Including all past dues and unbilled items</p>
+                           <p className="text-[9px] text-mono-text-muted font-medium italic mb-2">Including all past dues and unbilled items</p>
                         </div>
                      </div>
 
@@ -444,7 +444,7 @@ export default function CustomerProfilePage() {
                            <button
                               onClick={handleMarkAsPaid}
                               disabled={isSubmitting}
-                              className="flex-1 bg-white text-zinc-900 border border-zinc-200 py-4 rounded-2xl font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 shadow-sm"
+                              className="flex-1 bg-white text-mono-text border border-mono-border py-4 rounded-radius-md font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 shadow-sm"
                            >
                               <Receipt size={18} />
                               Settle Full
@@ -457,7 +457,7 @@ export default function CustomerProfilePage() {
                               setPaymentNotes("");
                               setIsPaymentModalOpen(true);
                            }}
-                           className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                           className="flex-1 bg-mono-text text-white py-4 rounded-radius-md font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
                         >
                            <Receipt size={18} />
                            Record Payment
@@ -470,7 +470,7 @@ export default function CustomerProfilePage() {
                               setIsReturnModalOpen(true);
                            }}
                            disabled={isSubmitting}
-                           className="flex-1 bg-amber-50 text-amber-700 border border-amber-200 py-4 rounded-2xl font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
+                           className="flex-1 bg-amber-50 text-amber-700 border border-amber-200 py-4 rounded-radius-md font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
                         >
                            <RotateCcw size={18} />
                            Return Item
@@ -498,12 +498,12 @@ export default function CustomerProfilePage() {
             {isEditModalOpen && (
                <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
-                     <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Edit Customer</p><button onClick={() => setIsEditModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-bold text-mono-text">Edit Customer</p><button onClick={() => setIsEditModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button></div>
                      <form onSubmit={(e) => handleEditSubmit(e, setIsEditModalOpen)} className="p-6 pt-4 flex flex-col gap-5">
-                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">FullName</label><input autoFocus value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                         <div className="grid grid-cols-2 gap-3">
-                           <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</label><input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                           <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Phone</label><input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                            <CustomSelect
                               label="Route"
                               options={areas.map(a => ({ value: a.id.toString(), label: a.name }))}
@@ -531,13 +531,13 @@ export default function CustomerProfilePage() {
                               placeholder="Select Product"
                            />
                            <div className="flex flex-col gap-1.5">
-                              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Daily Qty</label>
+                              <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Daily Qty</label>
                               <input
                                  type="number"
                                  placeholder="1"
                                  value={editForm.default_qty}
                                  onChange={e => setEditForm({ ...editForm, default_qty: e.target.value })}
-                                 className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                                 className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all"
                               />
                            </div>
                         </div>
@@ -551,14 +551,14 @@ export default function CustomerProfilePage() {
                            onChange={val => setEditForm({ ...editForm, outstanding_type: val })}
                         />
                            <div className="flex flex-col gap-1.5">
-                              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                              <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">
                                  {editForm.outstanding_type === "advance" ? "Past Advance (₹)" : "Past Outstanding (₹)"}
                               </label>
-                              <input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" />
+                              <input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" />
                            </div>
 
                         </div>
-                        <button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
+                        <button type="submit" disabled={isSubmitting} className="w-full bg-mono-text text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
                            {isSubmitting ? "Saving..." : "Save Changes"}
                         </button>
                      </form>
@@ -569,15 +569,15 @@ export default function CustomerProfilePage() {
             {isReturnModalOpen && (
                <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsReturnModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6 text-zinc-900">
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6 text-mono-text">
                      <div className="flex justify-between items-center">
                         <div>
-                           <p className="text-[18px] font-black text-slate-900">Record Return</p>
-                           <p className="text-xs text-zinc-400 mt-0.5">Customer returned item(s) — credit will be added as advance</p>
+                           <p className="text-[18px] font-bold text-mono-text">Record Return</p>
+                           <p className="text-xs text-mono-text-disabled mt-0.5">Customer returned item(s) — credit will be added as advance</p>
                         </div>
-                        <button onClick={() => setIsReturnModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button>
+                        <button onClick={() => setIsReturnModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button>
                      </div>
-                     <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl">
+                     <div className="bg-amber-50 border border-amber-100 p-4 rounded-radius">
                         <p className="text-amber-800 text-xs font-bold">ℹ️ How this works</p>
                         <p className="text-amber-700 text-xs mt-1">The return amount will be added as a credit (advance) to this customer's account.</p>
                      </div>
@@ -588,14 +588,14 @@ export default function CustomerProfilePage() {
                         handleRecordReturn(amt, returnNotes, setIsReturnModalOpen);
                      }} className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5">
-                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Return Amount (₹)</label>
-                           <input autoFocus type="number" step="0.01" required placeholder="0.00" value={returnAmount} onChange={e => setReturnAmount(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all font-bold" />
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Return Amount (₹)</label>
+                           <input autoFocus type="number" step="0.01" required placeholder="0.00" value={returnAmount} onChange={e => setReturnAmount(e.target.value)} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all font-bold" />
                         </div>
                         <div className="flex flex-col gap-1.5">
-                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Reason (Optional)</label>
-                           <input type="text" placeholder="e.g. Returned 1 Curd packet" value={returnNotes} onChange={e => setReturnNotes(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" />
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Reason (Optional)</label>
+                           <input type="text" placeholder="e.g. Returned 1 Curd packet" value={returnNotes} onChange={e => setReturnNotes(e.target.value)} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" />
                         </div>
-                        <button type="submit" disabled={!returnAmount || parseFloat(returnAmount) <= 0 || isSubmitting} className="w-full bg-amber-600 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
+                        <button type="submit" disabled={!returnAmount || parseFloat(returnAmount) <= 0 || isSubmitting} className="w-full bg-amber-600 text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
                            {isSubmitting ? "Recording..." : "Record Return & Add Credit"}
                         </button>
                      </form>
@@ -606,8 +606,8 @@ export default function CustomerProfilePage() {
             {isPaymentModalOpen && (
                <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6 text-zinc-900">
-                     <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6 text-mono-text">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-bold text-mono-text">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button></div>
                      <form onSubmit={(e) => {
                         e.preventDefault();
                         const amt = parseFloat(paymentAmount);
@@ -615,7 +615,7 @@ export default function CustomerProfilePage() {
                         runRecordPayment(parseFloat(paymentAmount), paymentMethod, paymentNotes, setIsPaymentModalOpen);
                      }} className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5">
-                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Payment Amount (₹)</label>
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Payment Amount (₹)</label>
                            <input
                               autoFocus
                               type="number"
@@ -624,23 +624,23 @@ export default function CustomerProfilePage() {
                               placeholder="0.00"
                               value={paymentAmount}
                               onChange={e => setPaymentAmount(e.target.value)}
-                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all font-bold"
+                              className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all font-bold"
                            />
                            {(() => {
                               const amt = parseFloat(paymentAmount) || 0;
                               const diff = amt - grandTotalAmount;
                               if (amt <= 0) return null;
                               if (Math.abs(diff) < 0.01) {
-                                 return <span className="text-[11px] font-bold text-emerald-600">Full Settlement</span>;
+                                 return <span className="text-[11px] font-bold text-mono-text">Full Settlement</span>;
                               } else if (diff > 0) {
-                                 return <span className="text-[11px] font-bold text-emerald-600">₹{diff.toFixed(2)} will be added as Advance</span>;
+                                 return <span className="text-[11px] font-bold text-mono-text">₹{diff.toFixed(2)} will be added as Advance</span>;
                               } else {
-                                 return <span className="text-[11px] font-bold text-amber-600">₹{Math.abs(diff).toFixed(2)} will remain as Credit (Outstanding)</span>;
+                                 return <span className="text-[11px] font-bold text-mono-text">₹{Math.abs(diff).toFixed(2)} will remain as Credit (Outstanding)</span>;
                               }
                            })()}
                         </div>
                         <div className="flex flex-col gap-1.5">
-                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Payment Method</label>
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Payment Method</label>
                            <CustomSelect
                               options={[
                                  { value: "Cash", label: "Cash" },
@@ -653,18 +653,18 @@ export default function CustomerProfilePage() {
                            />
                         </div>
                         <div className="flex flex-col gap-1.5">
-                           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Notes / Remarks</label>
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Notes / Remarks</label>
                            <input
                               placeholder="Optional remarks"
                               value={paymentNotes}
                               onChange={e => setPaymentNotes(e.target.value)}
-                              className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                              className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all"
                            />
                         </div>
                         <button
                            type="submit"
                            disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || isSubmitting}
-                           className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl"
+                           className="w-full bg-mono-text text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm"
                         >
                            {isSubmitting ? "Recording..." : "Record Payment"}
                         </button>

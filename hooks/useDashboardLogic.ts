@@ -26,6 +26,9 @@ export function useDashboardLogic() {
   const [customerCount, setCustomerCount] = useState(0);
   const [dailySales, setDailySales] = useState(0);
   const [dailyPayments, setDailyPayments] = useState(0);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [deliveredCount, setDeliveredCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -60,7 +63,7 @@ export function useDashboardLogic() {
       { data: paymentsData }
     ] = await Promise.all([
       supabase.from('inventory').select('*').eq('franchise_id', activeFranchiseId).not('product_id', 'is', null),
-      supabase.from('deliveries').select('*').eq('franchise_id', activeFranchiseId).eq('delivered', true).eq('delivery_date', date),
+      supabase.from('deliveries').select('*').eq('franchise_id', activeFranchiseId).eq('delivery_date', date),
       supabase.from('products').select('*').eq('franchise_id', activeFranchiseId),
       supabase.from('customer_financials').select('*').eq('franchise_id', activeFranchiseId),
       supabase.from('customers').select('*', { count: 'exact', head: true }).eq('franchise_id', activeFranchiseId),
@@ -82,7 +85,8 @@ export function useDashboardLogic() {
     }
 
     if (allDelData) {
-      const salesSum = allDelData.reduce((sum: number, d: any) => sum + (Number(d.total_cost) || 0), 0);
+      const deliveredOnly = allDelData.filter((d: any) => d.delivered);
+      const salesSum = deliveredOnly.reduce((sum: number, d: any) => sum + (Number(d.total_cost) || 0), 0);
       setDailySales(salesSum);
     }
 
@@ -95,13 +99,18 @@ export function useDashboardLogic() {
     }
 
     const delData = (allDelData || []).filter((d: any) => d.shift === dbShift);
+    const deliveredDelData = delData.filter((d: any) => d.delivered);
+    
+    setTotalOrders(delData.length);
+    setDeliveredCount(deliveredDelData.length);
+    setPendingCount(delData.length - deliveredDelData.length);
 
     let deliveredArr: DeliveredItem[] = [];
-    if (delData && prodsData) {
+    if (deliveredDelData && prodsData) {
       const productsMap = new Map<string, T.Product>(prodsData.map((p: any) => [p.id, p as T.Product]));
       const productTotals = new Map<string, number>();
 
-      delData.forEach((d: any) => {
+      deliveredDelData.forEach((d: any) => {
         if (d.product_id) {
           const current = productTotals.get(d.product_id) || 0;
           productTotals.set(d.product_id, current + (Number(d.milk_qty) || 0));
@@ -138,10 +147,13 @@ export function useDashboardLogic() {
        custCount,
        adminName: setsData?.value?.system_user?.name || "Franchise.",
        paySum: paymentsData ? paymentsData.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0) : 0,
-       salesSum: allDelData ? allDelData.reduce((sum: number, d: any) => sum + (Number(d.total_cost) || 0), 0) : 0,
+       salesSum: allDelData ? allDelData.filter((d: any) => d.delivered).reduce((sum: number, d: any) => sum + (Number(d.total_cost) || 0), 0) : 0,
        debt: financialsData ? (financialsData as T.CustomerFinancials[]).reduce((sum, f) => sum + (f.current_balance > 0 ? f.current_balance : 0), 0) : 0,
        credit: financialsData ? (financialsData as T.CustomerFinancials[]).reduce((sum, f) => sum + (f.current_balance < 0 ? Math.abs(f.current_balance) : 0), 0) : 0,
-       deliveredArr
+       deliveredArr,
+       totalOrders: delData.length,
+       deliveredCount: deliveredDelData.length,
+       pendingCount: delData.length - deliveredDelData.length
     };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
 
@@ -163,6 +175,9 @@ export function useDashboardLogic() {
         if (parsed.debt !== undefined) setToCollectAmount(parsed.debt);
         if (parsed.credit !== undefined) setAdvanceAmount(parsed.credit);
         if (parsed.deliveredArr) setDelivered(parsed.deliveredArr);
+        if (parsed.totalOrders !== undefined) setTotalOrders(parsed.totalOrders);
+        if (parsed.deliveredCount !== undefined) setDeliveredCount(parsed.deliveredCount);
+        if (parsed.pendingCount !== undefined) setPendingCount(parsed.pendingCount);
         setIsLoading(false); // Disable skeleton immediately since we have cached data
       } catch (e) {}
     }
@@ -204,6 +219,9 @@ export function useDashboardLogic() {
     customerCount,
     dailySales,
     dailyPayments,
+    totalOrders,
+    deliveredCount,
+    pendingCount,
     isLoading,
     inputRef,
     dayName,

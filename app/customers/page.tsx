@@ -34,19 +34,19 @@ export default function CustomersPage() {
 
 
   return (
-    <PullToRefresh onRefresh={() => fetchData(true)} className="bg-zinc-50/50 pb-32">
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-100">
+    <PullToRefresh onRefresh={() => fetchData(true)} className="bg-mono-bg/50 pb-32">
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-mono-divider">
         <div className="w-full max-w-2xl mx-auto px-5 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[20px] font-black text-zinc-900 leading-none">Customers</p>
-              <p className="text-[12px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">{customers.length} Subscribers</p>
+              <p className="text-[20px] font-bold text-mono-text leading-none">Customers</p>
+              <p className="text-[12px] font-bold text-mono-text-disabled mt-1 uppercase tracking-widest">{customers.length} Subscribers</p>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/route" className="h-10 w-10 bg-zinc-100 text-zinc-500 rounded-xl flex items-center justify-center hover:bg-zinc-200 transition-all" title="Reorder route">
+              <Link href="/route" className="h-10 w-10 bg-mono-surface text-mono-text-muted rounded-radius flex items-center justify-center hover:bg-mono-border transition-all" title="Reorder route">
                 <ListOrdered size={18} />
               </Link>
-              <button onClick={() => setIsModalOpen(true)} className="h-10 w-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all">
+              <button onClick={() => setIsModalOpen(true)} className="h-10 w-10 bg-mono-text text-white rounded-radius flex items-center justify-center shadow-lg active:scale-95 transition-all">
                 <Plus size={20} />
               </button>
             </div>
@@ -54,8 +54,8 @@ export default function CustomersPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="w-full sm:w-3/4">
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-mono-text-disabled" size={18} />
+                <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-mono-border rounded-radius-md py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
               </div></div>
             <div className="w-full sm:w-1/4">
               <CustomSelect
@@ -74,7 +74,7 @@ export default function CustomersPage() {
 
       <main className="w-full max-w-2xl mx-auto px-5 py-6 flex flex-col gap-3">
         {isLoading ? (
-          [1, 2, 3, 4, 5].map(i => <div key={i} className="h-24 bg-white border border-black/5 rounded-2xl animate-pulse" />)
+          [1, 2, 3, 4, 5].map(i => <div key={i} className="h-24 bg-white border border-mono-border rounded-radius-md animate-pulse" />)
         ) : filteredCustomers.length > 0 ? (
           filteredCustomers.map((customer, i) => (
             <motion.div
@@ -83,21 +83,21 @@ export default function CustomersPage() {
               onClick={() => {
                 if (customer.id) router.push(`/customers/${customer.id}`);
               }}
-              className="w-full bg-white border border-black/5 p-4 sm:p-5 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
+              className="w-full bg-white border border-mono-border p-4 sm:p-5 rounded-radius-md flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
             >
               <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 pr-2">
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg font-black shrink-0 ${customer.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>{customer.name.charAt(0)}</div>
+                <div className={`h-12 w-12 rounded-radius flex items-center justify-center text-lg font-bold shrink-0 ${customer.status === 'Active' ? 'bg-mono-text/10 text-mono-text' : 'bg-mono-surface text-mono-text-disabled'}`}>{customer.name.charAt(0)}</div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-zinc-900 group-hover:text-primary transition-colors truncate">{customer.name}</h3>
-                  <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5 truncate"><MapPin size={12} className="shrink-0" /> <span className="truncate">{customer.area?.name || 'No Area'}</span></p>
+                  <h3 className="font-bold text-mono-text group-hover:text-mono-text transition-colors truncate">{customer.name}</h3>
+                  <p className="text-xs text-mono-text-disabled flex items-center gap-1 mt-0.5 truncate"><MapPin size={12} className="shrink-0" /> <span className="truncate">{customer.area?.name || 'No Area'}</span></p>
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <div className="text-right mr-2">
-                  <p className={`text-[14px] font-black ${customer.financials && customer.financials.current_balance < 0 ? 'text-emerald-600' : 'text-zinc-900'}`}>
+                  <p className={`text-[14px] font-bold ${customer.financials && customer.financials.current_balance < 0 ? 'text-mono-text' : 'text-mono-text'}`}>
                     ₹{Math.abs(customer.financials?.current_balance || 0).toLocaleString()}
                   </p>
-                  <p className={`text-[10px] font-bold uppercase tracking-tighter ${customer.financials && customer.financials.current_balance < 0 ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                  <p className={`text-[10px] font-bold uppercase tracking-tighter ${customer.financials && customer.financials.current_balance < 0 ? 'text-mono-text' : 'text-mono-text-disabled'}`}>
                     {customer.financials && customer.financials.current_balance < 0 ? 'Advance' : 'Credit'}
                   </p>
                 </div>
@@ -107,10 +107,10 @@ export default function CustomersPage() {
                     e.stopPropagation();
                     router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
                   }}
-                  className="p-2.5 bg-primary/5 text-primary rounded-xl hover:bg-primary/10 transition-colors border border-primary/10 flex items-center gap-2"
+                  className="p-2.5 bg-mono-text/5 text-mono-text rounded-radius hover:bg-mono-text/10 transition-colors border border-mono-border flex items-center gap-2"
                 >
-                  <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">Bill</span>
-                  <ChevronRight size={18} className="text-primary/50 group-hover:text-primary transition-all translate-x-0 group-hover:translate-x-1" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Bill</span>
+                  <ChevronRight size={18} className="text-mono-text/50 group-hover:text-mono-text transition-all translate-x-0 group-hover:translate-x-1" />
                 </button>
               </div>
             </motion.div>
@@ -118,7 +118,7 @@ export default function CustomersPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
             <Search size={48} className="mb-4" />
-            <p className="font-bold text-zinc-500">No customers found</p>
+            <p className="font-bold text-mono-text-muted">No customers found</p>
           </div>
         )}
       </main>
@@ -127,12 +127,12 @@ export default function CustomersPage() {
         {isModalOpen && (
           <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-2xl flex flex-col gap-6">
-              <div className="flex justify-between items-center"><p className="text-[18px] font-black text-slate-900">New Onboarding</p><button onClick={() => setIsModalOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={18} /></button></div>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6">
+              <div className="flex justify-between items-center"><p className="text-[18px] font-bold text-mono-text">New Onboarding</p><button onClick={() => setIsModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button></div>
               <form onSubmit={handleAddCustomer} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">FullName</label><input autoFocus placeholder="e.g. Full Name " value={newCustomer.name} onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">FullName</label><input autoFocus placeholder="e.g. Full Name " value={newCustomer.name} onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</label><input placeholder="9876543210" value={newCustomer.phone} onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Phone</label><input placeholder="9876543210" value={newCustomer.phone} onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                   <CustomSelect
                     label="Route"
                     options={areas.map(a => ({ value: a.id.toString(), label: a.name }))}
@@ -160,18 +160,18 @@ export default function CustomersPage() {
                     placeholder="Select Product"
                   />
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Daily Qty</label>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Daily Qty</label>
                     <input
                       type="number"
                       placeholder="1"
                       value={newCustomer.default_qty}
                       onChange={e => setNewCustomer({ ...newCustomer, default_qty: e.target.value })}
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all"
+                      className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all"
                     />
                   </div>
                 </div>
-                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Outstanding (₹)</label><input type="number" placeholder="0.00" value={newCustomer.outstanding} onChange={e => setNewCustomer({ ...newCustomer, outstanding: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                <button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-xl">
+                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Past Outstanding (₹)</label><input type="number" placeholder="0.00" value={newCustomer.outstanding} onChange={e => setNewCustomer({ ...newCustomer, outstanding: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                <button type="submit" disabled={isSubmitting} className="w-full bg-mono-text text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
                   {isSubmitting ? "Registering..." : "Complete Registration"}
                 </button>
               </form>

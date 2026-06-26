@@ -113,40 +113,40 @@ export default function SuperadminDashboard() {
 
   if (role !== "superadmin") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-mono-bg">
         <div className="flex flex-col items-center gap-2">
-          <ShieldAlert className="w-12 h-12 text-rose-500 animate-pulse" />
-          <p className="text-zinc-600 font-bold">Access Denied: Superadmin only.</p>
+          <ShieldAlert className="w-12 h-12 text-mono-text animate-pulse" />
+          <p className="text-mono-text-muted font-bold">Access Denied: Superadmin only.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <PullToRefresh onRefresh={async () => { await fetchFranchises(); }} className="bg-slate-50 text-zinc-900 font-sans pb-32 min-h-screen">
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50">
+    <PullToRefresh onRefresh={async () => { await fetchFranchises(); }} className="bg-mono-bg text-mono-text font-sans pb-32 min-h-screen">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-mono-border/50">
         <div className="max-w-2xl mx-auto w-full px-5 py-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="bg-primary/10 text-primary text-[9px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="bg-mono-text/10 text-mono-text text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
                   <Sparkles size={8} /> Superadmin
                 </span>
               </div>
-              <h1 className="text-xl font-black text-zinc-900">Franchises</h1>
+              <h1 className="text-xl font-bold text-mono-text">Franchises</h1>
             </div>
             <div className="flex items-center gap-2">
               {impersonatedFranchiseId && (
                 <button
                   onClick={handleClearImpersonation}
-                  className="bg-amber-500 text-white font-bold py-2 px-3 rounded-xl text-[10px] flex items-center transition-all active:scale-[0.98]"
+                  className="bg-mono-text text-white font-bold py-2 px-3 rounded-radius text-[10px] flex items-center transition-all active:scale-[0.98]"
                 >
                   Exit Dashboard
                 </button>
               )}
               <button
                 onClick={() => logout().then(() => router.push("/login"))}
-                className="bg-rose-50 text-rose-600 font-bold py-2 px-3 rounded-xl text-[10px] transition-all active:scale-[0.98]"
+                className="bg-mono-surface text-rose-600 font-bold py-2 px-3 rounded-radius text-[10px] transition-all active:scale-[0.98]"
               >
                 Sign Out
               </button>
@@ -157,74 +157,74 @@ export default function SuperadminDashboard() {
 
       <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-6">
         {/* Create Franchise Section */}
-        <section className="bg-white border border-zinc-200 rounded-3xl p-5 shadow-sm flex flex-col gap-4">
+        <section className="bg-white border border-mono-border rounded-3xl p-5 shadow-sm flex flex-col gap-4">
           <div>
-            <h2 className="text-sm font-black text-zinc-900 flex items-center gap-2">
-              <Plus className="text-primary" size={16} /> Create Franchise
+            <h2 className="text-sm font-bold text-mono-text flex items-center gap-2">
+              <Plus className="text-mono-text" size={16} /> Create Franchise
             </h2>
-            <p className="text-[11px] text-zinc-500 mt-1">Add a new franchise branch and owner account</p>
+            <p className="text-[11px] text-mono-text-muted mt-1">Add a new franchise branch and owner account</p>
           </div>
 
           <form onSubmit={handleCreateFranchise} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Franchise Name</label>
+              <label className="text-[10px] font-semibold text-mono-text-disabled uppercase tracking-wider">Franchise Name</label>
               <div className="relative flex items-center">
-                <Building size={14} className="absolute left-3.5 text-zinc-400" />
+                <Building size={14} className="absolute left-3.5 text-mono-text-disabled" />
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Koduvayur"
-                  className="w-full bg-slate-50 border border-zinc-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl pl-9 pr-4 py-2.5 text-[13px] font-bold text-zinc-900 outline-none transition-all placeholder:text-zinc-400"
+                  className="w-full bg-mono-bg border border-mono-border focus:border-mono-text focus:ring-1 focus:ring-primary rounded-radius pl-9 pr-4 py-2.5 text-[13px] font-bold text-mono-text outline-none transition-all placeholder:text-mono-text-disabled"
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Owner Email</label>
+              <label className="text-[10px] font-semibold text-mono-text-disabled uppercase tracking-wider">Owner Email</label>
               <div className="relative flex items-center">
-                <Mail size={14} className="absolute left-3.5 text-zinc-400" />
+                <Mail size={14} className="absolute left-3.5 text-mono-text-disabled" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="owner@milkow.in"
-                  className="w-full bg-slate-50 border border-zinc-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl pl-9 pr-4 py-2.5 text-[13px] font-bold text-zinc-900 outline-none transition-all placeholder:text-zinc-400"
+                  className="w-full bg-mono-bg border border-mono-border focus:border-mono-text focus:ring-1 focus:ring-primary rounded-radius pl-9 pr-4 py-2.5 text-[13px] font-bold text-mono-text outline-none transition-all placeholder:text-mono-text-disabled"
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Password</label>
+              <label className="text-[10px] font-semibold text-mono-text-disabled uppercase tracking-wider">Password</label>
               <div className="relative flex items-center">
-                <Key size={14} className="absolute left-3.5 text-zinc-400" />
+                <Key size={14} className="absolute left-3.5 text-mono-text-disabled" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-50 border border-zinc-200 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl pl-9 pr-4 py-2.5 text-[13px] font-bold text-zinc-900 outline-none transition-all placeholder:text-zinc-400"
+                  className="w-full bg-mono-bg border border-mono-border focus:border-mono-text focus:ring-1 focus:ring-primary rounded-radius pl-9 pr-4 py-2.5 text-[13px] font-bold text-mono-text outline-none transition-all placeholder:text-mono-text-disabled"
                 />
               </div>
             </div>
 
             <AnimatePresence mode="wait">
               {error && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-radius bg-mono-surface text-rose-600 text-xs font-bold border border-rose-100">
                   {error}
                 </motion.div>
               )}
               {success && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-xl bg-emerald-50 text-emerald-600 text-xs font-bold border border-emerald-100">
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-radius bg-mono-surface text-mono-text text-xs font-bold border border-emerald-100">
                   {success}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <button disabled={isSubmitting} type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-xl text-[13px] shadow-sm transition-all active:scale-[0.98] disabled:opacity-75 flex items-center justify-center mt-1">
+            <button disabled={isSubmitting} type="submit" className="w-full bg-mono-text text-white font-bold py-3 rounded-radius text-[13px] shadow-sm transition-all active:scale-[0.98] disabled:opacity-75 flex items-center justify-center mt-1">
               {isSubmitting ? "Creating..." : "Create Franchise"}
             </button>
           </form>
@@ -233,10 +233,10 @@ export default function SuperadminDashboard() {
         {/* Franchise List Section */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center px-1">
-            <h2 className="text-sm font-black text-zinc-900 flex items-center gap-2">
-              <Users className="text-primary" size={16} /> All Franchises
+            <h2 className="text-sm font-bold text-mono-text flex items-center gap-2">
+              <Users className="text-mono-text" size={16} /> All Franchises
             </h2>
-            <button onClick={() => fetchFranchises()} className="text-zinc-400 hover:text-zinc-600 transition-colors p-1">
+            <button onClick={() => fetchFranchises()} className="text-mono-text-disabled hover:text-mono-text-muted transition-colors p-1">
               <RefreshCw size={14} className={isLoading || isRefreshing ? "animate-spin" : ""} />
             </button>
           </div>
@@ -244,42 +244,42 @@ export default function SuperadminDashboard() {
           {isLoading ? (
             <div className="flex flex-col gap-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm animate-pulse h-20" />
+                <div key={i} className="bg-white border border-mono-border rounded-radius-md p-4 shadow-sm animate-pulse h-20" />
               ))}
             </div>
           ) : franchises.length === 0 ? (
-            <div className="text-center py-10 bg-white border border-zinc-200 rounded-3xl flex flex-col items-center justify-center gap-2">
-              <Building className="text-zinc-300 w-8 h-8" />
-              <p className="text-zinc-400 font-bold text-xs">No franchises registered.</p>
+            <div className="text-center py-10 bg-white border border-mono-border rounded-3xl flex flex-col items-center justify-center gap-2">
+              <Building className="text-mono-border w-8 h-8" />
+              <p className="text-mono-text-disabled font-bold text-xs">No franchises registered.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
               {franchises.map((franchise) => (
-                <div key={franchise.id} className={`flex justify-between items-center p-4 rounded-2xl border transition-all shadow-sm ${impersonatedFranchiseId === franchise.id ? "bg-primary/5 border-primary/20" : "bg-white border-zinc-200"}`}>
+                <div key={franchise.id} className={`flex justify-between items-center p-4 rounded-radius-md border transition-all shadow-sm ${impersonatedFranchiseId === franchise.id ? "bg-mono-text/5 border-mono-border" : "bg-white border-mono-border"}`}>
                   <div>
-                    <p className="font-bold text-[13px] text-zinc-900 flex items-center gap-2">
+                    <p className="font-bold text-[13px] text-mono-text flex items-center gap-2">
                       {franchise.name}
                       {impersonatedFranchiseId === franchise.id && (
-                        <span className="bg-amber-500/10 text-amber-600 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                        <span className="bg-mono-text/10 text-mono-text text-[9px] px-1.5 py-0.5 rounded-full font-bold">
                           Active
                         </span>
                       )}
                       {franchise.id === "00000000-0000-0000-0000-000000000000" && (
-                        <span className="bg-zinc-100 text-zinc-500 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                        <span className="bg-mono-surface text-mono-text-muted text-[9px] px-1.5 py-0.5 rounded-full font-bold">
                           Default
                         </span>
                       )}
                     </p>
-                    <p className="text-[10px] text-zinc-400 mt-1">
+                    <p className="text-[10px] text-mono-text-disabled mt-1">
                       {new Date(franchise.created_at).toLocaleDateString()}
                     </p>
                   </div>
 
                   <button
                     onClick={() => handleImpersonate(franchise.id)}
-                    className={`font-bold py-2 px-3 rounded-xl text-[10px] flex items-center gap-1.5 shadow-sm active:scale-95 transition-all ${impersonatedFranchiseId === franchise.id
-                        ? "bg-zinc-900 text-white"
-                        : "bg-slate-50 text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
+                    className={`font-bold py-2 px-3 rounded-radius text-[10px] flex items-center gap-1.5 shadow-sm active:scale-95 transition-all ${impersonatedFranchiseId === franchise.id
+                        ? "bg-mono-text text-white"
+                        : "bg-mono-bg text-mono-text border border-mono-border hover:bg-mono-surface"
                       }`}
                   >
                     <LogIn size={12} />

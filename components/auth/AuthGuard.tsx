@@ -26,8 +26,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // While loading session, show a full-screen spinner
   if (loading || !user) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen w-full flex items-center justify-center bg-mono-bg">
+        <div className="w-8 h-8 border-4 border-mono-text border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

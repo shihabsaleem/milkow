@@ -67,7 +67,7 @@ export default function CustomSelect({
   return (
     <div className={`relative ${fullWidth ? "w-full" : "w-fit"} ${isOpen ? "z-100" : "z-10"} ${className}`} ref={containerRef}>
       {label && (
-        <label className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5 block">
+        <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled mb-1.5 block">
           {label}
         </label>
       )}
@@ -76,16 +76,16 @@ export default function CustomSelect({
         type="button"
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm transition-all focus:ring-2 focus:ring-primary/20 ${
+        className={`flex items-center justify-between bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm transition-all focus:ring-2 focus:ring-primary/20 ${
           fullWidth ? "w-full" : ""
-        } ${isOpen ? "border-primary/30 ring-2 ring-primary/10" : ""}`}
+        } ${isOpen ? "border-mono-border ring-2 ring-primary/10" : ""}`}
       >
-        <span className={selectedOption ? "text-zinc-900 font-bold" : "text-zinc-400"}>
+        <span className={selectedOption ? "text-mono-text font-bold" : "text-mono-text-disabled"}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown
           size={16}
-          className={`text-zinc-400 transition-transform duration-300 ${isOpen ? (dropUp ? "rotate-0" : "rotate-180") : ""}`}
+          className={`text-mono-text-disabled transition-transform duration-300 ${isOpen ? (dropUp ? "rotate-0" : "rotate-180") : ""}`}
         />
       </button>
 
@@ -96,7 +96,7 @@ export default function CustomSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: dropUp ? 5 : -5, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className={`absolute left-0 right-0 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-2'} bg-white/90 backdrop-blur-xl border border-zinc-200/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden z-110 min-w-[200px]`}
+            className={`absolute left-0 right-0 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-2'} bg-white/90 backdrop-blur-xl border border-mono-border/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-radius-md overflow-hidden z-110 min-w-[200px]`}
           >
             {/* Hard-capped max height to ensure it fits and forces scrollbar on small screens */}
             <div className="py-1 overflow-y-auto max-h-[160px] overscroll-contain">
@@ -114,16 +114,16 @@ export default function CustomSelect({
                     }}
                     className={`w-full text-left px-4 py-3 text-sm font-bold flex items-center justify-between transition-all ${
                       value === option.value
-                        ? "bg-primary/5 text-primary"
-                        : "text-zinc-600 hover:bg-zinc-50"
-                    } ${option.disabled ? "opacity-50 cursor-not-allowed bg-zinc-50" : ""}`}
+                        ? "bg-mono-text/5 text-mono-text"
+                        : "text-mono-text-muted hover:bg-mono-bg"
+                    } ${option.disabled ? "opacity-50 cursor-not-allowed bg-mono-bg" : ""}`}
                   >
-                    <span>{option.label} {option.disabled && <span className="text-[10px] font-normal uppercase ml-2 text-zinc-400 tracking-wider">(Closed)</span>}</span>
+                    <span>{option.label} {option.disabled && <span className="text-[10px] font-normal uppercase ml-2 text-mono-text-disabled tracking-wider">(Closed)</span>}</span>
                     {value === option.value && !option.disabled && <Check size={14} strokeWidth={3} />}
                   </button>
                 ))
               ) : (
-                <div className="px-4 py-3 text-xs text-zinc-400 text-center italic">
+                <div className="px-4 py-3 text-xs text-mono-text-disabled text-center italic">
                   No options available
                 </div>
               )}

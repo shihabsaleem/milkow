@@ -4,6 +4,33 @@
 @theme {
   --color-primary: #050044;
   --color-primary-dim: rgba(5, 0, 68, 0.12);
+
+  /* Monochrome Palette */
+  --color-mono-bg: #FAFAFA;
+  --color-mono-surface: #F5F5F5;
+  --color-mono-text: #111111;
+  --color-mono-text-muted: #666666;
+  --color-mono-text-disabled: #A0A0A0;
+  --color-mono-border: #E8E8E8;
+  --color-mono-divider: #EFEFEF;
+  --color-mono-skeleton: #E2E2E2;
+
+  /* Status Colors */
+  --color-success: #22C55E;
+  --color-success-soft: #F0FDF4;
+  --color-success-border: #BBF7D0;
+  --color-danger: #EF4444;
+  --color-danger-soft: #FFF1F2;
+  --color-danger-border: #FECDD3;
+
+  /* Border Radius Scale */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-2xl: 40px;
 }
 
 :root {

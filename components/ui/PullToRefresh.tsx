@@ -76,13 +76,13 @@ export default function PullToRefresh({ onRefresh, children, className = "", dis
         className="flex items-center justify-center overflow-hidden shrink-0"
       >
         <div className={`transition-transform duration-300 ${pullDistance > 60 ? 'rotate-180' : ''}`}>
-          <ChevronDown size={20} className={isRefreshing ? 'hidden' : 'text-primary'} />
+          <ChevronDown size={20} className={isRefreshing ? 'hidden' : 'text-mono-text'} />
         </div>
         {isRefreshing && (
-          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-mono-text border-t-transparent rounded-full animate-spin" />
         )}
         {!isRefreshing && pullDistance > 10 && (
-          <span className="text-[10px] font-black uppercase tracking-widest ml-2 text-primary">
+          <span className="text-[10px] font-bold uppercase tracking-widest ml-2 text-mono-text">
             {pullDistance > 60 ? 'Release' : 'Pull'}
           </span>
         )}

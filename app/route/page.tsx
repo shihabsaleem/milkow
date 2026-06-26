@@ -52,14 +52,14 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 bg-white border border-zinc-100 rounded-2xl px-4 py-3.5 shadow-sm"
+      className="flex items-center gap-3 bg-white border border-mono-divider rounded-radius-md px-4 py-3.5 shadow-sm"
     >
-      <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0">
+      <div className="w-7 h-7 rounded-radius-xs bg-mono-text/10 text-mono-text flex items-center justify-center text-xs font-bold shrink-0">
         {index + 1}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-zinc-900 text-sm truncate">{customer.name}</p>
-        <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
+        <p className="font-bold text-mono-text text-sm truncate">{customer.name}</p>
+        <p className="text-xs text-mono-text-disabled flex items-center gap-1 mt-0.5">
           <MapPin size={10} />
           {customer.area?.name || "No Area"} &middot; {customer.frequency}
         </p>
@@ -67,7 +67,7 @@ function SortableItem({
       <button
         {...attributes}
         {...listeners}
-        className="p-2 text-zinc-300 hover:text-zinc-500 cursor-grab active:cursor-grabbing touch-none"
+        className="p-2 text-mono-border hover:text-mono-text-muted cursor-grab active:cursor-grabbing touch-none"
       >
         <GripVertical size={20} />
       </button>
@@ -77,15 +77,15 @@ function SortableItem({
 
 function DragCard({ customer }: { customer: CustomerWithArea }) {
   return (
-    <div className="flex items-center gap-3 bg-white border-2 border-primary rounded-2xl px-4 py-3.5 shadow-2xl rotate-1">
-      <div className="w-7 h-7 rounded-lg bg-primary text-white flex items-center justify-center text-xs font-black shrink-0">
+    <div className="flex items-center gap-3 bg-white border-2 border-mono-text rounded-radius-md px-4 py-3.5 shadow-md rotate-1">
+      <div className="w-7 h-7 rounded-radius-xs bg-mono-text text-white flex items-center justify-center text-xs font-bold shrink-0">
         #
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-zinc-900 text-sm truncate">{customer.name}</p>
-        <p className="text-xs text-zinc-400 mt-0.5">{customer.area?.name}</p>
+        <p className="font-bold text-mono-text text-sm truncate">{customer.name}</p>
+        <p className="text-xs text-mono-text-disabled mt-0.5">{customer.area?.name}</p>
       </div>
-      <GripVertical size={20} className="text-primary" />
+      <GripVertical size={20} className="text-mono-text" />
     </div>
   );
 }
@@ -198,18 +198,18 @@ export default function RouteOrderPage() {
   const activeCustomer = activeId ? orderedList.find((c) => c.id === activeId) : null;
 
   return (
-    <div className="min-h-full w-full pb-32 bg-zinc-50/50">
+    <div className="min-h-full w-full pb-32 bg-mono-bg/50">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-100">
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-mono-divider">
         <div className="max-w-2xl mx-auto px-5 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/customers" className="p-2 bg-zinc-100 rounded-xl text-zinc-500 hover:bg-zinc-200 transition-colors">
+              <Link href="/customers" className="p-2 bg-mono-surface rounded-radius text-mono-text-muted hover:bg-mono-border transition-colors">
                 <ArrowLeft size={18} />
               </Link>
               <div>
-                <p className="text-[20px] font-black text-zinc-900 leading-none">Route Order</p>
-                <p className="text-[12px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">
+                <p className="text-[20px] font-bold text-mono-text leading-none">Route Order</p>
+                <p className="text-[12px] font-bold text-mono-text-disabled mt-1 uppercase tracking-widest">
                   Drag to reorder delivery stops
                 </p>
               </div>
@@ -222,7 +222,7 @@ export default function RouteOrderPage() {
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.8, opacity: 0 }}
-                  className="h-10 px-4 bg-emerald-500 text-white rounded-xl flex items-center gap-2 text-sm font-bold"
+                  className="h-10 px-4 bg-mono-text text-white rounded-radius flex items-center gap-2 text-sm font-bold"
                 >
                   <Check size={16} strokeWidth={3} /> Saved
                 </motion.div>
@@ -232,7 +232,7 @@ export default function RouteOrderPage() {
                   animate={{ opacity: isDirty ? 1 : 0.35 }}
                   onClick={handleSave}
                   disabled={!isDirty || isSaving}
-                  className="h-10 px-5 bg-primary text-white rounded-xl font-bold text-sm disabled:cursor-not-allowed active:scale-95 transition-all"
+                  className="h-10 px-5 bg-mono-text text-white rounded-radius font-bold text-sm disabled:cursor-not-allowed active:scale-95 transition-all"
                 >
                   {isSaving ? "Saving…" : "Save Order"}
                 </motion.button>
@@ -254,12 +254,12 @@ export default function RouteOrderPage() {
       <main className="max-w-2xl mx-auto px-5 py-6 flex flex-col gap-2">
         {isLoading ? (
           [1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 bg-white border border-black/5 rounded-2xl animate-pulse" />
+            <div key={i} className="h-16 bg-white border border-mono-border rounded-radius-md animate-pulse" />
           ))
         ) : orderedList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
             <MapPin size={48} className="mb-4" />
-            <p className="font-bold text-zinc-500">No active customers on this route</p>
+            <p className="font-bold text-mono-text-muted">No active customers on this route</p>
           </div>
         ) : (
           <DndContext
@@ -284,7 +284,7 @@ export default function RouteOrderPage() {
           <motion.p
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center text-xs text-zinc-400 mt-3"
+            className="text-center text-xs text-mono-text-disabled mt-3"
           >
             Unsaved changes — tap "Save Order" to apply
           </motion.p>

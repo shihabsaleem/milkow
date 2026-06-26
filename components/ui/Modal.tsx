@@ -36,7 +36,7 @@ export default function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-primary/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-mono-text/60 backdrop-blur-sm"
           />
 
           {/* Modal Content */}
@@ -45,20 +45,20 @@ export default function Modal({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 100, opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+            className="relative w-full max-w-sm bg-white rounded-radius-2xl shadow-md overflow-hidden"
           >
             <div className="p-8 pb-6">
               <div className="flex flex-col items-center text-center gap-4">
-                <div className={`h-16 w-16 rounded-3xl flex items-center justify-center ${type === 'danger' ? 'bg-rose-50 text-rose-500' :
-                  type === 'success' ? 'bg-emerald-50 text-emerald-500' :
-                    'bg-primary/10 text-primary'
+                <div className={`h-16 w-16 rounded-3xl flex items-center justify-center ${type === 'danger' ? 'bg-mono-surface text-mono-text' :
+                  type === 'success' ? 'bg-mono-surface text-mono-text' :
+                    'bg-mono-text/10 text-mono-text'
                   }`}>
                   {type === 'danger' ? <AlertTriangle size={32} /> : <X size={32} />}
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-black text-zinc-900 uppercase tracking-tight">{title}</h3>
-                  <p className="text-sm text-zinc-500 font-medium mt-2 leading-relaxed">
+                  <h3 className="text-xl font-bold text-mono-text uppercase tracking-tight">{title}</h3>
+                  <p className="text-sm text-mono-text-muted font-medium mt-2 leading-relaxed">
                     {message}
                   </p>
                 </div>
@@ -69,12 +69,12 @@ export default function Modal({
                   <button
                     type="button"
                     onClick={() => setDontShowAgain(!dontShowAgain)}
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${dontShowAgain ? 'bg-primary border-primary text-white' : 'border-zinc-200 bg-zinc-50'
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${dontShowAgain ? 'bg-mono-text border-mono-text text-white' : 'border-mono-border bg-mono-bg'
                       }`}
                   >
                     {dontShowAgain && <Check size={12} strokeWidth={4} />}
                   </button>
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider cursor-pointer" onClick={() => setDontShowAgain(!dontShowAgain)}>
+                  <span className="text-xs font-bold text-mono-text-disabled uppercase tracking-wider cursor-pointer" onClick={() => setDontShowAgain(!dontShowAgain)}>
                     Don't show this again
                   </span>
                 </div>
@@ -83,15 +83,15 @@ export default function Modal({
               <div className="flex flex-col gap-3 mt-8">
                 <button
                   onClick={() => onConfirm(dontShowAgain)}
-                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${type === 'danger' ? 'bg-rose-500 text-white shadow-rose-200' :
-                    'bg-primary text-white shadow-primary/20'
+                  className={`w-full py-4 rounded-radius-md font-bold text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${type === 'danger' ? 'bg-mono-surface0 text-white shadow-rose-200' :
+                    'bg-mono-text text-white shadow-primary/20'
                     }`}
                 >
                   {confirmText}
                 </button>
                 <button
                   onClick={onClose}
-                  className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-all active:scale-95"
+                  className="w-full py-4 rounded-radius-md font-bold text-sm uppercase tracking-widest text-mono-text-disabled hover:text-mono-text-muted hover:bg-mono-bg transition-all active:scale-95"
                 >
                   {cancelText}
                 </button>

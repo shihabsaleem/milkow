@@ -65,12 +65,29 @@ export default function InventoryPage() {
           <p className="text-[12px] font-bold uppercase tracking-widest mb-3 text-mono-text-disabled">Supply Pipeline</p>
           <div className="grid grid-cols-2 gap-3">
             {isLoading ? (
-              [1, 2].map(i => <div key={i} className="h-32 bg-mono-text/5 border-2 border-mono-border rounded-card animate-pulse" />)
+              [1, 2].map(i => <div key={i} className="h-36 bg-mono-skeleton border border-mono-border rounded-card animate-pulse" />)
             ) : (
               pipeline.map((stage, i) => (
-                <div key={i} className="rounded-card p-4 flex flex-col gap-3 transition-transform bg-mono-text/10 border-2 border-mono-border group relative">
-                  <div className="text-mono-text"><Droplet size={20} /></div>
-                  <div><p className="text-[13px] font-semibold text-mono-text-muted">{stage.label}</p><div className="flex items-center mt-1"><input type="number" placeholder="0" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} onFocus={(e) => e.target.select()} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-semibold rounded-card py-1.5 px-2 text-mono-text focus:outline-none placeholder:text-mono-border" /><span className="text-[13px] font-medium ml-2 shrink-0 text-mono-text-disabled">{stage.unit}</span></div></div>
+                <div key={i} className="rounded-card bg-white border border-mono-border flex flex-col p-4 gap-3">
+                  {/* Icon + Label */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-md bg-mono-surface flex items-center justify-center shrink-0">
+                      <Droplet size={14} className="text-mono-text" strokeWidth={2} />
+                    </div>
+                    <p className={`text-[12px] leading-tight ${!stage.value || stage.value === '0' || stage.value === 0 ? 'text-mono-text-muted font-normal' : 'text-mono-text font-medium'}`}>{stage.label}</p>
+                  </div>
+                  {/* Input box — clearly styled as a field */}
+                  <label className="flex items-baseline gap-2 bg-mono-surface shadow-xs rounded-md px-3 py-2.5 cursor-text focus-within:border-mono-text focus-within:ring-2 focus-within:ring-mono-text/10 transition-all">
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={stage.value}
+                      onChange={(e) => updatePipelineValue(stage.id, e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      className="w-full text-[28px] font-bold text-mono-text leading-none bg-transparent focus:outline-none placeholder:text-mono-text-disabled"
+                    />
+                    <span className="text-[12px] font-medium text-mono-text-disabled shrink-0">{stage.unit}</span>
+                  </label>
                 </div>
               ))
             )}

@@ -40,7 +40,7 @@ export default function CustomersPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[20px] font-semibold text-mono-text leading-none">Customers</p>
-              <p className="text-[12px] font-bold text-mono-text-disabled mt-1 uppercase tracking-widest">{customers.length} Subscribers</p>
+              <p className="text-xs font-bold text-mono-text-disabled mt-1 uppercase tracking-widest">{customers.length} Subscribers</p>
             </div>
             <div className="flex items-center gap-2">
               <Link href="/route" className="h-10 w-10 bg-mono-surface text-mono-text-muted rounded-card flex items-center justify-center hover:bg-mono-border transition-all" title="Reorder route">

@@ -117,21 +117,21 @@ export default function RouteOrderPage() {
         supabase.from("areas").select("*").eq("franchise_id", activeFranchiseId).order("name"),
         supabase.from("customers").select("*, area:areas(*)").eq("franchise_id", activeFranchiseId).eq("status", "Active"),
       ]);
-      
+
       if (areaData) {
         setAreas(areaData as T.Area[]);
         if (areaData.length > 0 && !selectedAreaId) setSelectedAreaId(areaData[0].id.toString());
       }
-      
+
       if (custData) {
         setCustomers(custData as CustomerWithArea[]);
       }
-      
+
       if (areaData || custData) {
         const pageCacheKey = `milkow_route_page_${activeFranchiseId}`;
         const pageCacheData = {
-           areas: areaData || [],
-           customers: custData || []
+          areas: areaData || [],
+          customers: custData || []
         };
         localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
       }
@@ -141,17 +141,17 @@ export default function RouteOrderPage() {
 
     const pageCacheKey = `milkow_route_page_${activeFranchiseId}`;
     const cachedPage = localStorage.getItem(pageCacheKey);
-    
+
     if (cachedPage) {
-       try {
-          const parsed = JSON.parse(cachedPage);
-          if (parsed.areas) {
-            setAreas(parsed.areas);
-            if (parsed.areas.length > 0 && !selectedAreaId) setSelectedAreaId(parsed.areas[0].id.toString());
-          }
-          if (parsed.customers) setCustomers(parsed.customers);
-          setIsLoading(false);
-       } catch (e) {}
+      try {
+        const parsed = JSON.parse(cachedPage);
+        if (parsed.areas) {
+          setAreas(parsed.areas);
+          if (parsed.areas.length > 0 && !selectedAreaId) setSelectedAreaId(parsed.areas[0].id.toString());
+        }
+        if (parsed.customers) setCustomers(parsed.customers);
+        setIsLoading(false);
+      } catch (e) { }
     }
 
     fetchData(!!cachedPage);
@@ -209,7 +209,7 @@ export default function RouteOrderPage() {
               </Link>
               <div>
                 <p className="text-[20px] font-semibold text-mono-text leading-none">Route Order</p>
-                <p className="text-[12px] font-bold text-mono-text-disabled mt-1 uppercase tracking-widest">
+                <p className="text-xs font-bold text-mono-text-disabled mt-1 uppercase tracking-widest">
                   Drag to reorder delivery stops
                 </p>
               </div>

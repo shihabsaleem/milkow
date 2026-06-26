@@ -8,7 +8,7 @@ export function InventoryCard({ item }: { item: T.InventoryItem }) {
   return (
     <div className="rounded-card bg-white border border-mono-border flex flex-col gap-3 p-4">
       {/* Name */}
-      <p className="text-[12px] font-medium text-mono-text-muted leading-tight truncate">{item.name}</p>
+      <p className="text-xs font-medium text-mono-text-muted leading-tight truncate">{item.name}</p>
 
       {/* Count */}
       <div className="flex items-baseline gap-1">
@@ -24,7 +24,7 @@ export function InventoryCard({ item }: { item: T.InventoryItem }) {
       {/* Footer */}
       <div className="flex items-center justify-between">
         <p className="text-[11px] text-mono-text-disabled">Loaded</p>
-        <p className="text-[12px] font-semibold text-mono-text">
+        <p className="text-xs font-semibold text-mono-text">
           {isEmpty ? "—" : item.loaded}
           <span className="text-[10px] font-normal text-mono-text-muted ml-0.5">{item.unit}</span>
         </p>
@@ -36,7 +36,7 @@ export function InventoryCard({ item }: { item: T.InventoryItem }) {
 export function DeliveredCard({ item }: { item: DeliveredItem }) {
   return (
     <div className="rounded-card p-4 bg-white border border-mono-border flex flex-col gap-3">
-      <p className="text-[12px] font-medium text-mono-text-muted leading-tight truncate">{item.name}</p>
+      <p className="text-xs font-medium text-mono-text-muted leading-tight truncate">{item.name}</p>
       <div className="flex items-baseline gap-1">
         <p className="text-[28px] font-bold text-mono-text leading-none">{item.count}</p>
         <p className="text-[11px] text-mono-text-disabled">{item.unit}</p>
@@ -50,7 +50,7 @@ export function FinanceCard({ amount, label, badge, type }: { amount: string; la
     <div className="rounded-card p-4 bg-white border border-mono-border flex flex-col gap-3 justify-between">
       <div>
         <p className="text-[22px] font-bold text-mono-text leading-none truncate">{amount}</p>
-        <p className="text-[12px] font-medium text-mono-text-muted mt-2 leading-tight">{label}</p>
+        <p className="text-xs font-medium text-mono-text-muted mt-2 leading-tight">{label}</p>
       </div>
       {badge ? <p className="text-[11px] text-mono-text-disabled">{badge}</p> : <span />}
     </div>

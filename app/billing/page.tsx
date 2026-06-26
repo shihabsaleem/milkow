@@ -206,7 +206,7 @@ export default function BillingPage() {
                            <div className="flex flex-col items-end"><span className="font-bold text-lg text-mono-text">₹{Number(bill.amount).toFixed(2)}</span></div>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-mono-divider">
-                           <button disabled={isLoading} onClick={() => setSelectedInvoice(bill)} className="rounded-card py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-surface text-mono-text active:scale-95 disabled:opacity-50"><QrCode size={14} /> Show QR</button>
+                           <button disabled={isLoading} onClick={() => setSelectedInvoice(bill)} className="rounded-md py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-surface text-mono-text active:scale-95 disabled:opacity-50"><QrCode size={14} /> Show QR</button>
                            <button disabled={isLoading} onClick={() => {
                               setSelectedCustomerForPayment(bill.customer_id);
                               setPaymentAmount(bill.amount.toString());
@@ -214,8 +214,8 @@ export default function BillingPage() {
                               setPaymentNotes("");
                               setPaymentTotalDue(bill.amount);
                               setIsPaymentModalOpen(true);
-                           }} className="rounded-card py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-text text-white active:scale-95 disabled:opacity-50"><Wallet2 size={14} /> Record</button>
-                           <button disabled={isLoading} onClick={() => handleMarkAsPaid(bill.id, setSelectedInvoice)} className="rounded-card py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-surface text-mono-text border active:scale-95 disabled:opacity-50 disabled:pointer-events-none"><CheckCircle2 size={14} /> Settle</button>
+                           }} className="rounded-md py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-text text-white active:scale-95 disabled:opacity-50"><Wallet2 size={14} /> Record</button>
+                           <button disabled={isLoading} onClick={() => handleMarkAsPaid(bill.id, setSelectedInvoice)} className="rounded-md py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-surface text-mono-text border active:scale-95 disabled:opacity-50 disabled:pointer-events-none"><CheckCircle2 size={14} /> Settle</button>
                         </div>
                      </div>
                   );

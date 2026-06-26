@@ -45,11 +45,11 @@ export default function Modal({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 100, opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-sm bg-white rounded-radius-2xl shadow-md overflow-hidden"
+            className="relative w-full max-w-sm bg-white rounded-hero shadow-md overflow-hidden"
           >
             <div className="p-8 pb-6">
               <div className="flex flex-col items-center text-center gap-4">
-                <div className={`h-16 w-16 rounded-3xl flex items-center justify-center ${type === 'danger' ? 'bg-mono-surface text-mono-text' :
+                <div className={`h-16 w-16 rounded-hero flex items-center justify-center ${type === 'danger' ? 'bg-mono-surface text-mono-text' :
                   type === 'success' ? 'bg-mono-surface text-mono-text' :
                     'bg-mono-text/10 text-mono-text'
                   }`}>
@@ -57,7 +57,7 @@ export default function Modal({
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-mono-text uppercase tracking-tight">{title}</h3>
+                  <h3 className="text-xl font-semibold text-mono-text uppercase tracking-tight">{title}</h3>
                   <p className="text-sm text-mono-text-muted font-medium mt-2 leading-relaxed">
                     {message}
                   </p>
@@ -83,7 +83,7 @@ export default function Modal({
               <div className="flex flex-col gap-3 mt-8">
                 <button
                   onClick={() => onConfirm(dontShowAgain)}
-                  className={`w-full py-4 rounded-radius-md font-bold text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${type === 'danger' ? 'bg-mono-surface0 text-white shadow-rose-200' :
+                  className={`w-full py-4 rounded-card font-bold text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg ${type === 'danger' ? 'bg-mono-surface0 text-white shadow-rose-200' :
                     'bg-mono-text text-white shadow-primary/20'
                     }`}
                 >
@@ -91,7 +91,7 @@ export default function Modal({
                 </button>
                 <button
                   onClick={onClose}
-                  className="w-full py-4 rounded-radius-md font-bold text-sm uppercase tracking-widest text-mono-text-disabled hover:text-mono-text-muted hover:bg-mono-bg transition-all active:scale-95"
+                  className="w-full py-4 rounded-card font-bold text-sm uppercase tracking-widest text-mono-text-disabled hover:text-mono-text-muted hover:bg-mono-bg transition-all active:scale-95"
                 >
                   {cancelText}
                 </button>

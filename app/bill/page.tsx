@@ -77,7 +77,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
               className="bg-white rounded-4xl p-8 border border-mono-border/80 shadow-[0_12px_40px_rgba(0,0,0,0.03)] mx-4 sm:mx-auto max-w-md w-full"
             >
               <div className="text-center mb-6">
-                <h1 className="text-xl font-bold text-mono-text tracking-tight">View Your Ledger</h1>
+                <h1 className="text-xl font-semibold text-mono-text tracking-tight">View Your Ledger</h1>
                 <p className="text-xs text-mono-text-muted mt-2 leading-relaxed">
                   Enter your registered mobile number to fetch your balance, history, and payment link.
                 </p>
@@ -96,7 +96,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                       inputMode="numeric"
                       value={phone}
                       onChange={handlePhoneChange}
-                      className="w-full bg-mono-bg/50 border border-mono-border hover:border-mono-border focus:border-mono-text focus:bg-white rounded-radius pl-16 pr-4 py-3.5 text-sm font-semibold text-mono-text focus:outline-none transition-all placeholder:text-mono-text-disabled"
+                      className="w-full bg-mono-bg/50 border border-mono-border hover:border-mono-border focus:border-mono-text focus:bg-white rounded-card pl-16 pr-4 py-3.5 text-sm font-semibold text-mono-text focus:outline-none transition-all placeholder:text-mono-text-disabled"
                       placeholder="Mobile number"
                       disabled={isLoading}
                       required
@@ -110,7 +110,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="bg-mono-surface border border-rose-100 text-rose-600 px-4 py-3 rounded-radius text-xs font-bold flex items-start gap-2 overflow-hidden"
+                      className="bg-mono-surface border border-rose-100 text-rose-600 px-4 py-3 rounded-card text-xs font-bold flex items-start gap-2 overflow-hidden"
                     >
                       <AlertCircle size={15} className="shrink-0 mt-0.5" />
                       <span>{error}</span>
@@ -121,7 +121,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                 <button
                   type="submit"
                   disabled={isLoading || phone.length < 10}
-                  className="w-full bg-mono-text hover:bg-mono-text/80 text-white font-bold py-3.5 rounded-radius transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-1 cursor-pointer"
+                  className="w-full bg-mono-text hover:bg-mono-text/80 text-white font-bold py-3.5 rounded-card transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-1 cursor-pointer"
                 >
                   {isLoading ? (
                     <>
@@ -147,7 +147,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
               className="flex flex-col w-full h-full sm:h-auto"
             >
               {/* Profile Card Header */}
-              <div className="bg-white sm:rounded-3xl sm:shadow-sm sm:border border-mono-border/50 relative overflow-hidden sm:mx-auto max-w-2xl w-full">
+              <div className="bg-white sm:rounded-hero sm:shadow-sm sm:border border-mono-border/50 relative overflow-hidden sm:mx-auto max-w-2xl w-full">
                  <div className="px-6 pb-4 pt-6 sm:pt-6">
                     <div className="flex items-start justify-between mb-6">
                        <div className="flex items-center gap-4">
@@ -155,7 +155,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                              <ArrowLeft size={16} />
                           </button>
                           <div className="flex flex-col gap-1">
-                             <h2 className="text-xl font-bold text-mono-text tracking-tight leading-none">{billData.customer.name}</h2>
+                             <h2 className="text-xl font-semibold text-mono-text tracking-tight leading-none">{billData.customer.name}</h2>
                              <div className="flex items-center gap-2 mt-1">
                                 <span className="flex items-center gap-1 text-mono-text-muted text-[11px] font-medium"><MapPin size={10} className="text-mono-text-disabled" /> {billData.customer.area_name || 'No Area'}</span>
                                 <span className="w-1 h-1 rounded-full bg-mono-border" />
@@ -165,13 +165,13 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                       <div className="bg-mono-bg rounded-radius-md p-3 sm:p-4 border border-mono-divider">
+                       <div className="bg-mono-bg rounded-card p-3 sm:p-4 border border-mono-divider">
                           <div className="flex items-center gap-1.5 text-mono-text-disabled text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2">
                              <Clock size={12} /> Frequency
                           </div>
                           <p className="text-[13px] sm:text-sm font-bold text-mono-text">{billData.customer.frequency}</p>
                        </div>
-                       <div className={`rounded-radius-md p-3 sm:p-4 border ${billData.financials.account_status === 'Advance' ? 'bg-mono-surface border-emerald-100' : 'bg-mono-text/5 border-mono-border'}`}>
+                       <div className={`rounded-card p-3 sm:p-4 border ${billData.financials.account_status === 'Advance' ? 'bg-mono-surface border-emerald-100' : 'bg-mono-text/5 border-mono-border'}`}>
                           <div className={`flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2 opacity-80 ${billData.financials.account_status === 'Advance' ? 'text-mono-text' : 'text-mono-text'}`}>
                              <Receipt size={12} /> {billData.financials.account_status === 'Advance' ? 'Advance' : 'Total Payable'}
                           </div>
@@ -201,10 +201,10 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                {activeTab === 'calendar' && (
                <motion.div key="calendar" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15 }} className="flex-1 overflow-y-auto">
                <div className="max-w-2xl mx-auto w-full px-4 sm:px-0 py-4 sm:py-6">
-                  <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-sm border border-mono-border/60">
+                  <div className="bg-white rounded-hero p-5 sm:p-8 shadow-sm border border-mono-border/60">
                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                        <div><h3 className="text-lg font-bold text-mono-text">Delivery History</h3><div className="flex items-center gap-2 mt-1.5"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-surface border border-mono-border"><ArrowLeft size={12} /></button><p className="text-[10px] font-bold text-mono-text uppercase tracking-widest px-2">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-surface border border-mono-border"><ArrowLeft size={12} className="rotate-180" /></button></div></div>
-                        <div className="flex items-center gap-2 bg-mono-bg text-mono-text-muted px-3 py-1.5 rounded-radius border border-mono-border"><span className="text-[9px] font-bold uppercase tracking-widest">{filteredDeliveries.filter(d => d.delivered).length} Deliveries</span></div>
+                        <div><h3 className="text-lg font-semibold text-mono-text">Delivery History</h3><div className="flex items-center gap-2 mt-1.5"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-surface border border-mono-border"><ArrowLeft size={12} /></button><p className="text-[10px] font-bold text-mono-text uppercase tracking-widest px-2">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-surface border border-mono-border"><ArrowLeft size={12} className="rotate-180" /></button></div></div>
+                        <div className="flex items-center gap-2 bg-mono-bg text-mono-text-muted px-3 py-1.5 rounded-card border border-mono-border"><span className="text-[9px] font-bold uppercase tracking-widest">{filteredDeliveries.filter(d => d.delivered).length} Deliveries</span></div>
                      </div>
                      <div className="flex flex-col gap-3">
                         {Array.from({ length: displayDays }).map((_, i) => {
@@ -214,9 +214,9 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
 
                            if (dayDeliveries.length === 0) {
                               return (
-                                 <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-radius-md border transition-all bg-mono-bg/30 border-mono-divider/50 opacity-40">
+                                 <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-card border transition-all bg-mono-bg/30 border-mono-divider/50 opacity-40">
                                     <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                       <div className="h-10 w-10 shrink-0 rounded-radius flex flex-col items-center justify-center font-bold bg-mono-surface text-mono-text-disabled">
+                                       <div className="h-10 w-10 shrink-0 rounded-card flex flex-col items-center justify-center font-bold bg-mono-surface text-mono-text-disabled">
                                           <span className="text-[8px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                           <span className="text-sm leading-none">{day}</span>
                                        </div>
@@ -229,9 +229,9 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                            const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 
                            return (
-                              <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-radius-md border transition-all bg-white border-mono-border">
+                              <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-card border transition-all bg-white border-mono-border">
                                  <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                    <div className="h-10 w-10 shrink-0 rounded-radius flex flex-col items-center justify-center font-bold bg-mono-text/5 text-mono-text border border-mono-border">
+                                    <div className="h-10 w-10 shrink-0 rounded-card flex flex-col items-center justify-center font-bold bg-mono-text/5 text-mono-text border border-mono-border">
                                        <span className="text-[8px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                        <span className="text-sm leading-none">{day}</span>
                                     </div>
@@ -280,13 +280,13 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                {activeTab === 'statement' && (
                <motion.div key="statement" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.15 }} className="flex-1 overflow-y-auto">
                <div className="max-w-2xl mx-auto w-full px-4 sm:px-0 py-4 sm:py-6">
-                  <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-sm border border-mono-border/60">
+                  <div className="bg-white rounded-hero p-5 sm:p-8 shadow-sm border border-mono-border/60">
                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-bold text-mono-text">Payment History</h3>
-                        <span className="text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 bg-mono-bg text-mono-text-muted rounded-radius border border-mono-border">{billData.payments.length} Records</span>
+                        <h3 className="text-lg font-semibold text-mono-text">Payment History</h3>
+                        <span className="text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 bg-mono-bg text-mono-text-muted rounded-card border border-mono-border">{billData.payments.length} Records</span>
                      </div>
                      {billData.payments.length === 0 ? (
-                        <div className="py-12 flex flex-col items-center justify-center text-mono-text-disabled gap-2 bg-mono-bg rounded-3xl border-2 border-dashed border-mono-border">
+                        <div className="py-12 flex flex-col items-center justify-center text-mono-text-disabled gap-2 bg-mono-bg rounded-hero border-2 border-dashed border-mono-border">
                            <p className="font-bold">No payments found</p>
                            <p className="text-[10px] uppercase tracking-widest">All payments will appear here</p>
                         </div>
@@ -297,9 +297,9 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                               const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                               const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
                               return (
-                                 <div key={i} className="flex items-center justify-between p-4 rounded-radius-md border bg-white border-mono-border">
+                                 <div key={i} className="flex items-center justify-between p-4 rounded-card border bg-white border-mono-border">
                                     <div className="flex items-center gap-3">
-                                       <div className="h-10 w-10 shrink-0 rounded-radius flex items-center justify-center bg-mono-surface text-mono-text border border-emerald-100">
+                                       <div className="h-10 w-10 shrink-0 rounded-card flex items-center justify-center bg-mono-surface text-mono-text border border-emerald-100">
                                           <Receipt size={16} />
                                        </div>
                                        <div>
@@ -328,11 +328,11 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                <motion.div key="pay" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.15 }} className="flex-1 overflow-y-auto">
                <div className="max-w-2xl mx-auto w-full px-4 sm:px-0 py-4 sm:py-6">
                   {billData.financials.current_balance <= 0 ? (
-                     <div className="bg-white rounded-3xl p-8 border border-mono-text/80 shadow-sm text-center">
+                     <div className="bg-white rounded-hero p-8 border border-mono-text/80 shadow-sm text-center">
                         <div className="w-12 h-12 rounded-full bg-mono-surface border border-emerald-100 text-mono-text flex items-center justify-center mx-auto mb-4">
                            <CheckCircle2 size={24} />
                         </div>
-                        <h2 className="text-lg font-bold text-mono-text tracking-tight">Account Settled</h2>
+                        <h2 className="text-lg font-semibold text-mono-text tracking-tight">Account Settled</h2>
                         <p className="text-xs text-mono-text-muted leading-relaxed mt-2 px-4">
                            {billData.financials.current_balance < 0 ? 
                               `You have an advance credit of ₹${Math.abs(billData.financials.current_balance).toFixed(2)} with us. No payment is required.` : 
@@ -340,17 +340,17 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                         </p>
                      </div>
                   ) : (
-                     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-mono-border/60 shadow-sm">
+                     <div className="bg-white rounded-hero p-6 sm:p-8 border border-mono-border/60 shadow-sm">
                         <div className="text-center pb-6">
                            <p className="text-[10px] font-bold uppercase tracking-widest text-mono-text-disabled">Total Payable</p>
-                           <h2 className="text-4xl sm:text-5xl font-bold text-mono-text mt-2 tracking-tight">
+                           <h2 className="text-4xl sm:text-5xl font-semibold text-mono-text mt-2 tracking-tight">
                               ₹{billData.financials.current_balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                            </h2>
                         </div>
                         
                         {/* QR Code Container */}
-                        <div className="flex flex-col items-center bg-mono-bg/50 rounded-3xl py-6 border border-mono-border/50">
-                           <div className="bg-white p-4 border border-mono-border rounded-radius-md shadow-sm relative">
+                        <div className="flex flex-col items-center bg-mono-bg/50 rounded-hero py-6 border border-mono-border/50">
+                           <div className="bg-white p-4 border border-mono-border rounded-card shadow-sm relative">
                               <QRCodeCanvas
                                  value={getUpiLink()}
                                  size={160}
@@ -377,7 +377,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                         <div className="w-full mt-6 flex flex-col gap-3">
                            <a
                               href={getUpiLink()}
-                              className="w-full bg-success hover:bg-emerald-700 text-white font-bold py-3.5 rounded-radius active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-sm"
+                              className="w-full bg-success hover:bg-emerald-700 text-white font-bold py-3.5 rounded-card active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-sm"
                            >
                               <Smartphone size={16} />
                               Pay via UPI App
@@ -386,7 +386,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                            <div className="flex gap-2">
                               <button
                                  onClick={copyUpiId}
-                                 className="flex-1 bg-mono-bg hover:bg-mono-surface text-mono-text font-bold py-3.5 rounded-radius border border-mono-border transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-[11px] sm:text-xs"
+                                 className="flex-1 bg-mono-bg hover:bg-mono-surface text-mono-text font-bold py-3.5 rounded-card border border-mono-border transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-[11px] sm:text-xs"
                               >
                                  {copied ? <Check size={14} className="text-mono-text" /> : <Copy size={14} />}
                                  {copied ? "Copied UPI ID!" : "Copy UPI ID"}
@@ -394,7 +394,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                               
                               <button
                                  onClick={shareBillLink}
-                                 className="flex-1 bg-mono-bg hover:bg-mono-surface text-mono-text font-bold py-3.5 rounded-radius border border-mono-border transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-[11px] sm:text-xs"
+                                 className="flex-1 bg-mono-bg hover:bg-mono-surface text-mono-text font-bold py-3.5 rounded-card border border-mono-border transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-[11px] sm:text-xs"
                               >
                                  <Share2 size={14} />
                                  Share Link

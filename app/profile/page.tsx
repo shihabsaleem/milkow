@@ -64,7 +64,7 @@ export default function UserProfilePage() {
                   <ArrowLeft size={20} />
                </button>
                <div>
-                  <h1 className="text-lg font-bold">System Profile</h1>
+                  <h1 className="text-lg font-semibold">System Profile</h1>
                   <p className="text-xs text-mono-text-muted">Edit business & security details</p>
                </div>
             </div>
@@ -73,15 +73,15 @@ export default function UserProfilePage() {
          <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-8">
             {/* Profile Picture */}
             <div className="flex flex-col items-center gap-4 mt-4">
-               <div className="h-28 w-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-sm relative group bg-mono-text flex items-center justify-center">
+               <div className="h-28 w-28 rounded-hero overflow-hidden ring-4 ring-white shadow-sm relative group bg-mono-text flex items-center justify-center">
                   <span className="text-white text-4xl font-bold">{adminName.charAt(0)}</span>
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                      <p className="text-white text-[10px] font-bold uppercase tracking-widest">Change</p>
                   </div>
                </div>
                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-mono-text">{adminName}</h2>
-                  <p className="text-[11px] font-bold tracking-widest uppercase text-mono-text bg-mono-text/10 px-3 py-1 rounded-radius-xs mt-1 inline-block">System Owner</p>
+                  <h2 className="text-2xl font-semibold text-mono-text">{adminName}</h2>
+                  <p className="text-[11px] font-bold tracking-widest uppercase text-mono-text bg-mono-text/10 px-3 py-1 rounded-sm mt-1 inline-block">System Owner</p>
                </div>
             </div>
 
@@ -90,13 +90,13 @@ export default function UserProfilePage() {
 
                {/* Superadmin Quick Access */}
                {role === 'superadmin' && (
-                  <Link href="/superadmin" className="bg-mono-surface hover:bg-emerald-100/80 rounded-3xl p-6 shadow-sm border border-mono-text/50 flex items-center justify-between transition-colors active:scale-95 group">
+                  <Link href="/superadmin" className="bg-mono-surface hover:bg-emerald-100/80 rounded-hero p-6 shadow-sm border border-mono-text/50 flex items-center justify-between transition-colors active:scale-95 group">
                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-radius-md bg-mono-text/10 flex items-center justify-center text-mono-text">
+                        <div className="w-10 h-10 rounded-card bg-mono-text/10 flex items-center justify-center text-mono-text">
                            <ShieldAlert size={20} />
                         </div>
                         <div>
-                           <h3 className="font-bold text-emerald-900">Superadmin Dashboard</h3>
+                           <h3 className="font-semibold text-emerald-900">Superadmin Dashboard</h3>
                            <p className="text-xs text-mono-text/80">Manage all franchises & system settings</p>
                         </div>
                      </div>
@@ -105,8 +105,8 @@ export default function UserProfilePage() {
                )}
 
                {/* Account Security Section */}
-               <div className="bg-white rounded-3xl p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
-                  <h3 className="font-bold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
+               <div className="bg-white rounded-hero p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
+                  <h3 className="font-semibold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
                      <span className="w-1.5 h-1.5 bg-mono-text rounded-full"></span>
                      Security & Account
                   </h3>
@@ -117,7 +117,7 @@ export default function UserProfilePage() {
                         type="text"
                         value={adminName}
                         onChange={(e) => setAdminName(e.target.value)}
-                        className="w-full bg-mono-bg border border-mono-border rounded-radius px-4 py-3 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
+                        className="w-full bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
                         placeholder="Your full name"
                      />
                   </div>
@@ -128,7 +128,7 @@ export default function UserProfilePage() {
                         type="password"
                         value={pin}
                         onChange={(e) => setPin(e.target.value)}
-                        className="w-full bg-mono-bg border border-mono-border rounded-radius px-4 py-3 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
+                        className="w-full bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
                         placeholder="••••••"
                      />
                      <p className="text-[9px] text-mono-text-disabled mt-0.5 pl-1 italic">Used for logging into the dashboard</p>
@@ -136,8 +136,8 @@ export default function UserProfilePage() {
                </div>
 
                {/* Business & Payment Section */}
-               <div className="bg-white rounded-3xl p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
-                  <h3 className="font-bold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
+               <div className="bg-white rounded-hero p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
+                  <h3 className="font-semibold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
                      <span className="w-1.5 h-1.5 bg-mono-text rounded-full"></span>
                      Business & Payment Setup
                   </h3>
@@ -148,7 +148,7 @@ export default function UserProfilePage() {
                         type="text"
                         value={payeeName}
                         onChange={(e) => setPayeeName(e.target.value)}
-                        className="w-full bg-mono-bg border border-mono-border rounded-radius px-4 py-3 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
+                        className="w-full bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
                      />
                   </div>
 
@@ -158,14 +158,14 @@ export default function UserProfilePage() {
                         type="text"
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
-                        className="w-full bg-mono-bg border border-mono-border rounded-radius px-4 py-3 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
+                        className="w-full bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
                      />
                   </div>
                </div>
 
                {/* Automation Settings Section */}
-               <div className="bg-white rounded-3xl p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
-                  <h3 className="font-bold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
+               <div className="bg-white rounded-hero p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
+                  <h3 className="font-semibold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
                      Automation & Shifts
                   </h3>
@@ -201,7 +201,7 @@ export default function UserProfilePage() {
                                  type="time"
                                  value={morningCloseTime}
                                  onChange={(e) => setMorningCloseTime(e.target.value)}
-                                 className="w-full bg-mono-bg border border-mono-border rounded-radius px-4 py-3 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
+                                 className="w-full bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
                               />
                            </div>
                            <div className="flex flex-col gap-1.5">
@@ -210,7 +210,7 @@ export default function UserProfilePage() {
                                  type="time"
                                  value={eveningCloseTime}
                                  onChange={(e) => setEveningCloseTime(e.target.value)}
-                                 className="w-full bg-mono-bg border border-mono-border rounded-radius px-4 py-3 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
+                                 className="w-full bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
                               />
                            </div>
                         </motion.div>
@@ -219,8 +219,8 @@ export default function UserProfilePage() {
                </div>
 
                {/* Delivery Routes Section */}
-               <div className="bg-white rounded-3xl p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
-                  <h3 className="font-bold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
+               <div className="bg-white rounded-hero p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
+                  <h3 className="font-semibold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
                      <span className="w-1.5 h-1.5 bg-mono-surface0 rounded-full"></span>
                      Delivery Routes
                   </h3>
@@ -233,7 +233,7 @@ export default function UserProfilePage() {
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center justify-between bg-mono-bg border border-mono-border rounded-radius px-4 py-3"
+                              className="flex items-center justify-between bg-mono-bg border border-mono-border rounded-card px-4 py-3"
                            >
                               {editingRouteId === area.id ? (
                                  <>
@@ -242,22 +242,22 @@ export default function UserProfilePage() {
                                        value={editingRouteName}
                                        onChange={e => setEditingRouteName(e.target.value)}
                                        onKeyDown={e => { if (e.key === 'Enter') editRoute(area.id, editingRouteName); if (e.key === 'Escape') { setEditingRouteId(null); setEditingRouteName(''); } }}
-                                       className="flex-1 bg-white border border-mono-border rounded-radius-xs px-3 py-1.5 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 mr-2"
+                                       className="flex-1 bg-white border border-mono-border rounded-sm px-3 py-1.5 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 mr-2"
                                     />
-                                    <button onClick={() => editRoute(area.id, editingRouteName)} className="text-mono-text hover:bg-mono-surface p-1.5 rounded-radius-xs transition-colors">
+                                    <button onClick={() => editRoute(area.id, editingRouteName)} className="text-mono-text hover:bg-mono-surface p-1.5 rounded-sm transition-colors">
                                        <Check size={16} />
                                     </button>
-                                    <button onClick={() => { setEditingRouteId(null); setEditingRouteName(''); }} className="text-mono-text-disabled hover:bg-mono-surface p-1.5 rounded-radius-xs transition-colors ml-1">
+                                    <button onClick={() => { setEditingRouteId(null); setEditingRouteName(''); }} className="text-mono-text-disabled hover:bg-mono-surface p-1.5 rounded-sm transition-colors ml-1">
                                        <X size={16} />
                                     </button>
                                  </>
                               ) : (
                                  <>
                                     <span className="text-sm font-bold text-mono-text flex-1">{area.name}</span>
-                                    <button onClick={() => { setEditingRouteId(area.id); setEditingRouteName(area.name); }} className="text-mono-text-disabled hover:bg-mono-surface p-1.5 rounded-radius-xs transition-colors mr-1">
+                                    <button onClick={() => { setEditingRouteId(area.id); setEditingRouteName(area.name); }} className="text-mono-text-disabled hover:bg-mono-surface p-1.5 rounded-sm transition-colors mr-1">
                                        <Edit2 size={15} />
                                     </button>
-                                    <button onClick={() => removeRoute(area.id)} className="text-mono-text hover:bg-mono-surface p-1.5 rounded-radius-xs transition-colors">
+                                    <button onClick={() => removeRoute(area.id)} className="text-mono-text hover:bg-mono-surface p-1.5 rounded-sm transition-colors">
                                        <X size={16} />
                                     </button>
                                  </>
@@ -278,13 +278,13 @@ export default function UserProfilePage() {
                         }}
                         disabled={isAddingRoute}
                         placeholder="Add new route..."
-                        className="flex-1 bg-mono-bg border border-mono-border rounded-radius px-4 py-3 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all disabled:opacity-50"
+                        className="flex-1 bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all disabled:opacity-50"
                      />
                      <motion.button
                         whileTap={{ scale: 0.9 }}
                         onClick={addRoute}
                         disabled={!newRoute.trim() || isAddingRoute}
-                        className={`p-3 rounded-radius transition-all flex items-center justify-center min-w-[48px] ${routeSuccess ? 'bg-mono-text text-white shadow-lg shadow-emerald-500/20' :
+                        className={`p-3 rounded-card transition-all flex items-center justify-center min-w-[48px] ${routeSuccess ? 'bg-mono-text text-white shadow-lg shadow-emerald-500/20' :
                            'bg-mono-text text-white hover:bg-mono-text/80 disabled:opacity-50 disabled:cursor-not-allowed'
                            }`}
                      >
@@ -303,12 +303,12 @@ export default function UserProfilePage() {
 
                <button
                   onClick={handleSave}
-                  className={`w-full text-white font-bold py-4 rounded-radius mt-2 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 ${isSaved ? 'bg-mono-text shadow-emerald-500/20' : 'bg-mono-text shadow-primary/20'}`}
+                  className={`w-full text-white font-bold py-4 rounded-card mt-2 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 ${isSaved ? 'bg-mono-text shadow-emerald-500/20' : 'bg-mono-text shadow-primary/20'}`}
                >
                   <Save size={18} /> {isSaved ? "Profile Updated!" : "Save All Changes"}
                </button>
 
-               <button onClick={handleLogout} className="w-full bg-rose-600 text-white font-bold py-4 rounded-radius-md active:scale-95 transition-all shadow-sm border border-rose-100 flex items-center justify-center gap-2">
+               <button onClick={handleLogout} className="w-full bg-rose-600 text-white font-bold py-4 rounded-card active:scale-95 transition-all shadow-sm border border-rose-100 flex items-center justify-center gap-2">
                   <LogOut size={18} /> Sign Out
                </button>
 

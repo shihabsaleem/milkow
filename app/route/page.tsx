@@ -52,13 +52,13 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 bg-white border border-mono-divider rounded-radius-md px-4 py-3.5 shadow-sm"
+      className="flex items-center gap-3 bg-white border border-mono-divider rounded-card px-4 py-3.5 shadow-sm"
     >
-      <div className="w-7 h-7 rounded-radius-xs bg-mono-text/10 text-mono-text flex items-center justify-center text-xs font-bold shrink-0">
+      <div className="w-7 h-7 rounded-sm bg-mono-text/10 text-mono-text flex items-center justify-center text-xs font-bold shrink-0">
         {index + 1}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-mono-text text-sm truncate">{customer.name}</p>
+        <p className="font-semibold text-mono-text text-sm truncate">{customer.name}</p>
         <p className="text-xs text-mono-text-disabled flex items-center gap-1 mt-0.5">
           <MapPin size={10} />
           {customer.area?.name || "No Area"} &middot; {customer.frequency}
@@ -77,12 +77,12 @@ function SortableItem({
 
 function DragCard({ customer }: { customer: CustomerWithArea }) {
   return (
-    <div className="flex items-center gap-3 bg-white border-2 border-mono-text rounded-radius-md px-4 py-3.5 shadow-md rotate-1">
-      <div className="w-7 h-7 rounded-radius-xs bg-mono-text text-white flex items-center justify-center text-xs font-bold shrink-0">
+    <div className="flex items-center gap-3 bg-white border-2 border-mono-text rounded-card px-4 py-3.5 shadow-md rotate-1">
+      <div className="w-7 h-7 rounded-sm bg-mono-text text-white flex items-center justify-center text-xs font-bold shrink-0">
         #
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-mono-text text-sm truncate">{customer.name}</p>
+        <p className="font-semibold text-mono-text text-sm truncate">{customer.name}</p>
         <p className="text-xs text-mono-text-disabled mt-0.5">{customer.area?.name}</p>
       </div>
       <GripVertical size={20} className="text-mono-text" />
@@ -204,11 +204,11 @@ export default function RouteOrderPage() {
         <div className="max-w-2xl mx-auto px-5 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/customers" className="p-2 bg-mono-surface rounded-radius text-mono-text-muted hover:bg-mono-border transition-colors">
+              <Link href="/customers" className="p-2 bg-mono-surface rounded-card text-mono-text-muted hover:bg-mono-border transition-colors">
                 <ArrowLeft size={18} />
               </Link>
               <div>
-                <p className="text-[20px] font-bold text-mono-text leading-none">Route Order</p>
+                <p className="text-[20px] font-semibold text-mono-text leading-none">Route Order</p>
                 <p className="text-[12px] font-bold text-mono-text-disabled mt-1 uppercase tracking-widest">
                   Drag to reorder delivery stops
                 </p>
@@ -222,7 +222,7 @@ export default function RouteOrderPage() {
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.8, opacity: 0 }}
-                  className="h-10 px-4 bg-mono-text text-white rounded-radius flex items-center gap-2 text-sm font-bold"
+                  className="h-10 px-4 bg-mono-text text-white rounded-card flex items-center gap-2 text-sm font-bold"
                 >
                   <Check size={16} strokeWidth={3} /> Saved
                 </motion.div>
@@ -232,7 +232,7 @@ export default function RouteOrderPage() {
                   animate={{ opacity: isDirty ? 1 : 0.35 }}
                   onClick={handleSave}
                   disabled={!isDirty || isSaving}
-                  className="h-10 px-5 bg-mono-text text-white rounded-radius font-bold text-sm disabled:cursor-not-allowed active:scale-95 transition-all"
+                  className="h-10 px-5 bg-mono-text text-white rounded-card font-bold text-sm disabled:cursor-not-allowed active:scale-95 transition-all"
                 >
                   {isSaving ? "Saving…" : "Save Order"}
                 </motion.button>
@@ -254,12 +254,12 @@ export default function RouteOrderPage() {
       <main className="max-w-2xl mx-auto px-5 py-6 flex flex-col gap-2">
         {isLoading ? (
           [1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 bg-white border border-mono-border rounded-radius-md animate-pulse" />
+            <div key={i} className="h-16 bg-white border border-mono-border rounded-card animate-pulse" />
           ))
         ) : orderedList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
             <MapPin size={48} className="mb-4" />
-            <p className="font-bold text-mono-text-muted">No active customers on this route</p>
+            <p className="font-medium text-mono-text-muted">No active customers on this route</p>
           </div>
         ) : (
           <DndContext

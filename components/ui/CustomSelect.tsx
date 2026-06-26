@@ -76,7 +76,7 @@ export default function CustomSelect({
         type="button"
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm transition-all focus:ring-2 focus:ring-primary/20 ${
+        className={`flex items-center justify-between bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm transition-all focus:ring-2 focus:ring-primary/20 ${
           fullWidth ? "w-full" : ""
         } ${isOpen ? "border-mono-border ring-2 ring-primary/10" : ""}`}
       >
@@ -96,7 +96,7 @@ export default function CustomSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: dropUp ? 5 : -5, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className={`absolute left-0 right-0 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-2'} bg-white/90 backdrop-blur-xl border border-mono-border/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-radius-md overflow-hidden z-110 min-w-[200px]`}
+            className={`absolute left-0 right-0 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-2'} bg-white/90 backdrop-blur-xl border border-mono-border/50 shadow-[0_15px_40px_rgba(0,0,0,0.12)] rounded-card overflow-hidden z-110 min-w-[200px]`}
           >
             {/* Hard-capped max height to ensure it fits and forces scrollbar on small screens */}
             <div className="py-1 overflow-y-auto max-h-[160px] overscroll-contain">
@@ -112,7 +112,7 @@ export default function CustomSelect({
                         setIsOpen(false);
                       }
                     }}
-                    className={`w-full text-left px-4 py-3 text-sm font-bold flex items-center justify-between transition-all ${
+                    className={`w-full text-left px-4 py-3 text-sm font-medium flex items-center justify-between transition-all ${
                       value === option.value
                         ? "bg-mono-text/5 text-mono-text"
                         : "text-mono-text-muted hover:bg-mono-bg"

@@ -103,7 +103,7 @@ export default function DeliveryPage() {
                <div className="flex items-center justify-between">
                   <div className="relative">
                      <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-1.5 group">
-                        <h1 className="text-xl font-bold text-mono-text">{routesList.find(r => r.id === selectedRoute)?.name || 'All Deliveries'}</h1>
+                        <h1 className="text-xl font-semibold text-mono-text">{routesList.find(r => r.id === selectedRoute)?.name || 'All Deliveries'}</h1>
                         <ChevronDown size={18} className={`text-mono-text-disabled transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
                      </button>
 
@@ -115,7 +115,7 @@ export default function DeliveryPage() {
                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                  animate={{ opacity: 1, y: 0, scale: 1 }}
                                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                 className="absolute left-0 mt-3 w-64 bg-white/90 backdrop-blur-xl border border-mono-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-radius-md overflow-hidden z-50"
+                                 className="absolute left-0 mt-3 w-64 bg-white/90 backdrop-blur-xl border border-mono-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-card overflow-hidden z-50"
                               >
                                  <div className="px-4 py-2 border-b border-mono-divider/50 bg-mono-bg/50">
                                     <span className="text-[10px] font-bold uppercase tracking-widest text-mono-text-disabled">Select Route</span>
@@ -123,7 +123,7 @@ export default function DeliveryPage() {
                                  <div className="py-1 max-h-80 overflow-y-auto no-scrollbar">
                                     <button
                                        onClick={() => { setSelectedRoute(""); setIsRouteMenuOpen(false); }}
-                                       className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === "" ? 'bg-mono-text/5 text-mono-text' : 'text-mono-text-muted hover:bg-mono-bg'}`}
+                                       className={`w-full text-left px-4 py-3.5 text-sm font-medium flex items-center justify-between transition-all ${selectedRoute === "" ? 'bg-mono-text/5 text-mono-text' : 'text-mono-text-muted hover:bg-mono-bg'}`}
                                     >
                                        <span>All Deliveries</span>
                                        {selectedRoute === "" && <Check size={16} strokeWidth={3} />}
@@ -132,7 +132,7 @@ export default function DeliveryPage() {
                                        <button
                                           key={route.id}
                                           onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }}
-                                          className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === route.id ? 'bg-mono-text/5 text-mono-text' : 'text-mono-text-muted hover:bg-mono-bg'}`}
+                                          className={`w-full text-left px-4 py-3.5 text-sm font-medium flex items-center justify-between transition-all ${selectedRoute === route.id ? 'bg-mono-text/5 text-mono-text' : 'text-mono-text-muted hover:bg-mono-bg'}`}
                                        >
                                           <span>{route.name}</span>
                                           {selectedRoute === route.id && <Check size={16} strokeWidth={3} />}
@@ -149,12 +149,12 @@ export default function DeliveryPage() {
 
                <div className="flex items-center gap-2">
                   {/* Morning / Evening Toggle */}
-                  <div className="flex-1 grid grid-cols-2 p-1 rounded-radius-md bg-mono-surface relative h-11">
-                     <motion.div layout className="absolute inset-y-1 rounded-radius shadow-sm z-0 bg-white" style={{ left: shift === 'morning' ? '4px' : '50%', width: 'calc(50% - 4px)' }} transition={{ type: 'spring', stiffness: 450, damping: 35 }} />
-                     <button onClick={() => setManualShift('morning')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-radius transition-all text-sm font-bold ${shift === 'morning' ? 'text-mono-text' : 'text-mono-text-disabled'}`}>
+                  <div className="flex-1 grid grid-cols-2 p-1 rounded-card bg-mono-surface relative h-11">
+                     <motion.div layout className="absolute inset-y-1 rounded-card shadow-sm z-0 bg-white" style={{ left: shift === 'morning' ? '4px' : '50%', width: 'calc(50% - 4px)' }} transition={{ type: 'spring', stiffness: 450, damping: 35 }} />
+                     <button onClick={() => setManualShift('morning')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-card transition-all text-sm font-bold ${shift === 'morning' ? 'text-mono-text' : 'text-mono-text-disabled'}`}>
                         <Sunrise size={15} strokeWidth={2.5} /><span>Morning</span>
                      </button>
-                     <button onClick={() => setManualShift('evening')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-radius transition-all text-sm font-bold ${shift === 'evening' ? 'text-mono-text' : 'text-mono-text-disabled'}`}>
+                     <button onClick={() => setManualShift('evening')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-card transition-all text-sm font-bold ${shift === 'evening' ? 'text-mono-text' : 'text-mono-text-disabled'}`}>
                         <Sunset size={15} strokeWidth={2.5} /><span>Evening</span>
                      </button>
                   </div>
@@ -163,7 +163,7 @@ export default function DeliveryPage() {
                   <div className="relative">
                      <button
                         onClick={() => setIsDevMenuOpen(!isDevMenuOpen)}
-                        className="h-11 w-11 rounded-radius-md bg-mono-bg border border-mono-border flex items-center justify-center text-mono-text-muted hover:bg-mono-surface transition-colors"
+                        className="h-11 w-11 rounded-card bg-mono-bg border border-mono-border flex items-center justify-center text-mono-text-muted hover:bg-mono-surface transition-colors"
                      >
                         <MoreVertical size={20} />
                      </button>
@@ -175,11 +175,11 @@ export default function DeliveryPage() {
                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                  animate={{ opacity: 1, y: 0, scale: 1 }}
                                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                 className="absolute right-0 mt-3 w-48 bg-white border border-mono-border shadow-sm rounded-radius-md overflow-hidden z-50 p-2"
+                                 className="absolute right-0 mt-3 w-48 bg-white border border-mono-border shadow-sm rounded-card overflow-hidden z-50 p-2"
                               >
                                  <button
                                     onClick={() => router.push('/billing')}
-                                    className="w-full text-left px-3 py-2 text-sm font-bold text-mono-text hover:bg-mono-bg rounded-radius transition-colors"
+                                    className="w-full text-left px-3 py-2 text-sm font-bold text-mono-text hover:bg-mono-bg rounded-card transition-colors"
                                  >
                                     Billing
                                  </button>
@@ -201,7 +201,7 @@ export default function DeliveryPage() {
                                           }
                                        }
                                     }}
-                                    className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-radius transition-colors"
+                                    className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-card transition-colors"
                                  >
                                     Reset Shift
                                  </button>
@@ -217,17 +217,17 @@ export default function DeliveryPage() {
          <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-4">
             <div className="relative">
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-mono-text-disabled" size={18} />
-               <input type="text" placeholder="Search customers..." className="w-full bg-white border border-mono-border rounded-radius-md py-3.5 pl-11 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+               <input type="text" placeholder="Search customers..." className="w-full bg-white border border-mono-border rounded-card py-3.5 pl-11 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
 
             {isLoading ? (
                [1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="bg-white border border-mono-border shadow-sm rounded-radius animate-pulse">
+                  <div key={i} className="bg-white border border-mono-border shadow-sm rounded-card animate-pulse">
                      <div className="p-4">
                         <div className="flex flex-row items-start justify-between gap-4">
                            <div className="flex flex-col flex-1">
                               <div className="flex items-start gap-3">
-                                 <div className="mt-0.5 shrink-0 w-8 h-8 rounded-radius-xs bg-mono-border" />
+                                 <div className="mt-0.5 shrink-0 w-8 h-8 rounded-sm bg-mono-border" />
                                  <div className="flex flex-col w-full">
                                     <div className="h-5 bg-mono-border rounded-md w-3/4 max-w-[160px] mb-1.5" />
                                     <div className="h-4 bg-mono-surface rounded-md w-1/2 max-w-[100px]" />
@@ -235,12 +235,12 @@ export default function DeliveryPage() {
                               </div>
                            </div>
                            <div className="flex flex-col justify-center ml-2">
-                              <div className="h-12 w-12 rounded-radius bg-mono-border" />
+                              <div className="h-12 w-12 rounded-card bg-mono-border" />
                            </div>
                         </div>
                      </div>
                      <div className="px-4 pb-2.5 pt-2.5 border-t border-mono-divider flex items-center justify-between">
-                        <div className="h-6 w-24 bg-mono-surface rounded-radius-xs" />
+                        <div className="h-6 w-24 bg-mono-surface rounded-sm" />
                         <div className="flex items-center gap-2">
                            <div className="h-8 w-20 bg-mono-surface rounded-md" />
                            <div className="h-8 w-8 bg-mono-surface rounded-md" />
@@ -253,14 +253,14 @@ export default function DeliveryPage() {
                   const isExpanded = expandedStopId === delivery.id;
                   const activeItems = delivery.misc_items || [];
                   return (
-                     <motion.div key={delivery.id} layout className={` rounded-radius transition-all ${delivery.delivered ? 'bg-mono-bg border-mono-border opacity-70 shadow' : 'bg-white border-mono-border shadow-sm'}`}>
+                     <motion.div key={delivery.id} layout className={` rounded-card transition-all ${delivery.delivered ? 'bg-mono-bg border-mono-border opacity-70 shadow' : 'bg-white border-mono-border shadow-sm'}`}>
                         <div className="p-4">
 
                            <div className="flex flex-row items-start justify-between gap-4">
 
                               <div className="flex flex-col flex-1">
                                  <div className="flex items-start gap-3">
-                                    <div className={`mt-0.5 shrink-0 w-8 h-8 flex items-center justify-center rounded-radius-xs font-bold text-xs text-center transition-all ${delivery.delivered ? 'bg-mono-border text-mono-text-muted' : 'bg-mono-text text-white shadow-md'}`}>
+                                    <div className={`mt-0.5 shrink-0 w-8 h-8 flex items-center justify-center rounded-sm font-bold text-xs text-center transition-all ${delivery.delivered ? 'bg-mono-border text-mono-text-muted' : 'bg-mono-text text-white shadow-md'}`}>
                                        {index + 1}
                                     </div>
                                     <div className="flex flex-col">
@@ -295,7 +295,7 @@ export default function DeliveryPage() {
                               </div>
 
                               <div className="flex flex-col justify-center ml-2">
-                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-radius shadow-xs transition-all ${delivery.delivered ? 'bg-mono-text text-white shadow-emerald-500/20 shadow-md' : 'bg-mono-bg text-mono-text-disabled hover:bg-mono-surface hover:text-mono-text hover:border-mono-text border border-mono-border'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-12 w-12 flex items-center justify-center rounded-card shadow-xs transition-all ${delivery.delivered ? 'bg-mono-text text-white shadow-emerald-500/20 shadow-md' : 'bg-mono-bg text-mono-text-disabled hover:bg-mono-surface hover:text-mono-text hover:border-mono-text border border-mono-border'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                     <Check size={24} strokeWidth={3} />
                                  </button>
                               </div>
@@ -303,7 +303,7 @@ export default function DeliveryPage() {
                         </div>
 
                         <div className="px-4 pb-2 pt-1 border-t border-mono-divider flex items-center justify-between">
-                           <button onClick={(e) => { e.stopPropagation(); setExpandedStopId(delivery.id); }} className={`flex items-center gap-1.5 text-xs font-bold transition-colors py-2 px-3 rounded-radius ${isExpanded ? 'text-mono-text' : ' text-mono-text-muted'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extras' : 'Add Products'}</button>
+                           <button onClick={(e) => { e.stopPropagation(); setExpandedStopId(delivery.id); }} className={`flex items-center gap-1.5 text-xs font-bold transition-colors py-2 px-3 rounded-card ${isExpanded ? 'text-mono-text' : ' text-mono-text-muted'}`}><PackagePlus size={14} />{activeItems.length > 0 ? 'Edit Extras' : 'Add Products'}</button>
 
                            <div className="flex items-center gap-2">
                               <button onClick={(e) => {
@@ -334,9 +334,9 @@ export default function DeliveryPage() {
          <AnimatePresence>
             {expandedStopId !== null && (
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-5">
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl pt-6 pb-12 px-6 flex flex-col relative">
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full max-w-sm bg-white rounded-t-3xl sm:rounded-hero pt-6 pb-12 px-6 flex flex-col relative">
                      <button onClick={() => setExpandedStopId(null)} className="absolute top-4 right-4 p-2 bg-mono-surface rounded-full text-mono-text-muted"><X size={20} /></button>
-                     <div className="mb-6"><h2 className="text-xl font-bold text-mono-text">Add Products</h2><p className="text-sm text-mono-text-muted">For {deliveries.find(d => d.id === expandedStopId)?.customer?.name}</p></div>
+                     <div className="mb-6"><h2 className="text-xl font-semibold text-mono-text">Add Products</h2><p className="text-sm text-mono-text-muted">For {deliveries.find(d => d.id === expandedStopId)?.customer?.name}</p></div>
                      <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto no-scrollbar py-1">
                         {/* Milk Control */}
                         {(() => {
@@ -344,12 +344,12 @@ export default function DeliveryPage() {
                            const milkQty = stop?.milk_qty || 0;
                            const prod = products.find(p => p.id === stop?.product_id);
                            return (
-                              <div className={`flex items-center justify-between p-3.5 rounded-radius-md border-2 transition-all ${milkQty > 0 ? 'bg-mono-text/5 border-mono-border' : 'bg-white border-mono-divider'}`}>
+                              <div className={`flex items-center justify-between p-3.5 rounded-card border-2 transition-all ${milkQty > 0 ? 'bg-mono-text/5 border-mono-border' : 'bg-white border-mono-divider'}`}>
                                  <div className="flex flex-col">
                                     <span className="text-sm font-bold text-mono-text">{prod ? prod.name : 'Fresh Milk'}</span>
                                     <span className="text-[11px] font-medium text-mono-text-muted">{prod ? prod.size : 'Standard Delivery'}</span>
                                  </div>
-                                 <div className="flex items-center gap-3 bg-white border border-mono-divider rounded-radius p-1 shadow-sm">
+                                 <div className="flex items-center gap-3 bg-white border border-mono-divider rounded-card p-1 shadow-sm">
                                     <button onClick={() => updateMilkQty(expandedStopId!, -1)} className="h-8 w-8 flex items-center justify-center text-mono-text-disabled hover:text-mono-text"><Minus size={16} /></button>
                                     <span className="text-sm font-bold w-5 text-center">{milkQty}</span>
                                     <button onClick={() => updateMilkQty(expandedStopId!, 1)} className="h-8 w-8 flex items-center justify-center text-mono-text-disabled hover:text-mono-text"><Plus size={16} /></button>
@@ -368,9 +368,9 @@ export default function DeliveryPage() {
                            const item = stopItems.find((i: any) => i.name === product.name);
                            const qty = item ? item.qty : 0;
                            return (
-                              <div key={product.name} className={`flex items-center justify-between p-3.5 rounded-radius-md border-2 transition-all ${qty > 0 ? 'bg-mono-text/10 border-mono-border' : 'bg-white border-mono-divider'}`}>
+                              <div key={product.name} className={`flex items-center justify-between p-3.5 rounded-card border-2 transition-all ${qty > 0 ? 'bg-mono-text/10 border-mono-border' : 'bg-white border-mono-divider'}`}>
                                  <div className="flex flex-col"><span className="text-sm font-bold text-mono-text">{product.name}</span><span className="text-[11px] font-medium text-mono-text-muted">{product.size} • {product.price}</span></div>
-                                 <div className="flex items-center gap-3 bg-white border border-mono-divider rounded-radius p-1 shadow-sm">
+                                 <div className="flex items-center gap-3 bg-white border border-mono-divider rounded-card p-1 shadow-sm">
                                     <button onClick={() => updateProductQty(expandedStopId!, product.name, -1)} className="h-8 w-8 flex items-center justify-center text-mono-text-disabled hover:text-mono-text"><Minus size={16} /></button>
                                     <span className="text-sm font-bold w-5 text-center">{qty}</span>
                                     <button onClick={() => updateProductQty(expandedStopId!, product.name, 1)} className="h-8 w-8 flex items-center justify-center text-mono-text-disabled hover:text-mono-text"><Plus size={16} /></button>
@@ -379,7 +379,7 @@ export default function DeliveryPage() {
                            );
                         })}
                      </div>
-                     <button onClick={() => setExpandedStopId(null)} className="w-full bg-mono-text text-white py-4 rounded-radius-md font-bold mt-8 shadow-sm">Done</button>
+                     <button onClick={() => setExpandedStopId(null)} className="w-full bg-mono-text text-white py-4 rounded-card font-bold mt-8 shadow-sm">Done</button>
                   </motion.div>
                </motion.div>
             )}
@@ -390,16 +390,16 @@ export default function DeliveryPage() {
             {isPaymentModalOpen && (
                <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6 text-mono-text">
-                     <div className="flex justify-between items-center"><p className="text-[18px] font-bold text-mono-text">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button></div>
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-hero p-7 shadow-md flex flex-col gap-6 text-mono-text">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-semibold text-mono-text">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-mono-surface rounded-card text-mono-text-muted"><X size={18} /></button></div>
 
                      {paymentTotalDue !== null ? (
-                        <div className="bg-mono-surface border border-mono-border p-4 rounded-radius flex items-center justify-between">
+                        <div className="bg-mono-surface border border-mono-border p-4 rounded-card flex items-center justify-between">
                            <span className="text-mono-text text-xs font-bold uppercase tracking-widest">Total Outstanding</span>
                            <span className="text-mono-text font-bold text-lg">₹{paymentTotalDue.toFixed(2)}</span>
                         </div>
                      ) : (
-                        <div className="bg-mono-bg border border-mono-divider p-4 rounded-radius flex items-center justify-center animate-pulse h-14" />
+                        <div className="bg-mono-bg border border-mono-divider p-4 rounded-card flex items-center justify-center animate-pulse h-14" />
                      )}
 
                      <form onSubmit={(e) => {
@@ -418,7 +418,7 @@ export default function DeliveryPage() {
                               placeholder="0.00"
                               value={paymentAmount}
                               onChange={e => setPaymentAmount(e.target.value)}
-                              className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all font-bold"
+                              className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all font-medium"
                            />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -429,7 +429,7 @@ export default function DeliveryPage() {
                                     type="button"
                                     key={method}
                                     onClick={() => setPaymentMethod(method)}
-                                    className={`py-2 text-sm font-bold rounded-radius border transition-all ${paymentMethod === method ? 'bg-mono-text/5 border-mono-border text-mono-text' : 'bg-white border-mono-border text-mono-text-muted hover:bg-mono-bg'}`}
+                                    className={`py-2 text-sm font-bold rounded-card border transition-all ${paymentMethod === method ? 'bg-mono-text/5 border-mono-border text-mono-text' : 'bg-white border-mono-border text-mono-text-muted hover:bg-mono-bg'}`}
                                  >
                                     {method}
                                  </button>
@@ -443,10 +443,10 @@ export default function DeliveryPage() {
                               placeholder="e.g. Received at door"
                               value={paymentNotes}
                               onChange={e => setPaymentNotes(e.target.value)}
-                              className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all"
+                              className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all"
                            />
                         </div>
-                        <button disabled={isLoading} type="submit" className="w-full bg-mono-text text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 transition-all shadow-sm disabled:opacity-50">
+                        <button disabled={isLoading} type="submit" className="w-full bg-mono-text text-white font-bold py-4 rounded-card mt-2 active:scale-95 transition-all shadow-sm disabled:opacity-50">
                            {isLoading ? "Saving..." : "Record Payment"}
                         </button>
                      </form>
@@ -463,7 +463,7 @@ export default function DeliveryPage() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 80, opacity: 0 }}
                   transition={{ type: "spring", damping: 25, stiffness: 350 }}
-                  className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-md bg-linear-to-r from-mono-text via-primary/95 to-zinc-950 backdrop-blur-xl text-white rounded-radius-md py-3.5 px-4 shadow-[0_20px_50px_rgba(5,0,68,0.3)] z-110 flex items-center justify-between border border-white/10"
+                  className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-md bg-linear-to-r from-mono-text via-primary/95 to-zinc-950 backdrop-blur-xl text-white rounded-card py-3.5 px-4 shadow-[0_20px_50px_rgba(5,0,68,0.3)] z-110 flex items-center justify-between border border-white/10"
                >
                   <div className="flex items-center gap-3">
                      <div className="relative flex h-3.5 w-3.5">
@@ -479,7 +479,7 @@ export default function DeliveryPage() {
                      <button
                         onClick={handleSync}
                         disabled={isSyncing}
-                        className="bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-radius flex items-center gap-1.5 active:scale-95 transition-all shadow-[0_8px_20px_rgba(16,185,129,0.3)] disabled:opacity-50"
+                        className="bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-card flex items-center gap-1.5 active:scale-95 transition-all shadow-[0_8px_20px_rgba(16,185,129,0.3)] disabled:opacity-50"
                      >
                         {isSyncing ? (
                            <>

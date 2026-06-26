@@ -24,7 +24,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bg-mono-text bottom-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1rem)] mb-2 md:w-1/3 rounded-radius-md"
+      className="fixed bg-mono-text bottom-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1rem)] mb-2 md:w-1/3 rounded-card"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="flex items-center justify-between max-w-2xl mx-auto h-[60px]">

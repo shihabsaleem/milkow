@@ -6,7 +6,7 @@ export function InventoryCard({ item }: { item: T.InventoryItem }) {
   const isEmpty = item.count === 0;
   const progress = item.loaded > 0 ? (item.count / item.loaded) * 100 : 0;
   return (
-    <div className="min-w-[210px] sm:min-w-0 shrink-0 rounded-radius-md overflow-hidden snap-start bg-white border border-mono-border flex flex-col h-full p-[20px]">
+    <div className="min-w-[210px] sm:min-w-0 shrink-0 rounded-card overflow-hidden snap-start bg-white border border-mono-border flex flex-col h-full p-[20px]">
       <div className="flex-1">
         <p className="text-mono-text text-[16px] font-medium leading-tight">{item.name}</p>
         <div className="mt-4 mb-3 flex items-baseline gap-2">
@@ -27,7 +27,7 @@ export function InventoryCard({ item }: { item: T.InventoryItem }) {
 
 export function DeliveredCard({ item }: { item: DeliveredItem }) {
   return (
-    <div className="rounded-radius-md p-[20px] bg-white border border-mono-border flex flex-col h-full">
+    <div className="rounded-card p-[20px] bg-white border border-mono-border flex flex-col h-full">
       <p className="text-mono-text text-[16px] font-medium leading-tight">{item.name}</p>
       <div className="mt-auto pt-4 flex items-baseline gap-2">
         <p className="text-mono-text text-[36px] font-bold leading-none">{item.count}</p>
@@ -39,7 +39,7 @@ export function DeliveredCard({ item }: { item: DeliveredItem }) {
 
 export function FinanceCard({ amount, label, badge, type }: { amount: string; label: string; badge: string; type: "green" | "red" | "blue" }) {
   return (
-    <div className="rounded-radius-md p-[20px] bg-white border border-mono-border flex flex-col h-full justify-between gap-4">
+    <div className="rounded-card p-[20px] bg-white border border-mono-border flex flex-col h-full justify-between gap-4">
       <div>
         <p className="text-mono-text text-[28px] font-bold leading-none truncate">{amount}</p>
         <p className="text-mono-text text-[16px] font-medium mt-2">{label}</p>

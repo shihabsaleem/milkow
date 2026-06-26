@@ -23,14 +23,11 @@
   --color-danger-soft: #FFF1F2;
   --color-danger-border: #FECDD3;
 
-  /* Border Radius Scale */
-  --radius-xs: 8px;
-  --radius-sm: 10px;
-  --radius: 12px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-2xl: 40px;
+  /* Border Radius — custom tokens, do NOT override Tailwind defaults */
+  /* Use: rounded-card (16px), rounded-modal (24px), rounded-hero (40px) */
+  --radius-card: 1rem;      /* 16px — buttons, cards, inputs, avatars  */
+  --radius-modal: 1.5rem;   /* 24px — modals, large containers          */
+  --radius-hero: 2.5rem;    /* 40px — hero / full-bleed cards           */
 }
 
 :root {

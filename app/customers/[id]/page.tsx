@@ -85,23 +85,23 @@ export default function CustomerProfilePage() {
                   <div className="max-w-2xl mx-auto w-full px-6 pb-8 pt-4">
                      <div className="flex items-start justify-between mb-6">
                         <div className="flex items-center gap-4">
-                           <div className="h-12 w-12 sm:h-16 sm:w-16 bg-mono-surface rounded-radius-md animate-pulse" />
+                           <div className="h-12 w-12 sm:h-16 sm:w-16 bg-mono-surface rounded-card animate-pulse" />
                            <div className="flex flex-col gap-2">
                               <div className="w-40 h-5 bg-mono-surface rounded-md animate-pulse" />
                               <div className="w-32 h-4 bg-mono-surface rounded-md animate-pulse" />
                            </div>
                         </div>
-                        <div className="w-16 h-6 bg-mono-surface rounded-radius animate-pulse" />
+                        <div className="w-16 h-6 bg-mono-surface rounded-card animate-pulse" />
                      </div>
                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                        <div className="h-16 bg-mono-bg rounded-radius-md animate-pulse border border-mono-divider" />
-                        <div className="h-16 bg-mono-bg rounded-radius-md animate-pulse border border-mono-divider" />
+                        <div className="h-16 bg-mono-bg rounded-card animate-pulse border border-mono-divider" />
+                        <div className="h-16 bg-mono-bg rounded-card animate-pulse border border-mono-divider" />
                      </div>
                   </div>
                </div>
                <div className="max-w-2xl mx-auto w-full px-5 py-8 flex flex-col gap-6">
-                  <div className="h-80 bg-white border border-mono-divider rounded-3xl animate-pulse" />
-                  <div className="h-48 bg-white border border-mono-divider rounded-3xl animate-pulse" />
+                  <div className="h-80 bg-white border border-mono-divider rounded-hero animate-pulse" />
+                  <div className="h-48 bg-white border border-mono-divider rounded-hero animate-pulse" />
                </div>
             </main>
          </div>
@@ -111,14 +111,14 @@ export default function CustomerProfilePage() {
    if (!customer) {
       return (
          <div className="flex h-full w-full items-center justify-center bg-mono-bg text-mono-text-muted flex-col gap-4">
-            <div className="h-16 w-16 bg-mono-surface rounded-radius-md flex items-center justify-center text-mono-border">
+            <div className="h-16 w-16 bg-mono-surface rounded-card flex items-center justify-center text-mono-border">
                <X size={32} />
             </div>
             <div className="text-center">
-               <p className="font-bold text-mono-text">Customer not found</p>
+               <p className="font-semibold text-mono-text">Customer not found</p>
                <p className="text-sm text-mono-text-disabled">The customer you're looking for doesn't exist.</p>
             </div>
-            <button onClick={() => router.back()} className="mt-2 px-6 py-2 bg-white border border-mono-border rounded-radius font-bold text-mono-text shadow-sm active:scale-95 transition-all">
+            <button onClick={() => router.back()} className="mt-2 px-6 py-2 bg-white border border-mono-border rounded-card font-bold text-mono-text shadow-sm active:scale-95 transition-all">
                Go Back
             </button>
          </div>
@@ -131,7 +131,7 @@ export default function CustomerProfilePage() {
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between gap-4">
                <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-mono-text-muted hover:bg-mono-surface rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-base sm:text-lg font-bold">{customer?.name || 'Customer'}</h1><p className="text-[10px] sm:text-xs text-mono-text-muted">Customer Profile</p></div></div>
                <div className="flex items-center gap-2">
-                  {/*<button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer?.name || '')}`)} className="flex items-center gap-2 px-4 py-2 bg-mono-text text-white rounded-radius font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
+                  {/*<button onClick={() => router.push(`/billing?search=${encodeURIComponent(customer?.name || '')}`)} className="flex items-center gap-2 px-4 py-2 bg-mono-text text-white rounded-card font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
                      <Receipt size={16} />
                      <span className="hidden sm:inline">QR Bill</span>
                   </button>*/}
@@ -139,21 +139,21 @@ export default function CustomerProfilePage() {
                   <button
                       onClick={handleCaptureScreenshot}
                       disabled={isCapturing}
-                      className="p-2 text-mono-text-muted hover:bg-mono-surface rounded-radius active:scale-90 disabled:opacity-50 transition-all"
+                      className="p-2 text-mono-text-muted hover:bg-mono-surface rounded-card active:scale-90 disabled:opacity-50 transition-all"
                       title="Take Screenshot"
                    >
                       <Camera size={20} className={isCapturing ? "animate-pulse text-mono-text" : ""} />
                    </button>
                   */}
                 <div className="flex items-center gap-2 relative">
-                   <button onClick={() => document.getElementById('financial-summary')?.scrollIntoView({ behavior: 'smooth' })} className="p-2 text-mono-text-muted hover:bg-mono-surface rounded-radius border border-mono-border active:scale-90 transition-all" title="Financial Summary"><ArrowDown size={20} /></button>
-                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-mono-text-muted border border-mono-border hover:bg-mono-surface rounded-radius active:scale-90 transition-all"><MoreVertical size={20} /></button>
+                   <button onClick={() => document.getElementById('financial-summary')?.scrollIntoView({ behavior: 'smooth' })} className="p-2 text-mono-text-muted hover:bg-mono-surface rounded-card border border-mono-border active:scale-90 transition-all" title="Financial Summary"><ArrowDown size={20} /></button>
+                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-mono-text-muted border border-mono-border hover:bg-mono-surface rounded-card active:scale-90 transition-all"><MoreVertical size={20} /></button>
                    
                    <AnimatePresence>
                       {isMenuOpen && (
                          <>
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMenuOpen(false)} className="fixed inset-0 z-40" />
-                            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-radius-md shadow-sm border border-mono-divider z-50 overflow-hidden flex flex-col py-2">
+                            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-card shadow-sm border border-mono-divider z-50 overflow-hidden flex flex-col py-2">
                                <button onClick={() => {
                                   setIsMenuOpen(false);
                                   const url = `/bill/${customer?.phone || ''}`;
@@ -185,8 +185,8 @@ export default function CustomerProfilePage() {
          <main ref={screenshotRef} className="flex flex-col">
             {isLoading ? (
                <div className="max-w-2xl mx-auto w-full px-5 py-8 flex flex-col gap-6">
-                  <div className="h-48 bg-white border border-mono-divider rounded-3xl animate-pulse" />
-                  <div className="h-96 bg-white border border-mono-divider rounded-3xl animate-pulse" />
+                  <div className="h-48 bg-white border border-mono-divider rounded-hero animate-pulse" />
+                  <div className="h-96 bg-white border border-mono-divider rounded-hero animate-pulse" />
                </div>
             ) : customer ? (
                <>
@@ -194,18 +194,18 @@ export default function CustomerProfilePage() {
                      <div className="max-w-2xl mx-auto w-full px-6 pb-4 pt-4">
                         <div className="flex items-start justify-between mb-6">
                            <div className="flex items-center gap-4">
-                              <div className="h-12 w-12 sm:h-16 sm:w-16 bg-mono-text/10 rounded-radius-md flex items-center justify-center text-xl sm:text-2xl font-bold text-mono-text border border-mono-border">{customer.name.charAt(0)}</div>
+                              <div className="h-12 w-12 sm:h-16 sm:w-16 bg-mono-text/10 rounded-card flex items-center justify-center text-xl sm:text-2xl font-semibold text-mono-text border border-mono-border">{customer.name.charAt(0)}</div>
                               <div className="flex flex-col gap-1">
                                  <div className="flex items-center gap-1.5 text-mono-text-muted text-[13px] sm:text-sm font-medium"><MapPin size={14} className="text-mono-text-disabled" /> {customer.area?.name || 'No Area'}</div>
                                  <div className="flex items-center gap-1.5 text-mono-text-muted text-[13px] sm:text-sm font-medium"><Phone size={14} className="text-mono-text-disabled" /> {customer.phone}</div>
                               </div>
                            </div>
-                           <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-radius text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-mono-surface text-mono-text border-mono-text' : 'bg-mono-surface text-rose-600 border-rose-200'}`}>{customer.status}</button>
+                           <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-card text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-mono-surface text-mono-text border-mono-text' : 'bg-mono-surface text-rose-600 border-rose-200'}`}>{customer.status}</button>
                         </div>
                         <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                           <div className="bg-mono-bg rounded-radius-md p-3 sm:p-4 border border-mono-divider"><div className="flex items-center gap-1.5 text-mono-text-disabled text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-mono-text">{customer.frequency}</p></div>
+                           <div className="bg-mono-bg rounded-card p-3 sm:p-4 border border-mono-divider"><div className="flex items-center gap-1.5 text-mono-text-disabled text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-mono-text">{customer.frequency}</p></div>
                            <div
-                              className={`rounded-radius-md p-3 sm:p-4 border cursor-pointer transition-all ${financials?.account_status === 'Advance' ? 'bg-mono-surface border-emerald-100' : 'bg-mono-text/5 border-mono-border'}`}
+                              className={`rounded-card p-3 sm:p-4 border cursor-pointer transition-all ${financials?.account_status === 'Advance' ? 'bg-mono-surface border-emerald-100' : 'bg-mono-text/5 border-mono-border'}`}
                               onClick={() => router.push(`/billing?search=${encodeURIComponent(customer.name)}`)}
                            >
                               <div className={`flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2 opacity-80 ${financials?.account_status === 'Advance' ? 'text-mono-text' : 'text-mono-text'}`}>
@@ -247,10 +247,10 @@ export default function CustomerProfilePage() {
                      {activeTab === 'calendar' ? (
                         <motion.div key="calendar" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15 }}>
                            <div className="max-w-2xl mx-auto w-full px-5 py-2">
-                              <div className="bg-white rounded-3xl sm:rounded-radius-2xl p-5 sm:p-8 shadow-sm border border-mono-divider">
+                              <div className="bg-white rounded-hero sm:rounded-hero p-5 sm:p-8 shadow-sm border border-mono-divider">
                                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-                                    <div><h3 className="text-lg sm:text-xl font-bold text-mono-text">Delivery History</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-bg"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-mono-text uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-bg"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
-                                    <div className="flex items-center gap-2 bg-mono-surface text-mono-text px-3 py-1.5 rounded-radius border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-bold uppercase">{deliveries.filter(d => d.delivered).length} Deliveries</span></div>
+                                    <div><h3 className="text-lg sm:text-xl font-semibold text-mono-text">Delivery History</h3><div className="flex items-center gap-2 mt-1"><button onClick={() => changeMonth(-1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-bg"><ArrowLeft size={14} /></button><p className="text-[10px] sm:text-[11px] font-bold text-mono-text uppercase tracking-widest">{monthName} {yearName}</p><button onClick={() => changeMonth(1)} className="p-1 rounded-md text-mono-text-disabled hover:bg-mono-bg"><ArrowLeft size={14} className="rotate-180" /></button></div></div>
+                                    <div className="flex items-center gap-2 bg-mono-surface text-mono-text px-3 py-1.5 rounded-card border border-emerald-100"><span className="text-[9px] sm:text-[10px] font-bold uppercase">{deliveries.filter(d => d.delivered).length} Deliveries</span></div>
                                  </div>
                                  <div className="flex flex-col gap-3">
                                     {Array.from({ length: displayDays }).map((_, i) => {
@@ -260,9 +260,9 @@ export default function CustomerProfilePage() {
 
                                        if (dayDeliveries.length === 0) {
                                           return (
-                                             <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-radius-md border transition-all bg-mono-bg/50 border-mono-divider/50 opacity-40">
+                                             <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-card border transition-all bg-mono-bg/50 border-mono-divider/50 opacity-40">
                                                 <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                                   <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-radius flex flex-col items-center justify-center font-bold bg-mono-surface text-mono-text-disabled">
+                                                   <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-card flex flex-col items-center justify-center font-bold bg-mono-surface text-mono-text-disabled">
                                                       <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                                       <span className="text-base sm:text-lg leading-none">{day}</span>
                                                    </div>
@@ -278,9 +278,9 @@ export default function CustomerProfilePage() {
                                        const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 
                                        return (
-                                          <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-radius-md border transition-all bg-white border-mono-divider hover:border-mono-border">
+                                          <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-card border transition-all bg-white border-mono-divider hover:border-mono-border">
                                              <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                                <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-radius flex flex-col items-center justify-center font-bold bg-mono-text/10 text-mono-text">
+                                                <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-card flex flex-col items-center justify-center font-bold bg-mono-text/10 text-mono-text">
                                                    <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                                    <span className="text-base sm:text-lg leading-none">{day}</span>
                                                 </div>
@@ -325,7 +325,7 @@ export default function CustomerProfilePage() {
                                        );
                                     })}
                                     {deliveries.filter(d => d.delivered).length === 0 && (
-                                       <div className="py-12 flex flex-col items-center justify-center text-mono-text-disabled gap-2 bg-mono-bg rounded-3xl border-2 border-dashed border-mono-border">
+                                       <div className="py-12 flex flex-col items-center justify-center text-mono-text-disabled gap-2 bg-mono-bg rounded-hero border-2 border-dashed border-mono-border">
                                           <p className="font-bold">No deliveries recorded</p>
                                           <p className="text-[10px] uppercase tracking-widest">For {monthName} {yearName}</p>
                                        </div>
@@ -337,13 +337,13 @@ export default function CustomerProfilePage() {
                      ) : (
                         <motion.div key="statement" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.15 }}>
                            <div className="max-w-2xl mx-auto w-full px-5 py-2">
-                              <div className="bg-white rounded-3xl sm:rounded-radius-2xl p-5 sm:p-8 shadow-sm border border-mono-divider">
+                              <div className="bg-white rounded-hero sm:rounded-hero p-5 sm:p-8 shadow-sm border border-mono-divider">
                                  <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg sm:text-xl font-bold text-mono-text">Payment History</h3>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-mono-text/5 text-mono-text rounded-radius border border-mono-border">{payments.length} Records</span>
+                                    <h3 className="text-lg sm:text-xl font-semibold text-mono-text">Payment History</h3>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-mono-text/5 text-mono-text rounded-card border border-mono-border">{payments.length} Records</span>
                                  </div>
                                  {payments.length === 0 ? (
-                                    <div className="py-12 flex flex-col items-center justify-center text-mono-text-disabled gap-2 bg-mono-bg rounded-3xl border-2 border-dashed border-mono-border">
+                                    <div className="py-12 flex flex-col items-center justify-center text-mono-text-disabled gap-2 bg-mono-bg rounded-hero border-2 border-dashed border-mono-border">
                                        <p className="font-bold">No payments found</p>
                                        <p className="text-[10px] uppercase tracking-widest">All payments will appear here</p>
                                     </div>
@@ -354,9 +354,9 @@ export default function CustomerProfilePage() {
                                           const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                                           const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
                                           return (
-                                             <div key={i} className="flex items-center justify-between p-4 rounded-radius-md border bg-white border-mono-divider hover:border-mono-text transition-all">
+                                             <div key={i} className="flex items-center justify-between p-4 rounded-card border bg-white border-mono-divider hover:border-mono-text transition-all">
                                                 <div className="flex items-center gap-3">
-                                                   <div className="h-11 w-11 shrink-0 rounded-radius flex items-center justify-center bg-mono-surface text-mono-text border border-emerald-100">
+                                                   <div className="h-11 w-11 shrink-0 rounded-card flex items-center justify-center bg-mono-surface text-mono-text border border-emerald-100">
                                                       <Receipt size={18} />
                                                    </div>
                                                    <div>
@@ -397,8 +397,8 @@ export default function CustomerProfilePage() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-mono-text-dim/10 blur-[80px] rounded-full -mr-16 -mt-16" />
 
                   <div className="flex items-center justify-between mb-8 relative z-10">
-                     <h3 className="text-sm font-bold uppercase tracking-widest text-mono-text">Financial Summary</h3>
-                     <span className={`text-[10px] font-bold  tracking-widest px-3 py-1 rounded-radius-xs ${grandTotalAmount < 0 ? 'bg-mono-text/20 text-emerald-400 border border-emerald-500/20' : 'bg-mono-text-dim/20 text-mono-text border border-mono-border'}`}>
+                     <h3 className="text-sm font-semibold uppercase tracking-widest text-mono-text">Financial Summary</h3>
+                     <span className={`text-[10px] font-bold  tracking-widest px-3 py-1 rounded-sm ${grandTotalAmount < 0 ? 'bg-mono-text/20 text-emerald-400 border border-emerald-500/20' : 'bg-mono-text-dim/20 text-mono-text border border-mono-border'}`}>
                         {grandTotalAmount < 0 ? 'Advance Balance' : 'Credit Balance'}
                      </span>
                   </div>
@@ -416,7 +416,7 @@ export default function CustomerProfilePage() {
                      <div className="flex flex-col gap-2">
                         <p className="text-[10px] font-bold text-mono-text-muted uppercase tracking-wider">Current Month (Unbilled)</p>
                         <div className="flex flex-col gap-1">
-                           <p className="text-lg font-bold text-mono-text">₹{currentDeliveriesAmount.toFixed(2)}</p>
+                           <p className="text-lg font-semibold text-mono-text">₹{currentDeliveriesAmount.toFixed(2)}</p>
                            <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit bg-white/5 text-mono-text-disabled">
                               Unbilled
                            </span>
@@ -444,7 +444,7 @@ export default function CustomerProfilePage() {
                            <button
                               onClick={handleMarkAsPaid}
                               disabled={isSubmitting}
-                              className="flex-1 bg-white text-mono-text border border-mono-border py-4 rounded-radius-md font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 shadow-sm"
+                              className="flex-1 bg-white text-mono-text border border-mono-border py-4 rounded-card font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 shadow-sm"
                            >
                               <Receipt size={18} />
                               Settle Full
@@ -457,7 +457,7 @@ export default function CustomerProfilePage() {
                               setPaymentNotes("");
                               setIsPaymentModalOpen(true);
                            }}
-                           className="flex-1 bg-mono-text text-white py-4 rounded-radius-md font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                           className="flex-1 bg-mono-text text-white py-4 rounded-card font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
                         >
                            <Receipt size={18} />
                            Record Payment
@@ -470,7 +470,7 @@ export default function CustomerProfilePage() {
                               setIsReturnModalOpen(true);
                            }}
                            disabled={isSubmitting}
-                           className="flex-1 bg-amber-50 text-amber-700 border border-amber-200 py-4 rounded-radius-md font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
+                           className="flex-1 bg-amber-50 text-amber-700 border border-amber-200 py-4 rounded-card font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
                         >
                            <RotateCcw size={18} />
                            Return Item
@@ -498,12 +498,12 @@ export default function CustomerProfilePage() {
             {isEditModalOpen && (
                <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6">
-                     <div className="flex justify-between items-center"><p className="text-[18px] font-bold text-mono-text">Edit Customer</p><button onClick={() => setIsEditModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button></div>
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-hero p-7 shadow-md flex flex-col gap-6">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-semibold text-mono-text">Edit Customer</p><button onClick={() => setIsEditModalOpen(false)} className="p-2 bg-mono-surface rounded-card text-mono-text-muted"><X size={18} /></button></div>
                      <form onSubmit={(e) => handleEditSubmit(e, setIsEditModalOpen)} className="p-6 pt-4 flex flex-col gap-5">
-                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">FullName</label><input autoFocus value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                        <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">FullName</label><input autoFocus value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                         <div className="grid grid-cols-2 gap-3">
-                           <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Phone</label><input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                           <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Phone</label><input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                            <CustomSelect
                               label="Route"
                               options={areas.map(a => ({ value: a.id.toString(), label: a.name }))}
@@ -537,7 +537,7 @@ export default function CustomerProfilePage() {
                                  placeholder="1"
                                  value={editForm.default_qty}
                                  onChange={e => setEditForm({ ...editForm, default_qty: e.target.value })}
-                                 className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all"
+                                 className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all"
                               />
                            </div>
                         </div>
@@ -554,11 +554,11 @@ export default function CustomerProfilePage() {
                               <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">
                                  {editForm.outstanding_type === "advance" ? "Past Advance (₹)" : "Past Outstanding (₹)"}
                               </label>
-                              <input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" />
+                              <input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" />
                            </div>
 
                         </div>
-                        <button type="submit" disabled={isSubmitting} className="w-full bg-mono-text text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
+                        <button type="submit" disabled={isSubmitting} className="w-full bg-mono-text text-white font-bold py-4 rounded-card mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
                            {isSubmitting ? "Saving..." : "Save Changes"}
                         </button>
                      </form>
@@ -569,15 +569,15 @@ export default function CustomerProfilePage() {
             {isReturnModalOpen && (
                <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsReturnModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6 text-mono-text">
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-hero p-7 shadow-md flex flex-col gap-6 text-mono-text">
                      <div className="flex justify-between items-center">
                         <div>
-                           <p className="text-[18px] font-bold text-mono-text">Record Return</p>
+                           <p className="text-[18px] font-semibold text-mono-text">Record Return</p>
                            <p className="text-xs text-mono-text-disabled mt-0.5">Customer returned item(s) — credit will be added as advance</p>
                         </div>
-                        <button onClick={() => setIsReturnModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button>
+                        <button onClick={() => setIsReturnModalOpen(false)} className="p-2 bg-mono-surface rounded-card text-mono-text-muted"><X size={18} /></button>
                      </div>
-                     <div className="bg-amber-50 border border-amber-100 p-4 rounded-radius">
+                     <div className="bg-amber-50 border border-amber-100 p-4 rounded-card">
                         <p className="text-amber-800 text-xs font-bold">ℹ️ How this works</p>
                         <p className="text-amber-700 text-xs mt-1">The return amount will be added as a credit (advance) to this customer's account.</p>
                      </div>
@@ -589,13 +589,13 @@ export default function CustomerProfilePage() {
                      }} className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5">
                            <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Return Amount (₹)</label>
-                           <input autoFocus type="number" step="0.01" required placeholder="0.00" value={returnAmount} onChange={e => setReturnAmount(e.target.value)} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all font-bold" />
+                           <input autoFocus type="number" step="0.01" required placeholder="0.00" value={returnAmount} onChange={e => setReturnAmount(e.target.value)} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all font-medium" />
                         </div>
                         <div className="flex flex-col gap-1.5">
                            <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Reason (Optional)</label>
-                           <input type="text" placeholder="e.g. Returned 1 Curd packet" value={returnNotes} onChange={e => setReturnNotes(e.target.value)} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" />
+                           <input type="text" placeholder="e.g. Returned 1 Curd packet" value={returnNotes} onChange={e => setReturnNotes(e.target.value)} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" />
                         </div>
-                        <button type="submit" disabled={!returnAmount || parseFloat(returnAmount) <= 0 || isSubmitting} className="w-full bg-amber-600 text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
+                        <button type="submit" disabled={!returnAmount || parseFloat(returnAmount) <= 0 || isSubmitting} className="w-full bg-amber-600 text-white font-bold py-4 rounded-card mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
                            {isSubmitting ? "Recording..." : "Record Return & Add Credit"}
                         </button>
                      </form>
@@ -606,8 +606,8 @@ export default function CustomerProfilePage() {
             {isPaymentModalOpen && (
                <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6 text-mono-text">
-                     <div className="flex justify-between items-center"><p className="text-[18px] font-bold text-mono-text">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button></div>
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-hero p-7 shadow-md flex flex-col gap-6 text-mono-text">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-semibold text-mono-text">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-mono-surface rounded-card text-mono-text-muted"><X size={18} /></button></div>
                      <form onSubmit={(e) => {
                         e.preventDefault();
                         const amt = parseFloat(paymentAmount);
@@ -624,7 +624,7 @@ export default function CustomerProfilePage() {
                               placeholder="0.00"
                               value={paymentAmount}
                               onChange={e => setPaymentAmount(e.target.value)}
-                              className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all font-bold"
+                              className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all font-medium"
                            />
                            {(() => {
                               const amt = parseFloat(paymentAmount) || 0;
@@ -658,13 +658,13 @@ export default function CustomerProfilePage() {
                               placeholder="Optional remarks"
                               value={paymentNotes}
                               onChange={e => setPaymentNotes(e.target.value)}
-                              className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all"
+                              className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all"
                            />
                         </div>
                         <button
                            type="submit"
                            disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || isSubmitting}
-                           className="w-full bg-mono-text text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm"
+                           className="w-full bg-mono-text text-white font-bold py-4 rounded-card mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm"
                         >
                            {isSubmitting ? "Recording..." : "Record Payment"}
                         </button>

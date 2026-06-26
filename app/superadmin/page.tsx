@@ -133,20 +133,20 @@ export default function SuperadminDashboard() {
                   <Sparkles size={8} /> Superadmin
                 </span>
               </div>
-              <h1 className="text-xl font-bold text-mono-text">Franchises</h1>
+              <h1 className="text-xl font-semibold text-mono-text">Franchises</h1>
             </div>
             <div className="flex items-center gap-2">
               {impersonatedFranchiseId && (
                 <button
                   onClick={handleClearImpersonation}
-                  className="bg-mono-text text-white font-bold py-2 px-3 rounded-radius text-[10px] flex items-center transition-all active:scale-[0.98]"
+                  className="bg-mono-text text-white font-bold py-2 px-3 rounded-card text-[10px] flex items-center transition-all active:scale-[0.98]"
                 >
                   Exit Dashboard
                 </button>
               )}
               <button
                 onClick={() => logout().then(() => router.push("/login"))}
-                className="bg-mono-surface text-rose-600 font-bold py-2 px-3 rounded-radius text-[10px] transition-all active:scale-[0.98]"
+                className="bg-mono-surface text-rose-600 font-bold py-2 px-3 rounded-card text-[10px] transition-all active:scale-[0.98]"
               >
                 Sign Out
               </button>
@@ -157,9 +157,9 @@ export default function SuperadminDashboard() {
 
       <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-6">
         {/* Create Franchise Section */}
-        <section className="bg-white border border-mono-border rounded-3xl p-5 shadow-sm flex flex-col gap-4">
+        <section className="bg-white border border-mono-border rounded-hero p-5 shadow-sm flex flex-col gap-4">
           <div>
-            <h2 className="text-sm font-bold text-mono-text flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-mono-text flex items-center gap-2">
               <Plus className="text-mono-text" size={16} /> Create Franchise
             </h2>
             <p className="text-[11px] text-mono-text-muted mt-1">Add a new franchise branch and owner account</p>
@@ -176,7 +176,7 @@ export default function SuperadminDashboard() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Koduvayur"
-                  className="w-full bg-mono-bg border border-mono-border focus:border-mono-text focus:ring-1 focus:ring-primary rounded-radius pl-9 pr-4 py-2.5 text-[13px] font-bold text-mono-text outline-none transition-all placeholder:text-mono-text-disabled"
+                  className="w-full bg-mono-bg border border-mono-border focus:border-mono-text focus:ring-1 focus:ring-primary rounded-card pl-9 pr-4 py-2.5 text-[13px] font-medium text-mono-text outline-none transition-all placeholder:text-mono-text-disabled"
                 />
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function SuperadminDashboard() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="owner@milkow.in"
-                  className="w-full bg-mono-bg border border-mono-border focus:border-mono-text focus:ring-1 focus:ring-primary rounded-radius pl-9 pr-4 py-2.5 text-[13px] font-bold text-mono-text outline-none transition-all placeholder:text-mono-text-disabled"
+                  className="w-full bg-mono-bg border border-mono-border focus:border-mono-text focus:ring-1 focus:ring-primary rounded-card pl-9 pr-4 py-2.5 text-[13px] font-medium text-mono-text outline-none transition-all placeholder:text-mono-text-disabled"
                 />
               </div>
             </div>
@@ -206,25 +206,25 @@ export default function SuperadminDashboard() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-mono-bg border border-mono-border focus:border-mono-text focus:ring-1 focus:ring-primary rounded-radius pl-9 pr-4 py-2.5 text-[13px] font-bold text-mono-text outline-none transition-all placeholder:text-mono-text-disabled"
+                  className="w-full bg-mono-bg border border-mono-border focus:border-mono-text focus:ring-1 focus:ring-primary rounded-card pl-9 pr-4 py-2.5 text-[13px] font-medium text-mono-text outline-none transition-all placeholder:text-mono-text-disabled"
                 />
               </div>
             </div>
 
             <AnimatePresence mode="wait">
               {error && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-radius bg-mono-surface text-rose-600 text-xs font-bold border border-rose-100">
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-card bg-mono-surface text-rose-600 text-xs font-bold border border-rose-100">
                   {error}
                 </motion.div>
               )}
               {success && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-radius bg-mono-surface text-mono-text text-xs font-bold border border-emerald-100">
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="p-3 rounded-card bg-mono-surface text-mono-text text-xs font-bold border border-emerald-100">
                   {success}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <button disabled={isSubmitting} type="submit" className="w-full bg-mono-text text-white font-bold py-3 rounded-radius text-[13px] shadow-sm transition-all active:scale-[0.98] disabled:opacity-75 flex items-center justify-center mt-1">
+            <button disabled={isSubmitting} type="submit" className="w-full bg-mono-text text-white font-bold py-3 rounded-card text-[13px] shadow-sm transition-all active:scale-[0.98] disabled:opacity-75 flex items-center justify-center mt-1">
               {isSubmitting ? "Creating..." : "Create Franchise"}
             </button>
           </form>
@@ -233,7 +233,7 @@ export default function SuperadminDashboard() {
         {/* Franchise List Section */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center px-1">
-            <h2 className="text-sm font-bold text-mono-text flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-mono-text flex items-center gap-2">
               <Users className="text-mono-text" size={16} /> All Franchises
             </h2>
             <button onClick={() => fetchFranchises()} className="text-mono-text-disabled hover:text-mono-text-muted transition-colors p-1">
@@ -244,18 +244,18 @@ export default function SuperadminDashboard() {
           {isLoading ? (
             <div className="flex flex-col gap-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="bg-white border border-mono-border rounded-radius-md p-4 shadow-sm animate-pulse h-20" />
+                <div key={i} className="bg-white border border-mono-border rounded-card p-4 shadow-sm animate-pulse h-20" />
               ))}
             </div>
           ) : franchises.length === 0 ? (
-            <div className="text-center py-10 bg-white border border-mono-border rounded-3xl flex flex-col items-center justify-center gap-2">
+            <div className="text-center py-10 bg-white border border-mono-border rounded-hero flex flex-col items-center justify-center gap-2">
               <Building className="text-mono-border w-8 h-8" />
               <p className="text-mono-text-disabled font-bold text-xs">No franchises registered.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
               {franchises.map((franchise) => (
-                <div key={franchise.id} className={`flex justify-between items-center p-4 rounded-radius-md border transition-all shadow-sm ${impersonatedFranchiseId === franchise.id ? "bg-mono-text/5 border-mono-border" : "bg-white border-mono-border"}`}>
+                <div key={franchise.id} className={`flex justify-between items-center p-4 rounded-card border transition-all shadow-sm ${impersonatedFranchiseId === franchise.id ? "bg-mono-text/5 border-mono-border" : "bg-white border-mono-border"}`}>
                   <div>
                     <p className="font-bold text-[13px] text-mono-text flex items-center gap-2">
                       {franchise.name}
@@ -277,7 +277,7 @@ export default function SuperadminDashboard() {
 
                   <button
                     onClick={() => handleImpersonate(franchise.id)}
-                    className={`font-bold py-2 px-3 rounded-radius text-[10px] flex items-center gap-1.5 shadow-sm active:scale-95 transition-all ${impersonatedFranchiseId === franchise.id
+                    className={`font-bold py-2 px-3 rounded-card text-[10px] flex items-center gap-1.5 shadow-sm active:scale-95 transition-all ${impersonatedFranchiseId === franchise.id
                         ? "bg-mono-text text-white"
                         : "bg-mono-bg text-mono-text border border-mono-border hover:bg-mono-surface"
                       }`}

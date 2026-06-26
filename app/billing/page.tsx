@@ -117,7 +117,7 @@ export default function BillingPage() {
                <div className="flex items-center justify-between">
                   <div className="relative">
                      <button onClick={() => setIsRouteMenuOpen(!isRouteMenuOpen)} className="flex items-center gap-2 group">
-                        <h1 className="text-xl font-bold text-mono-text">
+                        <h1 className="text-xl font-semibold text-mono-text">
                            {selectedRoute === "" ? "All Routes" : routesList.find(r => r.id === selectedRoute)?.name || 'Billing'}
                         </h1>
                         <ChevronDown size={18} className={`text-mono-text-disabled transition-transform duration-300 ${isRouteMenuOpen ? 'rotate-180' : ''}`} />
@@ -131,7 +131,7 @@ export default function BillingPage() {
                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                  animate={{ opacity: 1, y: 0, scale: 1 }}
                                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                 className="absolute left-0 mt-3 w-64 bg-white/90 backdrop-blur-xl border border-mono-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-radius-md overflow-hidden z-50"
+                                 className="absolute left-0 mt-3 w-64 bg-white/90 backdrop-blur-xl border border-mono-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-card overflow-hidden z-50"
                               >
                                  <div className="px-4 py-2 border-b border-mono-divider/50 bg-mono-bg/50">
                                     <span className="text-[10px] font-bold uppercase tracking-widest text-mono-text-disabled">Select Route</span>
@@ -139,7 +139,7 @@ export default function BillingPage() {
                                  <div className="py-1 max-h-80 overflow-y-auto no-scrollbar">
                                     <button
                                        onClick={() => { setSelectedRoute(""); setIsRouteMenuOpen(false); }}
-                                       className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === "" ? 'bg-mono-text/5 text-mono-text' : 'text-mono-text-muted hover:bg-mono-bg'}`}
+                                       className={`w-full text-left px-4 py-3.5 text-sm font-medium flex items-center justify-between transition-all ${selectedRoute === "" ? 'bg-mono-text/5 text-mono-text' : 'text-mono-text-muted hover:bg-mono-bg'}`}
                                     >
                                        <span>All Routes</span>
                                        {selectedRoute === "" && <Check size={16} strokeWidth={3} />}
@@ -148,7 +148,7 @@ export default function BillingPage() {
                                        <button
                                           key={route.id}
                                           onClick={() => { setSelectedRoute(route.id); setIsRouteMenuOpen(false); }}
-                                          className={`w-full text-left px-4 py-3.5 text-sm font-bold flex items-center justify-between transition-all ${selectedRoute === route.id ? 'bg-mono-text/5 text-mono-text' : 'text-mono-text-muted hover:bg-mono-bg'}`}
+                                          className={`w-full text-left px-4 py-3.5 text-sm font-medium flex items-center justify-between transition-all ${selectedRoute === route.id ? 'bg-mono-text/5 text-mono-text' : 'text-mono-text-muted hover:bg-mono-bg'}`}
                                        >
                                           <span>{route.name}</span>
                                           {selectedRoute === route.id && <Check size={16} strokeWidth={3} />}
@@ -168,14 +168,14 @@ export default function BillingPage() {
          <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-4">
             <div className="relative mb-2">
                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Search size={18} className="text-mono-text-disabled" /></div>
-               <input type="text" placeholder="Search customer or invoice..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-mono-border rounded-radius-md py-3 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
+               <input type="text" placeholder="Search customer or invoice..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-mono-border rounded-card py-3 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
                {searchTerm && (<button onClick={() => setSearchTerm("")} className="absolute inset-y-0 right-0 pr-4 flex items-center text-mono-text-disabled"><X size={16} /></button>)}
             </div>
 
             {isLoading ? (
                <>
                   {[1, 2, 3, 4].map(i => (
-                     <div key={i} className="bg-white border border-mono-border rounded-radius-md p-4 shadow-sm flex flex-col justify-between animate-pulse">
+                     <div key={i} className="bg-white border border-mono-border rounded-card p-4 shadow-sm flex flex-col justify-between animate-pulse">
                         <div className="flex justify-between items-start">
                            <div className="w-1/2">
                               <div className="h-5 bg-mono-border rounded-md w-3/4 mb-2"></div>
@@ -186,8 +186,8 @@ export default function BillingPage() {
                            </div>
                         </div>
                         <div className="flex gap-2 mt-4 pt-4 border-t border-mono-divider">
-                           <div className="flex-1 h-10 bg-mono-border rounded-radius"></div>
-                           <div className="flex-1 h-10 bg-mono-border rounded-radius"></div>
+                           <div className="flex-1 h-10 bg-mono-border rounded-card"></div>
+                           <div className="flex-1 h-10 bg-mono-border rounded-card"></div>
                         </div>
                      </div>
                   ))}
@@ -195,9 +195,9 @@ export default function BillingPage() {
             ) : filteredBills.length > 0 ? (
                filteredBills.map((bill) => {
                   return (
-                     <div key={bill.id} className="bg-white border border-mono-border rounded-radius-md p-4 shadow-sm flex flex-col justify-between">
+                     <div key={bill.id} className="bg-white border border-mono-border rounded-card p-4 shadow-sm flex flex-col justify-between">
                         <div className="flex justify-between items-start">
-                           <div><h3 className="font-bold text-mono-text">{bill.customer?.name}</h3>
+                           <div><h3 className="font-semibold text-mono-text">{bill.customer?.name}</h3>
                               <div className="flex items-center">
                                  <MapPin size={12} className="text-mono-text-disabled shrink-0" />
                                  <p className="text-xs text-mono-text-muted font-medium">{routesList.find(r => r.id === bill.customer?.area_id)?.name || "No Route"}</p>
@@ -206,7 +206,7 @@ export default function BillingPage() {
                            <div className="flex flex-col items-end"><span className="font-bold text-lg text-mono-text">₹{Number(bill.amount).toFixed(2)}</span></div>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-mono-divider">
-                           <button disabled={isLoading} onClick={() => setSelectedInvoice(bill)} className="rounded-radius py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-surface text-mono-text active:scale-95 disabled:opacity-50"><QrCode size={14} /> Show QR</button>
+                           <button disabled={isLoading} onClick={() => setSelectedInvoice(bill)} className="rounded-card py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-surface text-mono-text active:scale-95 disabled:opacity-50"><QrCode size={14} /> Show QR</button>
                            <button disabled={isLoading} onClick={() => {
                               setSelectedCustomerForPayment(bill.customer_id);
                               setPaymentAmount(bill.amount.toString());
@@ -214,8 +214,8 @@ export default function BillingPage() {
                               setPaymentNotes("");
                               setPaymentTotalDue(bill.amount);
                               setIsPaymentModalOpen(true);
-                           }} className="rounded-radius py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-text text-white active:scale-95 disabled:opacity-50"><Wallet2 size={14} /> Record</button>
-                           <button disabled={isLoading} onClick={() => handleMarkAsPaid(bill.id, setSelectedInvoice)} className="rounded-radius py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-surface text-mono-text border active:scale-95 disabled:opacity-50 disabled:pointer-events-none"><CheckCircle2 size={14} /> Settle</button>
+                           }} className="rounded-card py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-text text-white active:scale-95 disabled:opacity-50"><Wallet2 size={14} /> Record</button>
+                           <button disabled={isLoading} onClick={() => handleMarkAsPaid(bill.id, setSelectedInvoice)} className="rounded-card py-2.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all bg-mono-surface text-mono-text border active:scale-95 disabled:opacity-50 disabled:pointer-events-none"><CheckCircle2 size={14} /> Settle</button>
                         </div>
                      </div>
                   );
@@ -229,9 +229,9 @@ export default function BillingPage() {
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm flex justify-center items-end">
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full bg-white rounded-t-3xl pt-6 pb-12 px-6 flex flex-col items-center text-center relative max-w-sm">
                      <button onClick={() => setSelectedInvoice(null)} className="absolute top-4 right-4 p-2 bg-mono-surface rounded-full text-mono-text-muted"><X size={20} /></button>
-                     <div className="mb-4 mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-mono-text-disabled">Payment Request</p><h2 className="text-3xl font-bold text-mono-text">₹{Number(selectedInvoice.amount).toFixed(2)}</h2></div>
+                     <div className="mb-4 mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-mono-text-disabled">Payment Request</p><h2 className="text-3xl font-semibold text-mono-text">₹{Number(selectedInvoice.amount).toFixed(2)}</h2></div>
                      <div ref={qrRef} className="bg-gray-200 p-6 rounded-4xl shadow-md my-4 relative overflow-hidden">
-                        <div className="bg-white p-4 rounded-radius-md shadow-inner relative z-10">
+                        <div className="bg-white p-4 rounded-card shadow-inner relative z-10">
                            <QRCodeCanvas
                               value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}`
                                  /*  &am=${selectedInvoice.amount}
@@ -259,10 +259,10 @@ export default function BillingPage() {
                      </div>
                      <div className="w-full flex flex-col gap-3 mt-4">
                         <div className="flex gap-2">
-                           <button onClick={() => handleWhatsAppShare(selectedInvoice)} className="flex-1 bg-success-soft text-success/80 py-3.5 rounded-radius-md font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><MessageCircle size={18} /> WhatsApp</button>
-                           <button onClick={() => handleShareCard(selectedInvoice)} disabled={isShareLoading} className="flex-1 bg-mono-text text-white py-3.5 rounded-radius-md font-bold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60 disabled:pointer-events-none">{isShareLoading ? <><span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Generating...</> : <><Share2 size={18} /> Share Card</>}</button>
+                           <button onClick={() => handleWhatsAppShare(selectedInvoice)} className="flex-1 bg-success-soft text-success/80 py-3.5 rounded-card font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><MessageCircle size={18} /> WhatsApp</button>
+                           <button onClick={() => handleShareCard(selectedInvoice)} disabled={isShareLoading} className="flex-1 bg-mono-text text-white py-3.5 rounded-card font-bold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60 disabled:pointer-events-none">{isShareLoading ? <><span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Generating...</> : <><Share2 size={18} /> Share Card</>}</button>
                         </div>
-                        <button onClick={() => handleMarkAsPaid(selectedInvoice.id, setSelectedInvoice)} className="w-full bg-mono-surface text-mono-text-muted py-3.5 rounded-radius-md font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><Wallet2 size={18} /> Manual Confirmation</button>
+                        <button onClick={() => handleMarkAsPaid(selectedInvoice.id, setSelectedInvoice)} className="w-full bg-mono-surface text-mono-text-muted py-3.5 rounded-card font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><Wallet2 size={18} /> Manual Confirmation</button>
                      </div>
                   </motion.div>
                </motion.div>
@@ -277,16 +277,16 @@ export default function BillingPage() {
             {isPaymentModalOpen && (
                <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPaymentModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6 text-mono-text">
-                     <div className="flex justify-between items-center"><p className="text-[18px] font-bold text-mono-text">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button></div>
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-hero p-7 shadow-md flex flex-col gap-6 text-mono-text">
+                     <div className="flex justify-between items-center"><p className="text-[18px] font-semibold text-mono-text">Record Payment</p><button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-mono-surface rounded-card text-mono-text-muted"><X size={18} /></button></div>
 
                      {paymentTotalDue !== null ? (
-                        <div className="bg-mono-surface border border-mono-border p-4 rounded-radius flex items-center justify-between">
+                        <div className="bg-mono-surface border border-mono-border p-4 rounded-card flex items-center justify-between">
                            <span className="text-mono-text text-xs font-bold uppercase tracking-widest">Total Outstanding</span>
                            <span className="text-mono-text font-bold text-lg">₹{paymentTotalDue.toFixed(2)}</span>
                         </div>
                      ) : (
-                        <div className="bg-mono-bg border border-mono-divider p-4 rounded-radius flex items-center justify-center animate-pulse h-14" />
+                        <div className="bg-mono-bg border border-mono-divider p-4 rounded-card flex items-center justify-center animate-pulse h-14" />
                      )}
 
                      <form onSubmit={(e) => {
@@ -305,7 +305,7 @@ export default function BillingPage() {
                               placeholder="0.00"
                               value={paymentAmount}
                               onChange={e => setPaymentAmount(e.target.value)}
-                              className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all font-bold"
+                              className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all font-medium"
                            />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -316,7 +316,7 @@ export default function BillingPage() {
                                     type="button"
                                     key={method}
                                     onClick={() => setPaymentMethod(method)}
-                                    className={`py-2 text-sm font-bold rounded-radius border transition-all ${paymentMethod === method ? 'bg-mono-text/5 border-mono-border text-mono-text' : 'bg-white border-mono-border text-mono-text-muted hover:bg-mono-bg'}`}
+                                    className={`py-2 text-sm font-bold rounded-card border transition-all ${paymentMethod === method ? 'bg-mono-text/5 border-mono-border text-mono-text' : 'bg-white border-mono-border text-mono-text-muted hover:bg-mono-bg'}`}
                                  >
                                     {method}
                                  </button>
@@ -330,10 +330,10 @@ export default function BillingPage() {
                               placeholder="e.g. Cleared past dues"
                               value={paymentNotes}
                               onChange={e => setPaymentNotes(e.target.value)}
-                              className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all"
+                              className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all"
                            />
                         </div>
-                        <button disabled={isLoading} type="submit" className="w-full bg-mono-text text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 transition-all shadow-sm disabled:opacity-50">
+                        <button disabled={isLoading} type="submit" className="w-full bg-mono-text text-white font-bold py-4 rounded-card mt-2 active:scale-95 transition-all shadow-sm disabled:opacity-50">
                            {isLoading ? "Saving..." : "Record Payment"}
                         </button>
                      </form>

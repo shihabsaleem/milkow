@@ -49,10 +49,10 @@ export default function InventoryPage() {
         <div className="w-full max-w-2xl mx-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div><p className="text-[20px] font-semibold text-mono-text">Inventory</p><p className="text-[13px] font-medium text-mono-text-disabled">Stock & Pipeline</p></div>
-            <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="h-10 w-10 bg-mono-text text-white rounded-radius flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
+            <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="h-10 w-10 bg-mono-text text-white rounded-card flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
           </div>
-          <div className="w-full bg-white border border-mono-border/60 rounded-radius-md p-3.5 flex items-center gap-3 relative shadow-sm" onClick={() => dateInputRef.current?.showPicker()}>
-            <div className="p-2 bg-mono-text/10 text-mono-text rounded-radius"><CalendarIcon size={18} /></div>
+          <div className="w-full bg-white border border-mono-border/60 rounded-card p-3.5 flex items-center gap-3 relative shadow-sm" onClick={() => dateInputRef.current?.showPicker()}>
+            <div className="p-2 bg-mono-text/10 text-mono-text rounded-card"><CalendarIcon size={18} /></div>
             <div className="flex flex-col"><p className="text-[10px] font-bold uppercase tracking-wider text-mono-text-disabled leading-none mb-1">Inventory Date</p><p className="text-[14px] font-bold text-mono-text leading-none">{fmtDate(date)}</p></div>
             <input ref={dateInputRef} type="date" className="absolute inset-0 opacity-0 cursor-pointer" value={date} onChange={(e) => setDate(e.target.value)} />
             <div className="ml-auto text-mono-text-disabled"><ChevronRight size={16} /></div>
@@ -65,12 +65,12 @@ export default function InventoryPage() {
           <p className="text-[12px] font-bold uppercase tracking-widest mb-3 text-mono-text-disabled">Supply Pipeline</p>
           <div className="grid grid-cols-2 gap-3">
             {isLoading ? (
-              [1, 2].map(i => <div key={i} className="h-32 bg-mono-text/5 border-2 border-mono-border rounded-radius-md animate-pulse" />)
+              [1, 2].map(i => <div key={i} className="h-32 bg-mono-text/5 border-2 border-mono-border rounded-card animate-pulse" />)
             ) : (
               pipeline.map((stage, i) => (
-                <div key={i} className="rounded-radius-md p-4 flex flex-col gap-3 transition-transform bg-mono-text/10 border-2 border-mono-border group relative">
+                <div key={i} className="rounded-card p-4 flex flex-col gap-3 transition-transform bg-mono-text/10 border-2 border-mono-border group relative">
                   <div className="text-mono-text"><Droplet size={20} /></div>
-                  <div><p className="text-[13px] font-semibold text-mono-text-muted">{stage.label}</p><div className="flex items-center mt-1"><input type="number" placeholder="0" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} onFocus={(e) => e.target.select()} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-semibold rounded-radius py-1.5 px-2 text-mono-text focus:outline-none placeholder:text-mono-border" /><span className="text-[13px] font-medium ml-2 shrink-0 text-mono-text-disabled">{stage.unit}</span></div></div>
+                  <div><p className="text-[13px] font-semibold text-mono-text-muted">{stage.label}</p><div className="flex items-center mt-1"><input type="number" placeholder="0" value={stage.value} onChange={(e) => updatePipelineValue(stage.id, e.target.value)} onFocus={(e) => e.target.select()} className="w-3/4 md:w-1/3 relative z-20 bg-white text-[26px] font-semibold rounded-card py-1.5 px-2 text-mono-text focus:outline-none placeholder:text-mono-border" /><span className="text-[13px] font-medium ml-2 shrink-0 text-mono-text-disabled">{stage.unit}</span></div></div>
                 </div>
               ))
             )}
@@ -78,15 +78,15 @@ export default function InventoryPage() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-3"><p className="text-[12px] font-bold uppercase tracking-widest text-mono-text-disabled">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="text-[12px] font-bold px-3 py-1.5 rounded-radius flex items-center gap-1 transition-all text-mono-text bg-mono-text/10"><Plus size={13} /> Add</button></div>
+          <div className="flex items-center justify-between mb-3"><p className="text-[12px] font-bold uppercase tracking-widest text-mono-text-disabled">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="text-[12px] font-bold px-3 py-1.5 rounded-card flex items-center gap-1 transition-all text-mono-text bg-mono-text/10"><Plus size={13} /> Add</button></div>
           <div className="flex flex-col gap-2.5">
             {isLoading ? (
-              [1, 2, 3].map(i => <div key={i} className="h-20 bg-white border border-mono-border rounded-radius-md animate-pulse" />)
+              [1, 2, 3].map(i => <div key={i} className="h-20 bg-white border border-mono-border rounded-card animate-pulse" />)
             ) : (
               products.map((p, i) => (
-                <div key={i} onClick={() => openEditModal(i)} className="flex items-center justify-between p-4 rounded-radius-md border transition-colors cursor-pointer bg-white border-mono-border">
+                <div key={i} onClick={() => openEditModal(i)} className="flex items-center justify-between p-4 rounded-card border transition-colors cursor-pointer bg-white border-mono-border">
                   <div><p className="text-[15px] font-bold text-mono-text">{p.name}</p><p className="text-[12px] font-medium mt-0.5 text-mono-text-disabled">{p.size} · {p.stock} in stock</p></div>
-                  <div className="flex flex-col items-end"><p className="text-[16px] font-bold text-mono-text">₹{getProductPriceForDate(p)}</p><p className="text-[10px] font-bold text-mono-text-disabled uppercase tracking-tighter">Selling Price</p></div>
+                  <div className="flex flex-col items-end"><p className="text-[16px] font-semibold text-mono-text">₹{getProductPriceForDate(p)}</p><p className="text-[10px] font-bold text-mono-text-disabled uppercase tracking-tighter">Selling Price</p></div>
                 </div>
               ))
             )}
@@ -99,7 +99,7 @@ export default function InventoryPage() {
           if (!disabledMorning) setClosingShift("Morning Only");
           else if (!disabledEvening) setClosingShift("Evening Only");
           setIsCloseShiftModalOpen(true);
-        }} className="w-full bg-mono-text text-white font-bold py-4 rounded-radius-md active:scale-95 transition-all shadow-sm">
+        }} className="w-full bg-mono-text text-white font-bold py-4 rounded-card active:scale-95 transition-all shadow-sm">
           Close Shift
         </button>
       </div>
@@ -108,16 +108,16 @@ export default function InventoryPage() {
         {isModalOpen && (
           <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6">
-              <div className="flex justify-between items-center"><p className="text-[18px] font-bold text-mono-text">{editingIndex !== null ? "Edit Product" : "New Product"}</p><button onClick={() => setIsModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button></div>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-hero p-7 shadow-md flex flex-col gap-6">
+              <div className="flex justify-between items-center"><p className="text-[18px] font-semibold text-mono-text">{editingIndex !== null ? "Edit Product" : "New Product"}</p><button onClick={() => setIsModalOpen(false)} className="p-2 bg-mono-surface rounded-card text-mono-text-muted"><X size={18} /></button></div>
               <form onSubmit={handleSaveProduct} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Name</label><input autoFocus placeholder="e.g. Raw Milk" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Name</label><input autoFocus placeholder="e.g. Raw Milk" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Size</label><input placeholder="e.g. 1L" value={newProduct.size} onChange={e => setNewProduct({ ...newProduct, size: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Price</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-mono-text-disabled">₹</span><input placeholder="90" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: Number(e.target.value) })} className="w-full bg-mono-bg border border-mono-divider rounded-radius pl-8 pr-4 py-3 text-sm font-bold focus:ring-2 transition-all" /></div></div>
+                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Size</label><input placeholder="e.g. 1L" value={newProduct.size} onChange={e => setNewProduct({ ...newProduct, size: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Price</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-mono-text-disabled">₹</span><input placeholder="90" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: Number(e.target.value) })} className="w-full bg-mono-bg border border-mono-divider rounded-card pl-8 pr-4 py-3 text-sm font-medium focus:ring-2 transition-all" /></div></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Initial Stock</label><input type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-radius px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
+                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Initial Stock</label><input type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                   <CustomSelect
                     label="Unit"
                     options={[
@@ -133,9 +133,9 @@ export default function InventoryPage() {
                 </div>
                 <div className="flex gap-2 mt-2">
                   {editingIndex !== null && (
-                    <button type="button" onClick={handleDeleteProduct} className="shrink-0 w-12 h-12 bg-mono-surface text-mono-text rounded-radius-md flex items-center justify-center hover:bg-mono-border transition-colors"><Trash2 size={20} /></button>
+                    <button type="button" onClick={handleDeleteProduct} className="shrink-0 w-12 h-12 bg-mono-surface text-mono-text rounded-card flex items-center justify-center hover:bg-mono-border transition-colors"><Trash2 size={20} /></button>
                   )}
-                  <button type="submit" disabled={isSubmitting} className="grow bg-mono-text text-white font-bold py-4 rounded-radius-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
+                  <button type="submit" disabled={isSubmitting} className="grow bg-mono-text text-white font-bold py-4 rounded-card active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
                     {isSubmitting ? "Saving..." : (editingIndex !== null ? "Save Changes" : "Create Product")}
                   </button>
                 </div>
@@ -149,8 +149,8 @@ export default function InventoryPage() {
         {isCloseShiftModalOpen && (
           <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-5">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCloseShiftModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-7 shadow-md flex flex-col gap-6">
-              <div className="flex justify-between items-center"><p className="text-[18px] font-bold text-mono-text">Close Shift</p><button onClick={() => setIsCloseShiftModalOpen(false)} className="p-2 bg-mono-surface rounded-radius text-mono-text-muted"><X size={18} /></button></div>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-sm bg-white rounded-t-3xl sm:rounded-hero p-7 shadow-md flex flex-col gap-6">
+              <div className="flex justify-between items-center"><p className="text-[18px] font-semibold text-mono-text">Close Shift</p><button onClick={() => setIsCloseShiftModalOpen(false)} className="p-2 bg-mono-surface rounded-card text-mono-text-muted"><X size={18} /></button></div>
               <form onSubmit={handleCloseShiftSubmit} className="flex flex-col gap-5">
                 <CustomSelect
                   label="Which shift are you closing?"
@@ -161,10 +161,10 @@ export default function InventoryPage() {
                   value={closingShift}
                   onChange={setClosingShift}
                 />
-                <div className="bg-mono-text/5 border border-mono-border p-4 rounded-radius">
+                <div className="bg-mono-text/5 border border-mono-border p-4 rounded-card">
                   <p className="text-xs font-medium text-mono-text">This will record the end of the shift and archive current prices for the ledger. All inventory and stock levels will be reset to zero.</p>
                 </div>
-                <button type="submit" disabled={isSubmitting} className="w-full bg-mono-text text-white font-bold py-4 rounded-radius-md mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
+                <button type="submit" disabled={isSubmitting} className="w-full bg-mono-text text-white font-bold py-4 rounded-card mt-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm">
                   {isSubmitting ? "Closing Shift..." : "Confirm Close Shift"}
                 </button>
               </form>

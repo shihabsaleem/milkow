@@ -82,8 +82,8 @@ export default function Dashboard() {
                   <span className="text-white text-[18px] font-bold">{adminName.charAt(0)}</span>
                 </div>
                 <div className="flex flex-col leading-tight">
-                  <p className="text-[13px] font-medium text-mono-text-muted">{shift === "morning" ? "Good Morning" : "Good Evening"}</p>
-                  <p className="text-[22px] font-semibold text-mono-text">{adminName}</p>
+                  <p className="text-xs font-medium text-mono-text-muted">{shift === "morning" ? "Good Morning" : "Good Evening"}</p>
+                  <p className="text-lg font-semibold text-mono-text">{adminName}</p>
                 </div>
               </>
             )}

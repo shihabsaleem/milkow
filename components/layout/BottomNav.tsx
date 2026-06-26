@@ -24,7 +24,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1rem)] mb-2 md:w-1/2 rounded-xl"
       style={{ background: "var(--primary)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="flex items-center justify-around max-w-2xl mx-auto h-[60px]">

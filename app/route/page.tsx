@@ -111,20 +111,50 @@ export default function RouteOrderPage() {
   );
 
   useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true);
+    async function fetchData(silent = false) {
+      if (!silent) setIsLoading(true);
       const [{ data: areaData }, { data: custData }] = await Promise.all([
         supabase.from("areas").select("*").eq("franchise_id", activeFranchiseId).order("name"),
         supabase.from("customers").select("*, area:areas(*)").eq("franchise_id", activeFranchiseId).eq("status", "Active"),
       ]);
+      
       if (areaData) {
         setAreas(areaData as T.Area[]);
-        if (areaData.length > 0) setSelectedAreaId(areaData[0].id.toString());
+        if (areaData.length > 0 && !selectedAreaId) setSelectedAreaId(areaData[0].id.toString());
       }
-      if (custData) setCustomers(custData as CustomerWithArea[]);
+      
+      if (custData) {
+        setCustomers(custData as CustomerWithArea[]);
+      }
+      
+      if (areaData || custData) {
+        const pageCacheKey = `milkow_route_page_${activeFranchiseId}`;
+        const pageCacheData = {
+           areas: areaData || [],
+           customers: custData || []
+        };
+        localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
+      }
+
       setIsLoading(false);
     }
-    fetchData();
+
+    const pageCacheKey = `milkow_route_page_${activeFranchiseId}`;
+    const cachedPage = localStorage.getItem(pageCacheKey);
+    
+    if (cachedPage) {
+       try {
+          const parsed = JSON.parse(cachedPage);
+          if (parsed.areas) {
+            setAreas(parsed.areas);
+            if (parsed.areas.length > 0 && !selectedAreaId) setSelectedAreaId(parsed.areas[0].id.toString());
+          }
+          if (parsed.customers) setCustomers(parsed.customers);
+          setIsLoading(false);
+       } catch (e) {}
+    }
+
+    fetchData(!!cachedPage);
   }, [activeFranchiseId]);
 
   useEffect(() => {

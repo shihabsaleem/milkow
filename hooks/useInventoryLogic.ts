@@ -99,28 +99,33 @@ export function useInventoryLogic() {
     ]);
     if (prods) setProducts(prods as T.Product[]);
     
-    if (prods) {
-      setProducts(prods as T.Product[]);
-      
-      const pageCacheKey = `milkow_inventory_page_${activeFranchiseId}`;
-      const pageCacheData = {
-         products: prods || []
-      };
-      localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
-    }
-
+    let newPipeline: any[] = [];
     if (pipes) {
-      setPipeline((pipes as any[]).map(p => ({ label: p.name, value: p.count === 0 ? "" : p.count, unit: p.unit, id: p.id, productId: p.product_id, loaded: p.loaded || 0 })));
+      newPipeline = (pipes as any[]).map(p => ({ label: p.name, value: p.count === 0 ? "" : p.count, unit: p.unit, id: p.id, productId: p.product_id, loaded: p.loaded || 0 }));
+      setPipeline(newPipeline);
     }
     
+    let newClosedShifts: { [date: string]: string[] } = {};
+    let newDailyPrices = {};
+    
     if (settings && settings.value) {
-      const dbDailyPrices = settings.value as any;
-      setDailyPrices(dbDailyPrices);
-      const closed: { [date: string]: string[] } = {};
-      Object.keys(dbDailyPrices).forEach(d => {
-        closed[d] = Object.keys(dbDailyPrices[d] || {});
+      newDailyPrices = settings.value as any;
+      setDailyPrices(newDailyPrices);
+      Object.keys(newDailyPrices).forEach(d => {
+        newClosedShifts[d] = Object.keys((newDailyPrices as any)[d] || {});
       });
-      setClosedShifts(closed);
+      setClosedShifts(newClosedShifts);
+    }
+
+    if (prods || pipes || settings) {
+      const pageCacheKey = `milkow_inventory_page_${activeFranchiseId}`;
+      const pageCacheData = {
+         products: prods || [],
+         pipeline: newPipeline,
+         dailyPrices: newDailyPrices,
+         closedShifts: newClosedShifts
+      };
+      localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
     }
 
     setIsLoading(false);
@@ -135,6 +140,9 @@ export function useInventoryLogic() {
        try {
           const parsed = JSON.parse(cachedPage);
           if (parsed.products) setProducts(parsed.products);
+          if (parsed.pipeline) setPipeline(parsed.pipeline);
+          if (parsed.dailyPrices) setDailyPrices(parsed.dailyPrices);
+          if (parsed.closedShifts) setClosedShifts(parsed.closedShifts);
           setIsLoading(false);
        } catch (e) {}
     }

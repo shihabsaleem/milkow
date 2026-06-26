@@ -85,15 +85,44 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
 
       setBills(combinedBills);
 
+      let pSettings: T.PaymentSetup | undefined = undefined;
       if (settingsData) {
          const general = settingsData.value as { payment?: T.PaymentSetup };
-         if (general?.payment) setPaymentSettings(general.payment);
+         if (general?.payment) {
+            pSettings = general.payment;
+            setPaymentSettings(general.payment);
+         }
       }
+
+      const pageCacheKey = `milkow_billing_page_${activeFranchiseId}`;
+      const pageCacheData = {
+         routesList: routeSets || [],
+         products: prods,
+         bills: combinedBills,
+         paymentSettings: pSettings
+      };
+      localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
+
       setIsLoading(false);
    }, [activeFranchiseId]);
 
    useEffect(() => {
-      fetchData();
+      // Attempt to load full page state from cache first for instant render
+      const pageCacheKey = `milkow_billing_page_${activeFranchiseId}`;
+      const cachedPage = localStorage.getItem(pageCacheKey);
+      
+      if (cachedPage) {
+         try {
+            const parsed = JSON.parse(cachedPage);
+            if (parsed.routesList) setRoutesList(parsed.routesList);
+            if (parsed.products) setProducts(parsed.products);
+            if (parsed.bills) setBills(parsed.bills);
+            if (parsed.paymentSettings) setPaymentSettings(parsed.paymentSettings);
+            setIsLoading(false);
+         } catch (e) {}
+      }
+
+      fetchData(!!cachedPage);
 
       const sub = supabase.channel('bills_page')
          .on('postgres_changes', { event: '*', schema: 'public', table: 'bills', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchData(true))

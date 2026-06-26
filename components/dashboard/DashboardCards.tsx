@@ -4,22 +4,30 @@ export type DeliveredItem = { name: string; vol: string; count: number; unit: st
 
 export function InventoryCard({ item }: { item: T.InventoryItem }) {
   const isEmpty = item.count === 0;
-  const progress = item.loaded > 0 ? (item.count / item.loaded) * 100 : 0;
+  const progress = item.loaded > 0 ? Math.min((item.count / item.loaded) * 100, 100) : 0;
   return (
-    <div className="min-w-[210px] sm:min-w-0 shrink-0 rounded-card overflow-hidden snap-start bg-white border border-mono-border flex flex-col h-full p-[20px]">
-      <div className="flex-1">
-        <p className="text-mono-text text-[16px] font-medium leading-tight">{item.name}</p>
-        <div className="mt-4 mb-3 flex items-baseline gap-2">
-          <p className="text-mono-text text-[36px] font-bold leading-none">{isEmpty ? "—" : item.count}</p>
-          <p className="text-mono-text-muted text-[13px]">{item.unit}</p>
-        </div>
-        <div className="w-full h-[4px] bg-mono-divider mt-2 mb-4 rounded-full overflow-hidden">
-          <div className="h-full bg-mono-text" style={{ width: `${Math.min(progress, 100)}%` }} />
-        </div>
+    <div className="rounded-card bg-white border border-mono-border flex flex-col gap-3 p-4">
+      {/* Name */}
+      <p className="text-[12px] font-medium text-mono-text-muted leading-tight truncate">{item.name}</p>
+
+      {/* Count */}
+      <div className="flex items-baseline gap-1">
+        <p className="text-[28px] font-bold text-mono-text leading-none">{isEmpty ? "—" : item.count}</p>
+        <p className="text-[11px] text-mono-text-disabled">{item.unit}</p>
       </div>
-      <div className="mt-auto pt-2 flex justify-between items-center border-t border-mono-divider">
-        <p className="text-[13px] text-mono-text-muted">Loaded</p>
-        <p className="text-mono-text text-[16px] font-medium">{isEmpty ? "—" : item.loaded} <span className="text-mono-text-muted text-[13px] font-normal">{item.unit}</span></p>
+
+      {/* Progress bar */}
+      <div className="w-full h-[3px] bg-mono-divider rounded-full overflow-hidden">
+        <div className="h-full bg-mono-text rounded-full transition-all" style={{ width: `${progress}%` }} />
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] text-mono-text-disabled">Loaded</p>
+        <p className="text-[12px] font-semibold text-mono-text">
+          {isEmpty ? "—" : item.loaded}
+          <span className="text-[10px] font-normal text-mono-text-muted ml-0.5">{item.unit}</span>
+        </p>
       </div>
     </div>
   );
@@ -27,11 +35,11 @@ export function InventoryCard({ item }: { item: T.InventoryItem }) {
 
 export function DeliveredCard({ item }: { item: DeliveredItem }) {
   return (
-    <div className="rounded-card p-[20px] bg-white border border-mono-border flex flex-col h-full">
-      <p className="text-mono-text text-[16px] font-medium leading-tight">{item.name}</p>
-      <div className="mt-auto pt-4 flex items-baseline gap-2">
-        <p className="text-mono-text text-[36px] font-bold leading-none">{item.count}</p>
-        <p className="text-mono-text-muted text-[13px]">{item.unit}</p>
+    <div className="rounded-card p-4 bg-white border border-mono-border flex flex-col gap-3">
+      <p className="text-[12px] font-medium text-mono-text-muted leading-tight truncate">{item.name}</p>
+      <div className="flex items-baseline gap-1">
+        <p className="text-[28px] font-bold text-mono-text leading-none">{item.count}</p>
+        <p className="text-[11px] text-mono-text-disabled">{item.unit}</p>
       </div>
     </div>
   );
@@ -39,14 +47,13 @@ export function DeliveredCard({ item }: { item: DeliveredItem }) {
 
 export function FinanceCard({ amount, label, badge, type }: { amount: string; label: string; badge: string; type: "green" | "red" | "blue" }) {
   return (
-    <div className="rounded-card p-[20px] bg-white border border-mono-border flex flex-col h-full justify-between gap-4">
+    <div className="rounded-card p-4 bg-white border border-mono-border flex flex-col gap-3 justify-between">
       <div>
-        <p className="text-mono-text text-[28px] font-bold leading-none truncate">{amount}</p>
-        <p className="text-mono-text text-[16px] font-medium mt-2">{label}</p>
+        <p className="text-[22px] font-bold text-mono-text leading-none truncate">{amount}</p>
+        <p className="text-[12px] font-medium text-mono-text-muted mt-2 leading-tight">{label}</p>
       </div>
-      <div>
-        <p className="text-mono-text-muted text-[13px]">{badge}</p>
-      </div>
+      {badge ? <p className="text-[11px] text-mono-text-disabled">{badge}</p> : <span />}
     </div>
   );
 }
+

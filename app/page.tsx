@@ -168,15 +168,7 @@ export default function Dashboard() {
 
         <section>
           <p className="text-[16px] font-semibold mb-4 text-mono-text px-7">Inventory</p>
-          <div className="sm:hidden flex gap-4 overflow-x-auto no-scrollbar pb-1 snap-x snap-mandatory pl-7">
-            {isLoading ? (
-              [1, 2].map(i => <div key={i} className="min-w-[210px] h-[190px] rounded-card bg-mono-skeleton animate-pulse" />)
-            ) : (
-              inventory.map((item, i) => <InventoryCard key={i} item={item} />)
-            )}
-            <div className="min-w-[28px] shrink-0" />
-          </div>
-          <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-3 px-7">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 px-7">
             {isLoading ? (
               [1, 2, 3].map(i => <div key={i} className="h-[190px] rounded-card bg-mono-skeleton animate-pulse" />)
             ) : (

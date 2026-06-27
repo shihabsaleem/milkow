@@ -42,7 +42,8 @@ export default function UserProfilePage() {
       setEditingRouteName,
       handleLogout,
       fetchSettings,
-      role
+      role,
+      franchiseName
    } = useProfileLogic();
 
 
@@ -71,17 +72,14 @@ export default function UserProfilePage() {
          </header>
 
          <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-8">
-            {/* Profile Picture */}
-            <div className="flex flex-col items-center gap-4 mt-4">
-               <div className="h-28 w-28 rounded-hero overflow-hidden ring-4 ring-white shadow-sm relative group bg-mono-text flex items-center justify-center">
-                  <span className="text-white text-4xl font-bold">{adminName.charAt(0)}</span>
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                     <p className="text-white text-[10px] font-bold uppercase tracking-widest">Change</p>
-                  </div>
+            {/* Profile Hero */}
+            <div className="bg-white border border-mono-divider rounded-card p-6 flex justify-center items-center gap-4 shadow-sm">
+               <div className="h-20 w-20 rounded-card bg-mono-text flex items-center justify-center shadow-md ring-4 ring-mono-surface">
+                  <span className="text-white text-3xl font-bold leading-none">{adminName.charAt(0).toUpperCase()}</span>
                </div>
-               <div className="text-center">
-                  <h2 className="text-2xl font-semibold text-mono-text">{adminName}</h2>
-                  <p className="text-[11px] font-bold tracking-widest uppercase text-mono-text bg-mono-text/10 px-3 py-1 rounded-sm mt-1 inline-block">System Owner</p>
+               <div className="flex flex-col items-center gap-1.5 text-center">
+                  <h2 className="text-xl font-semibold text-mono-text leading-tight">{adminName}</h2>
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-mono-text-muted bg-mono-surface border border-mono-border px-3 py-1 rounded-full">{franchiseName ? `${franchiseName} Area` : 'Owner'}</span>
                </div>
             </div>
 
@@ -90,22 +88,22 @@ export default function UserProfilePage() {
 
                {/* Superadmin Quick Access */}
                {role === 'superadmin' && (
-                  <Link href="/superadmin" className="bg-mono-surface hover:bg-emerald-100/80 rounded-hero p-6 shadow-sm border border-mono-text/50 flex items-center justify-between transition-colors active:scale-95 group">
+                  <Link href="/superadmin" className="bg-white rounded-card p-6 shadow-sm border border-mono-divider flex items-center justify-between transition-colors active:scale-95 group">
                      <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-card bg-mono-text/10 flex items-center justify-center text-mono-text">
                            <ShieldAlert size={20} />
                         </div>
                         <div>
-                           <h3 className="font-semibold text-emerald-900">Superadmin Dashboard</h3>
+                           <h3 className="font-semibold text-mono-text">Superadmin Dashboard</h3>
                            <p className="text-xs text-mono-text/80">Manage all franchises & system settings</p>
                         </div>
                      </div>
-                     <ArrowLeft size={20} className="text-emerald-400 rotate-180 group-hover:translate-x-1 transition-transform" />
+                     <ArrowLeft size={20} className="text-mono-text rotate-180 group-hover:translate-x-1 transition-transform" />
                   </Link>
                )}
 
                {/* Account Security Section */}
-               <div className="bg-white rounded-hero p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
+               <div className="bg-white rounded-card p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
                   <h3 className="font-semibold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
                      <span className="w-1.5 h-1.5 bg-mono-text rounded-full"></span>
                      Security & Account
@@ -136,7 +134,7 @@ export default function UserProfilePage() {
                </div>
 
                {/* Business & Payment Section */}
-               <div className="bg-white rounded-hero p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
+               <div className="bg-white rounded-card p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
                   <h3 className="font-semibold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
                      <span className="w-1.5 h-1.5 bg-mono-text rounded-full"></span>
                      Business & Payment Setup
@@ -164,7 +162,7 @@ export default function UserProfilePage() {
                </div>
 
                {/* Automation Settings Section */}
-               <div className="bg-white rounded-hero p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
+               <div className="bg-white rounded-card p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
                   <h3 className="font-semibold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
                      Automation & Shifts
@@ -219,9 +217,9 @@ export default function UserProfilePage() {
                </div>
 
                {/* Delivery Routes Section */}
-               <div className="bg-white rounded-hero p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
+               <div className="bg-white rounded-card p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
                   <h3 className="font-semibold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 bg-mono-surface0 rounded-full"></span>
+                     <span className="w-1.5 h-1.5 bg-mono-text rounded-full"></span>
                      Delivery Routes
                   </h3>
 
@@ -242,22 +240,22 @@ export default function UserProfilePage() {
                                        value={editingRouteName}
                                        onChange={e => setEditingRouteName(e.target.value)}
                                        onKeyDown={e => { if (e.key === 'Enter') editRoute(area.id, editingRouteName); if (e.key === 'Escape') { setEditingRouteId(null); setEditingRouteName(''); } }}
-                                       className="flex-1 bg-white border border-mono-border rounded-sm px-3 py-1.5 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 mr-2"
+                                       className="flex-1 bg-white border border-mono-border rounded-md px-3 py-1.5 text-sm font-bold text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 mr-2"
                                     />
-                                    <button onClick={() => editRoute(area.id, editingRouteName)} className="text-mono-text hover:bg-mono-surface p-1.5 rounded-sm transition-colors">
+                                    <button onClick={() => editRoute(area.id, editingRouteName)} className="text-mono-text hover:bg-mono-surface p-1.5 rounded-md transition-colors">
                                        <Check size={16} />
                                     </button>
-                                    <button onClick={() => { setEditingRouteId(null); setEditingRouteName(''); }} className="text-mono-text-disabled hover:bg-mono-surface p-1.5 rounded-sm transition-colors ml-1">
+                                    <button onClick={() => { setEditingRouteId(null); setEditingRouteName(''); }} className="text-mono-text-disabled hover:bg-mono-surface p-1.5 rounded-md transition-colors ml-1">
                                        <X size={16} />
                                     </button>
                                  </>
                               ) : (
                                  <>
                                     <span className="text-sm font-bold text-mono-text flex-1">{area.name}</span>
-                                    <button onClick={() => { setEditingRouteId(area.id); setEditingRouteName(area.name); }} className="text-mono-text-disabled hover:bg-mono-surface p-1.5 rounded-sm transition-colors mr-1">
+                                    <button onClick={() => { setEditingRouteId(area.id); setEditingRouteName(area.name); }} className="text-mono-text-disabled hover:bg-mono-surface p-1.5 rounded-md transition-colors mr-1">
                                        <Edit2 size={15} />
                                     </button>
-                                    <button onClick={() => removeRoute(area.id)} className="text-mono-text hover:bg-mono-surface p-1.5 rounded-sm transition-colors">
+                                    <button onClick={() => removeRoute(area.id)} className="text-mono-text hover:bg-mono-surface p-1.5 rounded-md transition-colors">
                                        <X size={16} />
                                     </button>
                                  </>

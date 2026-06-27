@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { LogIn, Plus, Users, ShieldAlert, Sparkles, Building, Key, Mail, RefreshCw } from "lucide-react";
+import { LogIn, Plus, Users, ShieldAlert, Sparkles, Building, Key, Mail, RefreshCw, Edit2, Check, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 
@@ -26,7 +26,9 @@ export default function SuperadminDashboard() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [editingFranchiseId, setEditingFranchiseId] = useState<string | null>(null);
+  const [editFranchiseName, setEditFranchiseName] = useState("");
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
   useEffect(() => {
     if (role !== "superadmin") {
       router.push("/");
@@ -102,6 +104,31 @@ export default function SuperadminDashboard() {
     }
   };
 
+  const handleUpdateFranchiseName = async (id: string) => {
+    if (!editFranchiseName.trim() || editFranchiseName.trim() === franchises.find(f => f.id === id)?.name) {
+      setEditingFranchiseId(null);
+      return;
+    }
+    
+    setIsUpdatingName(true);
+    try {
+      const { error } = await supabase
+        .from('franchises')
+        .update({ name: editFranchiseName.trim() })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      setFranchises(prev => prev.map(f => f.id === id ? { ...f, name: editFranchiseName.trim() } : f));
+      setEditingFranchiseId(null);
+    } catch (err: any) {
+      console.error("Failed to update franchise name:", err);
+      alert("Failed to update franchise name: " + err.message);
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
   const handleImpersonate = (franchiseId: string) => {
     setImpersonatedFranchiseId(franchiseId);
     router.push("/");
@@ -157,7 +184,7 @@ export default function SuperadminDashboard() {
 
       <main className="max-w-2xl mx-auto w-full px-5 py-6 flex flex-col gap-6">
         {/* Create Franchise Section */}
-        <section className="bg-white border border-mono-border rounded-hero p-5 shadow-sm flex flex-col gap-4">
+        <section className="bg-white border border-mono-border rounded-card p-5 shadow-sm flex flex-col gap-4">
           <div>
             <h2 className="text-sm font-semibold text-mono-text flex items-center gap-2">
               <Plus className="text-mono-text" size={16} /> Create Franchise
@@ -248,7 +275,7 @@ export default function SuperadminDashboard() {
               ))}
             </div>
           ) : franchises.length === 0 ? (
-            <div className="text-center py-10 bg-white border border-mono-border rounded-hero flex flex-col items-center justify-center gap-2">
+            <div className="text-center py-10 bg-white border border-mono-border rounded-card flex flex-col items-center justify-center gap-2">
               <Building className="text-mono-border w-8 h-8" />
               <p className="text-mono-text-disabled font-bold text-xs">No franchises registered.</p>
             </div>
@@ -257,8 +284,51 @@ export default function SuperadminDashboard() {
               {franchises.map((franchise) => (
                 <div key={franchise.id} className={`flex justify-between items-center p-4 rounded-card border transition-all shadow-sm ${impersonatedFranchiseId === franchise.id ? "bg-mono-text/5 border-mono-border" : "bg-white border-mono-border"}`}>
                   <div>
-                    <p className="font-bold text-[13px] text-mono-text flex items-center gap-2">
-                      {franchise.name}
+                    <div className="font-bold text-[13px] text-mono-text flex items-center gap-2">
+                      {editingFranchiseId === franchise.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={editFranchiseName}
+                            onChange={(e) => setEditFranchiseName(e.target.value)}
+                            disabled={isUpdatingName}
+                            className="bg-mono-bg border border-mono-border rounded px-2 py-1 text-xs outline-none focus:border-mono-text w-32"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleUpdateFranchiseName(franchise.id);
+                              if (e.key === 'Escape') setEditingFranchiseId(null);
+                            }}
+                          />
+                          <button 
+                            onClick={() => handleUpdateFranchiseName(franchise.id)}
+                            disabled={isUpdatingName}
+                            className="p-1.5 bg-emerald-100 text-emerald-700 rounded-md hover:bg-emerald-200 transition-colors"
+                          >
+                            <Check size={12} />
+                          </button>
+                          <button 
+                            onClick={() => setEditingFranchiseId(null)}
+                            disabled={isUpdatingName}
+                            className="p-1.5 bg-rose-100 text-rose-700 rounded-md hover:bg-rose-200 transition-colors"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          {franchise.name}
+                          <button 
+                            onClick={() => {
+                              setEditFranchiseName(franchise.name);
+                              setEditingFranchiseId(franchise.id);
+                            }}
+                            className="text-mono-text-disabled hover:text-mono-text-muted transition-colors p-0.5"
+                          >
+                            <Edit2 size={10} />
+                          </button>
+                        </>
+                      )}
+                      
                       {impersonatedFranchiseId === franchise.id && (
                         <span className="bg-mono-text/10 text-mono-text text-[9px] px-1.5 py-0.5 rounded-full font-bold">
                           Active
@@ -269,7 +339,7 @@ export default function SuperadminDashboard() {
                           Default
                         </span>
                       )}
-                    </p>
+                    </div>
                     <p className="text-[10px] text-mono-text-disabled mt-1">
                       {new Date(franchise.created_at).toLocaleDateString()}
                     </p>

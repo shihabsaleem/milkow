@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2, MoreVertical, ArrowRight } from "lucide-react";
+import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2, MoreVertical, ArrowRight, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -179,9 +179,12 @@ export default function DeliveryPage() {
                               >
                                  <button
                                     onClick={() => router.push('/billing')}
-                                    className="w-full text-left px-3 py-2 text-sm font-bold text-mono-text hover:bg-mono-bg rounded-card transition-colors"
+                                    className="w-full text-left px-3 py-2 text-sm font-medium text-mono-text hover:bg-mono-bg rounded-card transition-colors"
                                  >
-                                    Billing
+                                    <div className="flex items-center gap-3">
+                                       <Wallet2 size={16} />
+                                       <span className="font-medium">Billing</span>
+                                    </div>
                                  </button>
                                  <div className="h-px bg-mono-surface my-1 mx-2" />
                                  <button
@@ -201,9 +204,12 @@ export default function DeliveryPage() {
                                           }
                                        }
                                     }}
-                                    className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-card transition-colors"
+                                    className="w-full text-left px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-card transition-colors"
                                  >
-                                    Reset Shift
+                                    <div className="flex items-center gap-3">
+                                       <RefreshCw size={16} className="text-red-600" />
+                                       <span className="font-medium">Reset Shift</span>
+                                    </div>
                                  </button>
                               </motion.div>
                            </>

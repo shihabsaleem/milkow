@@ -25,6 +25,7 @@ export function useProfileLogic() {
   const [eveningCloseTime, setEveningCloseTime] = useState("23:59");
 
   const [areas, setAreas] = useState<T.Area[]>([]);
+  const [franchiseName, setFranchiseName] = useState("");
   const [newRoute, setNewRoute] = useState("");
   const [isAddingRoute, setIsAddingRoute] = useState(false);
   const [routeSuccess, setRouteSuccess] = useState(false);
@@ -62,6 +63,9 @@ export function useProfileLogic() {
 
     const { data: areaData } = await supabase.from('areas').select('*').eq('franchise_id', activeFranchiseId).order('name', { ascending: true });
     if (areaData) setAreas(areaData as T.Area[]);
+
+    const { data: franchiseData } = await supabase.from('franchises').select('name').eq('id', activeFranchiseId).maybeSingle();
+    if (franchiseData?.name) setFranchiseName(franchiseData.name);
   }, [activeFranchiseId]);
 
   useEffect(() => {
@@ -234,6 +238,7 @@ export function useProfileLogic() {
     setEditingRouteName,
     handleLogout,
     fetchSettings,
-    role
+    role,
+    franchiseName
   };
 }

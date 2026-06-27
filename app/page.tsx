@@ -77,7 +77,7 @@ export default function Dashboard() {
                 </div>
               </>
             ) : (
-              <>
+              <Link href="/profile" className="flex items-center gap-3 active:opacity-70 transition-opacity">
                 <div className="h-10 w-10 rounded-card overflow-hidden border border-mono-border shrink-0 relative bg-mono-text flex items-center justify-center">
                   <span className="text-white text-[18px] font-bold">{adminName.charAt(0)}</span>
                 </div>
@@ -85,7 +85,7 @@ export default function Dashboard() {
                   <p className="text-xs font-medium text-mono-text-muted">{shift === "morning" ? "Good Morning" : "Good Evening"}</p>
                   <p className="text-lg font-semibold text-mono-text">{adminName}</p>
                 </div>
-              </>
+              </Link>
             )}
           </div>
           <div className="relative">

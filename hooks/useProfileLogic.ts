@@ -95,8 +95,29 @@ export function useProfileLogic() {
         });
 
         if (pinToSave && pinToSave.length >= 6) {
-          const { error: authError } = await supabase.auth.updateUser({ password: pinToSave });
-          if (authError) throw authError;
+          if (role === 'superadmin' && impersonatedFranchiseId) {
+            // Use Admin API to reset franchisee password without affecting superadmin session
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/franchise/password', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+              },
+              body: JSON.stringify({
+                franchiseId: impersonatedFranchiseId,
+                newPassword: pinToSave
+              })
+            });
+            if (!res.ok) {
+              const data = await res.json();
+              throw new Error(data.error || "Failed to reset franchisee password");
+            }
+          } else {
+            // Normal update for current session user
+            const { error: authError } = await supabase.auth.updateUser({ password: pinToSave });
+            if (authError) throw authError;
+          }
         }
 
         const { data: autoData } = await supabase.from('system_settings').select('value').eq('franchise_id', activeFranchiseId).eq('key', 'automation').maybeSingle();

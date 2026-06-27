@@ -209,8 +209,8 @@ export default function RouteOrderPage() {
               </Link>
               <div>
                 <p className="text-[20px] font-semibold text-mono-text leading-none">Route Order</p>
-                <p className="text-xs font-bold text-mono-text-disabled mt-1 uppercase tracking-widest">
-                  Drag to reorder delivery stops
+                <p className="text-xs font-medium text-mono-text-disabled">
+                  Drag to reorder
                 </p>
               </div>
             </div>
@@ -234,7 +234,7 @@ export default function RouteOrderPage() {
                   disabled={!isDirty || isSaving}
                   className="h-10 px-5 bg-mono-text text-white rounded-card font-bold text-sm disabled:cursor-not-allowed active:scale-95 transition-all"
                 >
-                  {isSaving ? "Saving…" : "Save Order"}
+                  {isSaving ? "Saving…" : "Save"}
                 </motion.button>
               )}
             </AnimatePresence>
@@ -286,7 +286,7 @@ export default function RouteOrderPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center text-xs text-mono-text-disabled mt-3"
           >
-            Unsaved changes — tap "Save Order" to apply
+            Unsaved changes — tap "Save" to apply
           </motion.p>
         )}
       </main>

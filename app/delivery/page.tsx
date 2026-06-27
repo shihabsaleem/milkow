@@ -144,7 +144,7 @@ export default function DeliveryPage() {
                         )}
                      </AnimatePresence>
                   </div>
-                  <span className="text-xs font-bold text-mono-text tracking-wider mt-0.5 uppercase">{remainingStops} Stops Remaining</span>
+                  <span className="text-xs font-semibold text-mono-text">{remainingStops} Stops Remaining</span>
                </div>
 
                <div className="flex items-center gap-2">

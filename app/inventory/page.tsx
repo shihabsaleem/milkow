@@ -48,7 +48,7 @@ export default function InventoryPage() {
       <div className="sticky top-0 z-40 border-b bg-mono-bg/90 border-mono-border backdrop-blur-md">
         <div className="w-full max-w-2xl mx-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <div><p className="text-[20px] font-semibold text-mono-text">Inventory</p><p className="text-[13px] font-medium text-mono-text-disabled">Stock & Pipeline</p></div>
+            <div><p className="text-[20px] font-semibold text-mono-text">Inventory</p><p className="text-xs font-medium text-mono-text-disabled">Stock & Pipeline</p></div>
             <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: "", unit: "Bottles" }); setIsModalOpen(true); }} className="h-10 w-10 bg-mono-text text-white rounded-card flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
           </div>
           <div className="w-full bg-white border border-mono-border/60 rounded-card p-3.5 flex items-center gap-3 relative shadow-sm" onClick={() => dateInputRef.current?.showPicker()}>

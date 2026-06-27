@@ -161,7 +161,7 @@ export default function BillingPage() {
                      </AnimatePresence>
                   </div>
                </div>
-               <p className="text-sm text-mono-text-muted">Generate QR and WhatsApp links</p>
+               <p className="text-xs font-medium text-mono-text-disabled">Generate QR and WhatsApp links</p>
             </div>
          </header>
 

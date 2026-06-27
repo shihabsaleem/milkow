@@ -2,8 +2,8 @@
 
 /* ─── Design Tokens ─── */
 @theme {
-  --color-primary: #050044;
-  --color-primary-dim: rgba(5, 0, 68, 0.12);
+  --color-primary: #111111;
+  --color-primary-dim: rgba(17, 17, 17, 0.12);
 
   /* Monochrome Palette */
   --color-mono-bg: #FAFAFA;
@@ -25,9 +25,12 @@
 
   /* Border Radius — custom tokens, do NOT override Tailwind defaults */
   /* Use: rounded-card (16px), rounded-modal (24px), rounded-hero (40px) */
-  --radius-card: 1rem;      /* 16px — buttons, cards, inputs, avatars  */
-  --radius-modal: 1.5rem;   /* 24px — modals, large containers          */
-  --radius-hero: 2.5rem;    /* 40px — hero / full-bleed cards           */
+  --radius-card: 1rem;
+  /* 16px — buttons, cards, inputs, avatars  */
+  --radius-modal: 1.5rem;
+  /* 24px — modals, large containers          */
+  --radius-hero: 2.5rem;
+  /* 40px — hero / full-bleed cards           */
 }
 
 :root {

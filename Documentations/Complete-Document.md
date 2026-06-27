@@ -131,3 +131,19 @@ The background tasks and automated data manipulations are handled centrally in `
 - **Build**: `npm run build`
 - **Database Migrations**: If changes are needed, update `supabase/01_schema.sql` and run the queries in the Supabase SQL Editor.
 - **Static Assets**: Logos and assets are located in `/public/assets`.
+
+
+## 10. Multi-Tenant Franchise System (Added Update)
+
+The application has been upgraded to a multi-tenant architecture to support multiple franchise operators on a single instance.
+
+### Role-Based Access Control
+- **Superadmin**: Global access. Can create new franchises and use an "Impersonation Mode" to view the application exactly as a specific franchisee would see it.
+- **Franchise**: Scoped access. Franchisees can only see and manage their own customers, inventory, products, and financial ledgers.
+
+### Database Updates for Multi-Tenancy
+- **`franchises` Table**: Stores the core franchise entities.
+- **`user_roles` Table**: Maps a `user_id` to a `role` (superadmin/franchise) and a specific `franchise_id`.
+- **Row Level Security (RLS)**: Enforced across `customers`, `products`, `inventory`, `deliveries`, `bills`, and `payments` to strictly isolate data by `franchise_id`.
+- **Background Automation**: All CRON jobs and background processes (like daily route generation and automated monthly billing) are now strictly scoped by `franchise_id` to prevent cross-tenant data leakage.
+

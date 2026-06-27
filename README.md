@@ -9,6 +9,7 @@ Milkow is a full-stack CRM and route management application designed specificall
 - **Customer Management**: Detailed profiles tracking subscriptions, default products/quantities, custom pricing, vacation pauses, and ledger history.
 - **Inventory & Pipeline**: Management of stock loaded onto vans, tracking of extra items, and end-of-shift reconciliation.
 - **Billing & Collections**: Automated invoice generation, spot billing, and integrated UPI QR code creation for rapid cash collection on the route.
+- **Multi-Tenant Franchising**: Built-in support for multiple franchise operators with isolated data via Row Level Security (RLS) and a `superadmin` impersonation mode.
 - **Optimistic UI**: System-wide optimistic updates ensure that actions like saving edits, marking deliveries, or recording payments feel instantaneous, masking network latency.
 
 ## Tech Stack
@@ -40,6 +41,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## Database Schema Highlights
 
 The application relies on a deeply integrated PostgreSQL schema:
+- `franchises` & `user_roles`: Multi-tenant foundations separating data by franchise.
 - `customers`: Tracks active status, default products, and balances.
 - `products` & `inventory`: Handles dynamic daily pricing, units, and loaded vehicle stock.
 - `deliveries`: Records daily drops, shift timings, and miscellaneous items via JSONB.

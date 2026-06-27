@@ -49,7 +49,7 @@ export default function InventoryPage() {
         <div className="w-full max-w-2xl mx-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div><p className="text-[20px] font-semibold text-mono-text">Inventory</p><p className="text-[13px] font-medium text-mono-text-disabled">Stock & Pipeline</p></div>
-            <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="h-10 w-10 bg-mono-text text-white rounded-card flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
+            <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: "", unit: "Bottles" }); setIsModalOpen(true); }} className="h-10 w-10 bg-mono-text text-white rounded-card flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
           </div>
           <div className="w-full bg-white border border-mono-border/60 rounded-card p-3.5 flex items-center gap-3 relative shadow-sm" onClick={() => dateInputRef.current?.showPicker()}>
             <div className="p-2 bg-mono-text/10 text-mono-text rounded-card"><CalendarIcon size={18} /></div>
@@ -95,7 +95,7 @@ export default function InventoryPage() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-3"><p className="text-xs font-bold uppercase tracking-widest text-mono-text-disabled">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" }); setIsModalOpen(true); }} className="text-xs font-bold px-3 py-1.5 rounded-card flex items-center gap-1 transition-all text-mono-text bg-mono-text/10"><Plus size={13} /> Add</button></div>
+          <div className="flex items-center justify-between mb-3"><p className="text-xs font-bold uppercase tracking-widest text-mono-text-disabled">Products</p><button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: "", unit: "Bottles" }); setIsModalOpen(true); }} className="text-xs font-bold px-3 py-1.5 rounded-card flex items-center gap-1 transition-all text-mono-text bg-mono-text/10"><Plus size={13} /> Add</button></div>
           <div className="flex flex-col gap-2.5">
             {isLoading ? (
               [1, 2, 3].map(i => <div key={i} className="h-20 bg-white border border-mono-border rounded-card animate-pulse" />)
@@ -131,7 +131,7 @@ export default function InventoryPage() {
                 <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Name</label><input autoFocus placeholder="e.g. Raw Milk" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Size</label><input placeholder="e.g. 1L" value={newProduct.size} onChange={e => setNewProduct({ ...newProduct, size: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" /></div>
-                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Price</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-mono-text-disabled">₹</span><input placeholder="90" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: Number(e.target.value) })} className="w-full bg-mono-bg border border-mono-divider rounded-card pl-8 pr-4 py-3 text-sm font-medium focus:ring-2 transition-all" /></div></div>
+                  <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Price</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-mono-text-disabled">₹</span><input placeholder="90" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} className="w-full bg-mono-bg border border-mono-divider rounded-card pl-8 pr-4 py-3 text-sm font-medium focus:ring-2 transition-all" /></div></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5"><label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">Initial Stock</label><input type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" /></div>

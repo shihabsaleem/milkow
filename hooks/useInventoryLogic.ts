@@ -25,7 +25,7 @@ export function useInventoryLogic() {
   const [products, setProducts] = useState<T.Product[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
+  const [newProduct, setNewProduct] = useState({ name: "", size: "", stock: "", price: "", unit: "Bottles" });
 
   const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
   const [closingShift, setClosingShift] = useState("Morning Only");
@@ -182,7 +182,7 @@ export function useInventoryLogic() {
       }
 
       setIsModalOpen(false);
-      setNewProduct({ name: "", size: "", stock: "", price: 0, unit: "Bottles" });
+      setNewProduct({ name: "", size: "", stock: "", price: "", unit: "Bottles" });
       setEditingIndex(null);
 
       try {

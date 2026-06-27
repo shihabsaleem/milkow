@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
 
 -- Ensure a default franchise exists for existing data
 INSERT INTO franchises (id, name)
-VALUES ('00000000-0000-0000-0000-000000000000', 'Default Franchise')
+VALUES ('00000000-0000-1111-0000-00000000000', 'Default Franchise')
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Add franchise_id column to existing tables

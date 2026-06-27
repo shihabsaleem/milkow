@@ -13,9 +13,12 @@ import { supabase } from "@/lib/supabase";
 export async function recordReturn(customerId: string, returnAmount: number, notes: string) {
    if (returnAmount <= 0) throw new Error("Return amount must be positive");
 
+   const { data: customer } = await supabase.from('customers').select('franchise_id').eq('id', customerId).single();
+
    // Insert a credit note bill with negative amount
    const { error } = await supabase.from('bills').insert({
       customer_id: customerId,
+      franchise_id: customer?.franchise_id,
       amount: -Math.abs(returnAmount),
       type: 'Spot',
       status: 'Paid',                       // treat as already settled — it's a credit
@@ -54,6 +57,7 @@ export async function recordPayment(customerId: string, amountVal: number, metho
    if (pastOutstanding > 0) {
       await supabase.from('bills').insert({
          customer_id: customerId,
+         franchise_id: customer.franchise_id,
          amount: pastOutstanding,
          type: 'Opening Balance',
          status: 'Pending',
@@ -66,6 +70,7 @@ export async function recordPayment(customerId: string, amountVal: number, metho
    if (unbilledDeliveries && unbilledDeliveries.length > 0 && unbilledAmount > 0) {
       await supabase.from('bills').insert({
          customer_id: customerId,
+         franchise_id: customer.franchise_id,
          amount: unbilledAmount,
          type: 'Spot',
          status: 'Pending',
@@ -77,6 +82,7 @@ export async function recordPayment(customerId: string, amountVal: number, metho
 
    await supabase.from('payments').insert({
       customer_id: customerId,
+      franchise_id: customer.franchise_id,
       amount: amountVal,
       method: methodVal as any,
       payment_date: new Date().toISOString(),
@@ -106,6 +112,7 @@ export async function settleAllDues(customerId: string, methodVal: string = 'Cas
    if (pastOutstanding > 0) {
       await supabase.from('bills').insert({
          customer_id: customerId,
+         franchise_id: customer.franchise_id,
          amount: pastOutstanding,
          type: 'Opening Balance',
          status: 'Pending',
@@ -118,6 +125,7 @@ export async function settleAllDues(customerId: string, methodVal: string = 'Cas
    if (unbilledDeliveries && unbilledDeliveries.length > 0 && unbilledAmount > 0) {
       await supabase.from('bills').insert({
          customer_id: customerId,
+         franchise_id: customer.franchise_id,
          amount: unbilledAmount,
          type: 'Spot',
          status: 'Pending',
@@ -134,6 +142,7 @@ export async function settleAllDues(customerId: string, methodVal: string = 'Cas
 
    await supabase.from('payments').insert({
       customer_id: customerId,
+      franchise_id: customer.franchise_id,
       amount: totalOwed,
       method: methodVal as any,
       payment_date: new Date().toISOString(),

@@ -81,7 +81,7 @@ export function useInventoryLogic() {
     setNewProduct({
       ...targetProduct,
       stock: targetProduct.stock?.toString() || "0",
-      price: getProductPriceForDate(targetProduct),
+      price: getProductPriceForDate(targetProduct).toString(),
       unit: targetProduct.unit || "Bottles"
     });
     setIsModalOpen(true);
@@ -212,7 +212,8 @@ export function useInventoryLogic() {
                      unit: insertedProduct.unit,
                      count: productToSave.stock,
                      loaded: productToSave.stock,
-                     vol: insertedProduct.size
+                     vol: insertedProduct.size,
+                     franchise_id: activeFranchiseId
                   });
                }
             }

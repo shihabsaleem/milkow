@@ -18,6 +18,8 @@ interface CustomSelectProps {
   label?: string;
   className?: string;
   fullWidth?: boolean;
+  iconOnly?: boolean;
+  icon?: React.ReactNode;
 }
 
 export default function CustomSelect({
@@ -28,6 +30,8 @@ export default function CustomSelect({
   label,
   className = "",
   fullWidth = true,
+  iconOnly = false,
+  icon,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
@@ -65,7 +69,7 @@ export default function CustomSelect({
   }, [isOpen]);
 
   return (
-    <div className={`relative ${fullWidth ? "w-full" : "w-fit"} ${isOpen ? "z-100" : "z-10"} ${className}`} ref={containerRef}>
+    <div className={`relative ${fullWidth ? "w-full" : "w-fit"} ${isOpen ? "z-100" : "z-10"} h-full ${className}`} ref={containerRef}>
       {label && (
         <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled mb-1.5 block">
           {label}
@@ -76,17 +80,23 @@ export default function CustomSelect({
         type="button"
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm transition-all focus:ring-2 focus:ring-primary/20 ${
-          fullWidth ? "w-full" : ""
-        } ${isOpen ? "border-mono-border ring-2 ring-primary/10" : ""}`}
+        className={`flex items-center transition-all focus:ring-2 focus:ring-primary/20 h-full bg-white border border-mono-border rounded-card shadow-sm ${
+          iconOnly ? "justify-center w-full px-0 text-mono-text-muted hover:bg-mono-surface" : "justify-between px-4 py-3 text-sm " + (fullWidth ? "w-full" : "")
+        } ${isOpen ? "ring-2 ring-primary/10" : ""}`}
       >
-        <span className={selectedOption ? "text-mono-text font-bold" : "text-mono-text-disabled"}>
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-        <ChevronDown
-          size={16}
-          className={`text-mono-text-disabled transition-transform duration-300 ${isOpen ? (dropUp ? "rotate-0" : "rotate-180") : ""}`}
-        />
+        {iconOnly ? (
+          icon || <ChevronDown size={18} />
+        ) : (
+          <>
+            <span className={selectedOption ? "text-mono-text font-bold" : "text-mono-text-disabled"}>
+              {selectedOption ? selectedOption.label : placeholder}
+            </span>
+            <ChevronDown
+              size={16}
+              className={`text-mono-text-disabled transition-transform duration-300 ${isOpen ? (dropUp ? "rotate-0" : "rotate-180") : ""}`}
+            />
+          </>
+        )}
       </button>
 
       <AnimatePresence>

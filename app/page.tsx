@@ -127,7 +127,7 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-2 p-1 rounded-card bg-mono-surface border border-mono-border relative h-[56px]">
-            <motion.div layout className="absolute inset-y-1 rounded-card z-0 bg-mono-text" style={{ left: shift === "morning" ? "4px" : "50%", width: "calc(50% - 4px)" }} transition={{ type: "spring", stiffness: 450, damping: 35 }} />
+            <motion.div layout className="absolute inset-y-1 rounded-sm z-0 bg-mono-text" style={{ left: shift === "morning" ? "4px" : "50%", width: "calc(50% - 4px)" }} transition={{ type: "spring", stiffness: 450, damping: 35 }} />
             <button onClick={() => handleShiftToggle("morning")} className={`relative z-10 flex items-center justify-center gap-2.5 rounded-card transition-all ${shift === "morning" ? "text-white" : "text-mono-text"}`}><Sunrise size={15} strokeWidth={2.5} /><span className="text-[16px] font-medium">Morning</span></button>
             <button onClick={() => handleShiftToggle("evening")} className={`relative z-10 flex items-center justify-center gap-2.5 rounded-card transition-all ${shift === "evening" ? "text-white" : "text-mono-text"}`}><Sunset size={15} strokeWidth={2.5} /><span className="text-[16px] font-medium">Evening</span></button>
           </div>

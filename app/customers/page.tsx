@@ -1,4 +1,5 @@
 "use client";
+import { useState, useRef, useEffect } from "react";
 
 import Link from "next/link";
 import Modal from "@/components/ui/Modal";
@@ -9,6 +10,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCustomersLogic } from "@/hooks/useCustomersLogic";
 
 export default function CustomersPage() {
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const {
     router,
     searchTerm,
@@ -51,23 +55,76 @@ export default function CustomersPage() {
               </button>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="w-full sm:w-3/4">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-mono-text-disabled" size={18} />
-                <input type="text" placeholder="Search by name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-mono-border rounded-card py-3.5 pl-11 pr-4 text-sm focus:ring-2 transition-all shadow-sm" />
-              </div></div>
-            <div className="w-full sm:w-1/4">
-              <CustomSelect
-                fullWidth={true}
-                className="min-w-[160px]"
-                options={[
-                  { value: "", label: "All Routes" },
-                  ...areas.map(a => ({ value: a.id.toString(), label: a.name }))
-                ]}
-                value={selectedAreaId}
-                onChange={(val) => setSelectedAreaId(val)}
-              /></div>
+          <div className="flex items-center gap-2 sm:gap-3 h-12 mt-1">
+            <div
+               className={`relative h-full bg-white border border-mono-border rounded-card shadow-sm overflow-hidden flex shrink-0 transition-all duration-300 ease-in-out ${
+                 isSearchExpanded || searchTerm 
+                   ? 'flex-1 sm:w-auto' 
+                   : 'w-12 sm:flex-1'
+               }`}
+            >
+              <button 
+                onClick={() => {
+                  if (!isSearchExpanded) {
+                    setIsSearchExpanded(true);
+                    setTimeout(() => searchInputRef.current?.focus(), 50);
+                  }
+                }}
+                className={`absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center transition-colors ${isSearchExpanded || searchTerm ? 'text-mono-text pointer-events-none' : 'text-mono-text-disabled hover:bg-mono-surface'}`}
+              >
+                <Search size={18} />
+              </button>
+              <input 
+                ref={searchInputRef}
+                type="text" 
+                placeholder="Search by name or phone..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setIsSearchExpanded(true)}
+                onBlur={() => {
+                  if (!searchTerm) setIsSearchExpanded(false);
+                }}
+                className={`w-full h-full pl-11 pr-10 text-[13px] sm:text-sm font-medium text-mono-text focus:outline-none bg-transparent transition-opacity duration-300 ${isSearchExpanded || searchTerm ? 'opacity-100' : 'opacity-0 sm:opacity-100'}`}
+              />
+              <AnimatePresence>
+                {(isSearchExpanded || searchTerm) && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    onClick={() => {
+                      setSearchTerm("");
+                      setIsSearchExpanded(false);
+                      searchInputRef.current?.blur();
+                    }}
+                    className="absolute right-0 top-0 bottom-0 w-10 flex items-center justify-center text-mono-text-disabled hover:text-mono-text"
+                  >
+                    <X size={16} />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className={`transition-all duration-300 ease-in-out flex shrink-0 h-full ${
+               isSearchExpanded || searchTerm 
+                 ? 'w-12 opacity-100' 
+                 : 'flex-1 opacity-100 sm:w-1/4 sm:min-w-[150px]'
+            }`}>
+              <div className="w-full flex items-center h-full">
+                <CustomSelect
+                  fullWidth={true}
+                  iconOnly={isSearchExpanded || searchTerm.length > 0}
+                  icon={<MapPin size={18} />}
+                  className="w-full"
+                  options={[
+                    { value: "", label: "All Routes" },
+                    ...areas.map(a => ({ value: a.id.toString(), label: a.name }))
+                  ]}
+                  value={selectedAreaId}
+                  onChange={(val) => setSelectedAreaId(val)}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

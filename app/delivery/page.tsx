@@ -150,7 +150,7 @@ export default function DeliveryPage() {
                <div className="flex items-center gap-2">
                   {/* Morning / Evening Toggle */}
                   <div className="flex-1 grid grid-cols-2 p-1 rounded-card bg-mono-surface relative h-11">
-                     <motion.div layout className="absolute inset-y-1 rounded-card shadow-sm z-0 bg-white" style={{ left: shift === 'morning' ? '4px' : '50%', width: 'calc(50% - 4px)' }} transition={{ type: 'spring', stiffness: 450, damping: 35 }} />
+                     <motion.div layout className="absolute inset-y-1 rounded-sm shadow-sm z-0 bg-white" style={{ left: shift === 'morning' ? '4px' : '50%', width: 'calc(50% - 4px)' }} transition={{ type: 'spring', stiffness: 450, damping: 35 }} />
                      <button onClick={() => setManualShift('morning')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-card transition-all text-sm font-bold ${shift === 'morning' ? 'text-mono-text' : 'text-mono-text-disabled'}`}>
                         <Sunrise size={15} strokeWidth={2.5} /><span>Morning</span>
                      </button>

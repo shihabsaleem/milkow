@@ -114,7 +114,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="w-full max-w-2xl mx-auto pt-5 pb-32 flex flex-col gap-10">
+      <div className="w-full max-w-2xl mx-auto pt-5 pb-4 flex flex-col gap-10">
         <section className="flex flex-col gap-4 px-7">
           <div className="w-full rounded-card h-[68px] px-5 text-mono-text flex items-center gap-4 relative bg-white border border-mono-border">
             <div className="shrink-0 pointer-events-none text-mono-text"><Calendar size={24} strokeWidth={2} /></div>

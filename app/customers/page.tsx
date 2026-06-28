@@ -57,13 +57,12 @@ export default function CustomersPage() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3 h-12 mt-1">
             <div
-               className={`relative h-full bg-white border border-mono-border rounded-card shadow-sm overflow-hidden flex shrink-0 transition-all duration-300 ease-in-out ${
-                 isSearchExpanded || searchTerm 
-                   ? 'flex-1 sm:w-auto' 
-                   : 'w-12 sm:flex-1'
-               }`}
+              className={`relative h-full bg-white border border-mono-border rounded-card shadow-sm overflow-hidden flex shrink-0 transition-all duration-300 ease-in-out ${isSearchExpanded || searchTerm
+                  ? 'flex-1 sm:w-auto'
+                  : 'w-12 sm:flex-1'
+                }`}
             >
-              <button 
+              <button
                 onClick={() => {
                   if (!isSearchExpanded) {
                     setIsSearchExpanded(true);
@@ -74,11 +73,11 @@ export default function CustomersPage() {
               >
                 <Search size={18} />
               </button>
-              <input 
+              <input
                 ref={searchInputRef}
-                type="text" 
-                placeholder="Search by name or phone..." 
-                value={searchTerm} 
+                type="text"
+                placeholder="Search by name or phone..."
+                value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onFocus={() => setIsSearchExpanded(true)}
                 onBlur={() => {
@@ -105,11 +104,10 @@ export default function CustomersPage() {
               </AnimatePresence>
             </div>
 
-            <div className={`transition-all duration-300 ease-in-out flex shrink-0 h-full ${
-               isSearchExpanded || searchTerm 
-                 ? 'w-12 opacity-100' 
-                 : 'flex-1 opacity-100 sm:w-1/4 sm:min-w-[150px]'
-            }`}>
+            <div className={`transition-all duration-300 ease-in-out flex shrink-0 h-full ${isSearchExpanded || searchTerm
+                ? 'w-12 opacity-100'
+                : 'flex-1 opacity-100 sm:w-1/4 sm:min-w-[150px]'
+              }`}>
               <div className="w-full flex items-center h-full">
                 <CustomSelect
                   fullWidth={true}
@@ -143,18 +141,22 @@ export default function CustomersPage() {
               className="w-full bg-white border border-mono-border p-4 sm:p-5 rounded-card flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
             >
               <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 pr-2">
-                <div className={`h-12 w-12 rounded-card flex items-center justify-center text-lg font-bold shrink-0 ${customer.status === 'Active' ? 'bg-mono-text/10 text-mono-text' : 'bg-mono-surface text-mono-text-disabled'}`}>{customer.name.charAt(0)}</div>
+                <div className={`h-12 w-12 rounded-sm flex items-center justify-center text-lg font-bold shrink-0 ${customer.status === 'Active' ? 'bg-mono-text/10 text-mono-text' : 'bg-mono-surface text-mono-text-disabled'}`}>{customer.name.charAt(0)}</div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-mono-text group-hover:text-mono-text transition-colors truncate">{customer.name}</h3>
                   <p className="text-xs text-mono-text-disabled flex items-center gap-1 mt-0.5 truncate"><MapPin size={12} className="shrink-0" /> <span className="truncate">{customer.area?.name || 'No Area'}</span></p>
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                <div className="text-right mr-2">
-                  <p className={`text-[14px] font-semibold ${customer.financials && customer.financials.current_balance < 0 ? 'text-mono-text' : 'text-mono-text'}`}>
+                <div className="flex flex-col items-center justify-center mr-2">
+                  <p className={`text-[14px] font-semibold text-mono-text leading-tight`}>
                     ₹{Math.abs(customer.financials?.current_balance || 0).toLocaleString()}
                   </p>
-                  <p className={`text-[10px] font-bold uppercase tracking-tighter ${customer.financials && customer.financials.current_balance < 0 ? 'text-mono-text' : 'text-mono-text-disabled'}`}>
+                  <p className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-[4px] border mt-0.5 ${
+                    customer.financials && customer.financials.current_balance < 0 
+                      ? 'text-mono-text bg-mono-surface border-mono-border' 
+                      : 'text-mono-text bg-mono-surface border-mono-border'
+                  }`}>
                     {customer.financials && customer.financials.current_balance < 0 ? 'Advance' : 'Credit'}
                   </p>
                 </div>
@@ -164,10 +166,10 @@ export default function CustomersPage() {
                     e.stopPropagation();
                     router.push(`/billing?search=${encodeURIComponent(customer.name)}`);
                   }}
-                  className="p-2.5 bg-mono-text/5 text-mono-text rounded-card hover:bg-mono-text/10 transition-colors border border-mono-border flex items-center gap-2"
+                  className="p-2.5 bg-surface text-mono-text rounded-sm hover:bg-mono-text/10 transition-colors border border-mono-text/20 flex items-center gap-2"
                 >
                   <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Bill</span>
-                  <ChevronRight size={18} className="text-mono-text/50 group-hover:text-mono-text transition-all translate-x-0 group-hover:translate-x-1" />
+                  <ChevronRight size={18} className="text-mono-text group-hover:text-mono-text transition-all translate-x-0 group-hover:translate-x-1" />
                 </button>
               </div>
             </motion.div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2, MoreVertical, ArrowRight, RefreshCw } from "lucide-react";
+import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2, MoreVertical, ArrowRight, RefreshCw, ArrowDownUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -75,6 +75,32 @@ export default function DeliveryPage() {
    const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<string | null>(null);
    const [paymentTotalDue, setPaymentTotalDue] = useState<number | null>(null);
 
+   const [markedSeq, setMarkedSeq] = useState<string[]>([]);
+
+   const [smartSort, setSmartSort] = useState<boolean>(() => {
+      if (typeof window !== "undefined") {
+         const saved = localStorage.getItem('milkow_smart_sort');
+         if (saved !== null) return saved === 'true';
+      }
+      return true;
+   });
+
+   useEffect(() => {
+      localStorage.setItem('milkow_smart_sort', smartSort.toString());
+   }, [smartSort]);
+
+   const handleToggleDelivery = (id: string) => {
+      const d = deliveries.find(x => x.id === id);
+      if (d) {
+         if (!d.delivered) {
+            setMarkedSeq(prev => [...prev.filter(x => x !== id), id]);
+         } else {
+            setMarkedSeq(prev => prev.filter(x => x !== id));
+         }
+      }
+      toggleDelivery(id);
+   };
+
    const filteredDeliveries = deliveries.filter(d => {
       const user = d.customer;
       if (!user || user.status === 'Inactive') return false;
@@ -92,7 +118,23 @@ export default function DeliveryPage() {
 
       const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSearch;
-   }).sort((a, b) => (Number(a.customer?.delivery_order) || 0) - (Number(b.customer?.delivery_order) || 0));
+   }).sort((a, b) => {
+      if (smartSort) {
+         // Marked items go to the bottom
+         if (a.delivered !== b.delivered) return a.delivered ? 1 : -1;
+
+         // If both are marked, order by recent markings
+         if (a.delivered && b.delivered) {
+            const idxA = markedSeq.indexOf(a.id);
+            const idxB = markedSeq.indexOf(b.id);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return 1;
+            if (idxB !== -1) return -1;
+         }
+      }
+
+      return (Number(a.customer?.delivery_order) || 0) - (Number(b.customer?.delivery_order) || 0);
+   });
 
    const remainingStops = filteredDeliveries.filter(d => !d.delivered).length;
 
@@ -185,6 +227,22 @@ export default function DeliveryPage() {
                                        <Wallet2 size={16} />
                                        <span className="font-medium">Billing</span>
                                     </div>
+                                 </button>
+                                 <div className="h-px bg-mono-surface my-1 mx-2" />
+                                 <button
+                                    onClick={() => {
+                                       setSmartSort(!smartSort);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm font-medium text-mono-text hover:bg-mono-bg rounded-card transition-colors flex items-center justify-between"
+                                 >
+                                    <div className="flex items-center gap-3">
+                                       <ArrowDownUp size={16} />
+                                       <span className="font-medium">Auto-Sort</span>
+                                    </div>
+                                    {/* toggle ui button */}
+                                    {/* <div className={`w-8 h-4 rounded-full transition-colors relative ${smartSort ? 'bg-black' : 'bg-mono-border'}`}>
+                                       <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${smartSort ? 'left-4.5' : 'left-0.5'}`} />
+                                    </div> */}
                                  </button>
                                  <div className="h-px bg-mono-surface my-1 mx-2" />
                                  <button
@@ -301,7 +359,7 @@ export default function DeliveryPage() {
                               </div>
 
                               <div className="flex flex-col justify-center ml-1 shrink-0">
-                                 <button onClick={(e) => { e.stopPropagation(); toggleDelivery(delivery.id); }} className={`h-11 w-11 flex items-center justify-center rounded-card shadow-xs transition-all ${delivery.delivered ? 'bg-black text-white shadow-emerald-500/20 shadow-md' : 'bg-mono-bg text-mono-text-disabled hover:bg-mono-surface hover:text-mono-text hover:border-mono-text border border-mono-border'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                 <button onClick={(e) => { e.stopPropagation(); handleToggleDelivery(delivery.id); }} className={`h-11 w-11 flex items-center justify-center rounded-card shadow-xs transition-all ${delivery.delivered ? 'bg-black text-white shadow-emerald-500/20 shadow-md' : 'bg-mono-bg text-mono-text-disabled hover:bg-mono-surface hover:text-mono-text hover:border-mono-text border border-mono-border'} ${isShiftClosed ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                     <Check size={22} strokeWidth={3} />
                                  </button>
                               </div>

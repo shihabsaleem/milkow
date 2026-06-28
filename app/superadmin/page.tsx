@@ -173,7 +173,7 @@ export default function SuperadminDashboard() {
               )}
               <button
                 onClick={() => logout().then(() => router.push("/login"))}
-                className="bg-mono-surface text-rose-600 font-bold py-2 px-3 rounded-card text-[10px] transition-all active:scale-[0.98]"
+                className="bg-mono-surface text-mono-text font-medium py-2 px-3 rounded-sm text-[10px] transition-all active:scale-[0.98]"
               >
                 Sign Out
               </button>
@@ -347,7 +347,7 @@ export default function SuperadminDashboard() {
 
                   <button
                     onClick={() => handleImpersonate(franchise.id)}
-                    className={`font-bold py-2 px-3 rounded-card text-[10px] flex items-center gap-1.5 shadow-sm active:scale-95 transition-all ${impersonatedFranchiseId === franchise.id
+                    className={`font-medium py-2 px-3 rounded-sm text-[10px] flex items-center gap-1.5 shadow-xs active:scale-95 transition-all ${impersonatedFranchiseId === franchise.id
                         ? "bg-mono-text text-white"
                         : "bg-mono-bg text-mono-text border border-mono-border hover:bg-mono-surface"
                       }`}

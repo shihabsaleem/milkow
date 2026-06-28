@@ -198,7 +198,7 @@ export default function RouteOrderPage() {
   const activeCustomer = activeId ? orderedList.find((c) => c.id === activeId) : null;
 
   return (
-    <div className="min-h-full w-full pb-32 bg-mono-bg/50">
+    <div className="min-h-full w-full pb-16 bg-mono-bg/50">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-mono-divider">
         <div className="max-w-2xl mx-auto px-5 py-4 flex flex-col gap-4">

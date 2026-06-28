@@ -126,7 +126,7 @@ export default function CustomerProfilePage() {
    }
 
    return (
-      <PullToRefresh onRefresh={() => fetchData(true)} className="bg-mono-bg pb-32">
+      <PullToRefresh onRefresh={() => fetchData(true)} className="bg-mono-bg pb-16">
          <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-mono-border/50">
             <div className="max-w-2xl mx-auto w-full px-5 py-4 flex items-center justify-between gap-4">
                <div className="flex items-center gap-4"><button onClick={() => router.back()} className="p-2 -ml-2 text-mono-text-muted hover:bg-mono-surface rounded-full transition-colors"><ArrowLeft size={20} /></button><div><h1 className="text-base sm:text-lg font-bold">{customer?.name || 'Customer'}</h1><p className="text-[10px] sm:text-xs text-mono-text-muted">Customer Profile</p></div></div>
@@ -145,39 +145,39 @@ export default function CustomerProfilePage() {
                       <Camera size={20} className={isCapturing ? "animate-pulse text-mono-text" : ""} />
                    </button>
                   */}
-                <div className="flex items-center gap-2 relative">
-                   <button onClick={() => document.getElementById('financial-summary')?.scrollIntoView({ behavior: 'smooth' })} className="p-2 text-mono-text-muted hover:bg-mono-surface rounded-card border border-mono-border active:scale-90 transition-all" title="Financial Summary"><ArrowDown size={20} /></button>
-                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-mono-text-muted border border-mono-border hover:bg-mono-surface rounded-card active:scale-90 transition-all"><MoreVertical size={20} /></button>
-                   
-                   <AnimatePresence>
-                      {isMenuOpen && (
-                         <>
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMenuOpen(false)} className="fixed inset-0 z-40" />
-                            <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-card shadow-sm border border-mono-divider z-50 overflow-hidden flex flex-col py-2">
-                               <button onClick={() => {
-                                  setIsMenuOpen(false);
-                                  const url = `/bill/${customer?.phone || ''}`;
-                                  if (navigator.share) {
-                                     navigator.share({ title: `${customer?.name || 'Customer'} Bill`, url }).catch(console.error);
-                                  } else {
-                                     navigator.clipboard.writeText(url);
-                                     alert('Bill link copied to clipboard!');
-                                  }
-                               }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-mono-text hover:bg-mono-surface transition-colors w-full text-left">
-                                  <Share2 size={18} className="text-blue-500" /> Share Bill
-                               </button>
-                               <button onClick={() => { setIsMenuOpen(false); setIsEditModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-mono-text hover:bg-mono-bg transition-colors w-full text-left">
-                                  <Edit2 size={18} className="text-mono-text-disabled" /> Edit Profile
-                               </button>
-                               <div className="h-px bg-mono-surface my-1 mx-2" />
-                               <button onClick={() => { setIsMenuOpen(false); setIsDeleteModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-rose-600 hover:bg-mono-surface transition-colors w-full text-left">
-                                  <Trash2 size={18} className="text-mono-text" /> Delete Customer
-                               </button>
-                            </motion.div>
-                         </>
-                      )}
-                   </AnimatePresence>
-                </div>
+                  <div className="flex items-center gap-2 relative">
+                     <button onClick={() => document.getElementById('financial-summary')?.scrollIntoView({ behavior: 'smooth' })} className="p-2 text-mono-text-muted hover:bg-mono-surface rounded-card border border-mono-border active:scale-90 transition-all" title="Financial Summary"><ArrowDown size={20} /></button>
+                     <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-mono-text-muted border border-mono-border hover:bg-mono-surface rounded-card active:scale-90 transition-all"><MoreVertical size={20} /></button>
+
+                     <AnimatePresence>
+                        {isMenuOpen && (
+                           <>
+                              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMenuOpen(false)} className="fixed inset-0 z-40" />
+                              <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-card shadow-sm border border-mono-divider z-50 overflow-hidden flex flex-col py-2">
+                                 <button onClick={() => {
+                                    setIsMenuOpen(false);
+                                    const url = `/bill/${customer?.phone || ''}`;
+                                    if (navigator.share) {
+                                       navigator.share({ title: `${customer?.name || 'Customer'} Bill`, url }).catch(console.error);
+                                    } else {
+                                       navigator.clipboard.writeText(url);
+                                       alert('Bill link copied to clipboard!');
+                                    }
+                                 }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-mono-text hover:bg-mono-surface transition-colors w-full text-left">
+                                    <Share2 size={18} className="text-mono-text" /> Share Bill
+                                 </button>
+                                 <button onClick={() => { setIsMenuOpen(false); setIsEditModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-mono-text hover:bg-mono-bg transition-colors w-full text-left">
+                                    <Edit2 size={18} className="text-mono-text" /> Edit Profile
+                                 </button>
+                                 <div className="h-px bg-mono-surface my-1 mx-2" />
+                                 <button onClick={() => { setIsMenuOpen(false); setIsDeleteModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-mono-text hover:bg-mono-surface transition-colors w-full text-left">
+                                    <Trash2 size={18} className="text-mono-text" /> Delete Customer
+                                 </button>
+                              </motion.div>
+                           </>
+                        )}
+                     </AnimatePresence>
+                  </div>
                </div>
             </div>
          </header>
@@ -393,58 +393,69 @@ export default function CustomerProfilePage() {
 
 
             <div id="financial-summary" className="max-w-2xl mx-auto w-full px-5 py-6">
-               <div className="bg-white rounded-4xl p-6 sm:p-8 shadow-lg text-white relative overflow-hidden border border-mono-text-dim">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-mono-text-dim/10 blur-[80px] rounded-full -mr-16 -mt-16" />
+               <div className="bg-mono-text rounded-hero p-6 sm:p-8 shadow-2xl text-white relative overflow-hidden border border-white/10">
+                  <div className={`absolute top-[-20%] right-[-10%] w-64 h-64 blur-[100px] rounded-full pointer-events-none transition-colors duration-500 ${grandTotalAmount < 0 ? 'bg-emerald-500/20' : 'bg-rose-500/20'}`} />
+                  <div className={`absolute bottom-[-20%] left-[-10%] w-64 h-64 blur-[100px] rounded-full pointer-events-none transition-colors duration-500 ${grandTotalAmount < 0 ? 'bg-emerald-400/20' : 'bg-rose-600/20'}`} />
 
                   <div className="flex items-center justify-between mb-8 relative z-10">
-                     <h3 className="text-sm font-semibold uppercase tracking-widest text-mono-text">Financial Summary</h3>
-                     <span className={`text-[10px] font-bold  tracking-widest px-3 py-1 rounded-sm ${grandTotalAmount < 0 ? 'bg-mono-text/20 text-emerald-400 border border-emerald-500/20' : 'bg-mono-text-dim/20 text-mono-text border border-mono-border'}`}>
-                        {grandTotalAmount < 0 ? 'Advance Balance' : 'Credit Balance'}
+                     <h3 className="text-xs md:text-sm font-semibold uppercase tracking-widest text-white/70">Financial Summary</h3>
+                     <span className={`text-[10px] font-bold tracking-widest px-3 py-1.5 rounded-full backdrop-blur-md border ${
+                        grandTotalAmount < 0 
+                           ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
+                           : 'bg-white/10 text-white border-white/20'
+                     }`}>
+                        {grandTotalAmount < 0 ? 'Advance' : 'Credit'}
                      </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-8 mb-8 relative z-10">
                      <div className="flex flex-col gap-2">
-                        <p className="text-[10px] font-bold text-mono-text-muted uppercase tracking-wider">Previous Balance</p>
-                        <div className="flex flex-col gap-1">
-                           <p className={`text-lg font-bold ${billsBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>₹{Math.abs(billsBalance).toFixed(2)}</p>
-                           <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit ${billsBalance > 0 ? 'bg-mono-surface0/20 text-rose-400' : 'bg-mono-text/20 text-emerald-400'}`}>
+                        <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Previous Balance</p>
+                        <div className="flex flex-col gap-1.5">
+                           <p className={`text-xl sm:text-2xl font-bold ${billsBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              ₹{Math.abs(billsBalance).toFixed(2)}
+                           </p>
+                           <span className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-md w-fit backdrop-blur-md ${
+                              billsBalance > 0 
+                                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/20' 
+                                 : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/20'
+                           }`}>
                               {billsBalance > 0 ? 'Dues' : 'Advance'}
                            </span>
                         </div>
                      </div>
                      <div className="flex flex-col gap-2">
-                        <p className="text-[10px] font-bold text-mono-text-muted uppercase tracking-wider">Current Month (Unbilled)</p>
-                        <div className="flex flex-col gap-1">
-                           <p className="text-lg font-semibold text-mono-text">₹{currentDeliveriesAmount.toFixed(2)}</p>
-                           <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit bg-white/5 text-mono-text-disabled">
+                        <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Current Month (Unbilled)</p>
+                        <div className="flex flex-col gap-1.5">
+                           <p className="text-xl sm:text-2xl font-semibold text-white">₹{currentDeliveriesAmount.toFixed(2)}</p>
+                           <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded-md w-fit backdrop-blur-md bg-white/10 text-white/70 border border-white/10">
                               Unbilled
                            </span>
                         </div>
                      </div>
                   </div>
 
-                  <div className="pt-6 border-t border-mono-text/80/50 flex flex-col gap-6 relative z-10">
+                  <div className="pt-6 border-t border-white/10 flex flex-col gap-6 relative z-10">
                      <div className="flex justify-between items-end">
-                        <div className="flex flex-col gap-1">
-                           <p className={`text-[10px] font-bold uppercase tracking-widest ${grandTotalAmount < 0 ? 'text-emerald-400' : 'text-mono-text'}`}>
+                        <div className="flex flex-col gap-1.5">
+                           <p className={`text-[10px] font-bold uppercase tracking-widest ${grandTotalAmount < 0 ? 'text-emerald-400' : 'text-white/70'}`}>
                               {grandTotalAmount < 0 ? 'Advance Balance' : 'Grand Total Payable'}
                            </p>
-                           <p className={`text-4xl font-bold drop-shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] ${grandTotalAmount < 0 ? 'text-emerald-400' : 'text-mono-text'}`}>
+                           <p className={`text-4xl sm:text-5xl font-black tracking-tight ${grandTotalAmount < 0 ? 'text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]' : 'text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]'}`}>
                               ₹{Math.abs(grandTotalAmount).toFixed(2)}
                            </p>
                         </div>
                         <div className="text-right hidden sm:block">
-                           <p className="text-[9px] text-mono-text-muted font-medium italic mb-2">Including all past dues and unbilled items</p>
+                           <p className="text-[9px] text-white/40 font-medium italic mb-2">Including all past dues and unbilled items</p>
                         </div>
                      </div>
 
-                     <div className="flex flex-col sm:flex-row gap-3">
+                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-2">
                         {grandTotalAmount > 0 && (
                            <button
                               onClick={handleMarkAsPaid}
                               disabled={isSubmitting}
-                              className="flex-1 bg-white text-mono-text border border-mono-border py-4 rounded-card font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 shadow-sm"
+                              className="flex-1 bg-white text-mono-text border border-white/20 py-4 sm:py-4.5 rounded-card font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] hover:bg-white/90"
                            >
                               <Receipt size={18} />
                               Settle Full
@@ -457,25 +468,11 @@ export default function CustomerProfilePage() {
                               setPaymentNotes("");
                               setIsPaymentModalOpen(true);
                            }}
-                           className="flex-1 bg-mono-text text-white py-4 rounded-card font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                           className="flex-1 bg-white/10 backdrop-blur-md text-white border border-white/20 py-4 sm:py-4.5 rounded-card font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 hover:bg-white/20 hover:border-white/30"
                         >
                            <Receipt size={18} />
                            Record Payment
                         </button>
-                        {/* 
-                        <button
-                           onClick={() => {
-                              setReturnAmount("");
-                              setReturnNotes("");
-                              setIsReturnModalOpen(true);
-                           }}
-                           disabled={isSubmitting}
-                           className="flex-1 bg-amber-50 text-amber-700 border border-amber-200 py-4 rounded-card font-bold text-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
-                        >
-                           <RotateCcw size={18} />
-                           Return Item
-                        </button>
-                        */}
                      </div>
                   </div>
                </div>

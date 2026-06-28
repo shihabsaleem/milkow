@@ -96,17 +96,17 @@ export default function Dashboard() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="absolute right-0 top-12 w-52 bg-white border border-mono-border shadow-lg rounded-card overflow-hidden py-1 z-50 origin-top-right text-left">
-                  <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-[16px] font-medium text-mono-text hover:bg-mono-surface transition-colors"><User size={18} className="text-mono-text" /> Profile</Link>
+                  <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-md font-medium text-mono-text hover:bg-mono-surface transition-colors"><User size={18} className="text-mono-text" /> Profile</Link>
                   <div className="w-full h-px bg-mono-divider" />
-                  <Link href="/billing" className="flex items-center gap-3 px-4 py-3 text-[16px] font-medium text-mono-text hover:bg-mono-surface transition-colors"><Wallet size={18} className="text-mono-text" /> Billing</Link>
+                  <Link href="/billing" className="flex items-center gap-3 px-4 py-3 text-md font-medium text-mono-text hover:bg-mono-surface transition-colors"><Wallet size={18} className="text-mono-text" /> Billing</Link>
                   <div className="w-full h-px bg-mono-divider" />
                   {role === 'superadmin' && (
                     <>
-                      <Link href="/superadmin" className="flex items-center gap-3 px-4 py-3 text-[16px] font-medium text-mono-text hover:bg-mono-surface transition-colors"><ShieldAlert size={18} className="text-mono-text" /> Superadmin</Link>
+                      <Link href="/superadmin" className="flex items-center gap-3 px-4 py-3 text-md font-medium text-mono-text hover:bg-mono-surface transition-colors"><ShieldAlert size={18} className="text-mono-text" /> Superadmin</Link>
                       <div className="w-full h-px bg-mono-divider" />
                     </>
                   )}
-                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-[16px] font-medium text-mono-text hover:bg-mono-surface transition-colors"><LogOut size={18} className="text-mono-text" /> Log Out</button>
+                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-md font-medium text-mono-text hover:bg-mono-surface transition-colors"><LogOut size={18} className="text-mono-text" /> Log Out</button>
                 </motion.div>
               </>
             )}
@@ -119,7 +119,7 @@ export default function Dashboard() {
           <div className="w-full rounded-card h-[68px] px-5 text-mono-text flex items-center gap-4 relative bg-white border border-mono-border">
             <div className="shrink-0 pointer-events-none text-mono-text"><Calendar size={24} strokeWidth={2} /></div>
             <div className="pointer-events-none">
-              <p className="text-[16px] font-medium tracking-tight leading-snug">{fmtDate(date)}</p>
+              <p className="text-md font-medium tracking-tight leading-snug">{fmtDate(date)}</p>
               <p className="text-[13px] text-mono-text-muted mt-0.5">{dayName}</p>
             </div>
             <div className="ml-auto pointer-events-none flex items-center gap-1 text-mono-text-muted"><span className="text-[13px]">Tap to change</span></div>
@@ -128,13 +128,13 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-2 p-1 rounded-card bg-mono-surface border border-mono-border relative h-[56px]">
             <motion.div layout className="absolute inset-y-1 rounded-sm z-0 bg-mono-text" style={{ left: shift === "morning" ? "4px" : "50%", width: "calc(50% - 4px)" }} transition={{ type: "spring", stiffness: 450, damping: 35 }} />
-            <button onClick={() => handleShiftToggle("morning")} className={`relative z-10 flex items-center justify-center gap-2.5 rounded-card transition-all ${shift === "morning" ? "text-white" : "text-mono-text"}`}><Sunrise size={15} strokeWidth={2.5} /><span className="text-[16px] font-medium">Morning</span></button>
-            <button onClick={() => handleShiftToggle("evening")} className={`relative z-10 flex items-center justify-center gap-2.5 rounded-card transition-all ${shift === "evening" ? "text-white" : "text-mono-text"}`}><Sunset size={15} strokeWidth={2.5} /><span className="text-[16px] font-medium">Evening</span></button>
+            <button onClick={() => handleShiftToggle("morning")} className={`relative z-10 flex items-center justify-center gap-2.5 rounded-card transition-all ${shift === "morning" ? "text-white" : "text-mono-text"}`}><Sunrise size={15} strokeWidth={2.5} /><span className="text-md font-medium">Morning</span></button>
+            <button onClick={() => handleShiftToggle("evening")} className={`relative z-10 flex items-center justify-center gap-2.5 rounded-card transition-all ${shift === "evening" ? "text-white" : "text-mono-text"}`}><Sunset size={15} strokeWidth={2.5} /><span className="text-md font-medium">Evening</span></button>
           </div>
         </section>
 
         <section className="px-7">
-          <p className="text-[16px] font-semibold mb-4 text-mono-text">Today's Summary</p>
+          <p className="text-md font-semibold mb-4 text-mono-text">Today's Summary</p>
           <div className="grid grid-cols-2 gap-3">
             {isLoading ? (
               <>
@@ -146,19 +146,19 @@ export default function Dashboard() {
             ) : (
               <>
                 <div className="bg-white border border-mono-border rounded-card p-4 flex flex-col justify-between h-[110px]">
-                  <p className="text-mono-text-muted text-[16px] font-medium">Orders</p>
+                  <p className="text-mono-text-muted text-md font-medium">Orders</p>
                   <p className="text-mono-text text-[36px] font-bold leading-none">{totalOrders}</p>
                 </div>
                 <div className="bg-white border border-mono-border rounded-card p-4 flex flex-col justify-between h-[110px]">
-                  <p className="text-mono-text-muted text-[16px] font-medium">Delivered</p>
+                  <p className="text-mono-text-muted text-md font-medium">Delivered</p>
                   <p className="text-mono-text text-[36px] font-bold leading-none">{deliveredCount}</p>
                 </div>
                 <div className="bg-white border border-mono-border rounded-card p-4 flex flex-col justify-between h-[110px]">
-                  <p className="text-mono-text-muted text-[16px] font-medium">Pending</p>
+                  <p className="text-mono-text-muted text-md font-medium">Pending</p>
                   <p className="text-mono-text text-[36px] font-bold leading-none">{pendingCount}</p>
                 </div>
                 <div className="bg-white border border-mono-border rounded-card p-4 flex flex-col justify-between h-[110px]">
-                  <p className="text-mono-text-muted text-[16px] font-medium">Customers</p>
+                  <p className="text-mono-text-muted text-md font-medium">Customers</p>
                   <p className="text-mono-text text-[36px] font-bold leading-none">{customerCount}</p>
                 </div>
               </>
@@ -167,7 +167,7 @@ export default function Dashboard() {
         </section>
 
         <section>
-          <p className="text-[16px] font-semibold mb-4 text-mono-text px-7">Inventory</p>
+          <p className="text-md font-semibold mb-4 text-mono-text px-7">Inventory</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 px-7">
             {isLoading ? (
               [1, 2, 3].map(i => <div key={i} className="h-[190px] rounded-card bg-mono-skeleton animate-pulse" />)
@@ -178,7 +178,7 @@ export default function Dashboard() {
         </section>
 
         <section>
-          <p className="text-[16px] font-semibold mb-4 text-mono-text px-7">Delivered</p>
+          <p className="text-md font-semibold mb-4 text-mono-text px-7">Delivered</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-7">
             {isLoading ? (
               [1, 2, 3, 4].map(i => <div key={i} className="h-[120px] rounded-card bg-mono-skeleton animate-pulse" />)
@@ -189,7 +189,7 @@ export default function Dashboard() {
         </section>
 
         <section className="px-7">
-          <p className="text-[16px] font-semibold mb-4 text-mono-text">Financials</p>
+          <p className="text-md font-semibold mb-4 text-mono-text">Financials</p>
           <div className="grid grid-cols-2 gap-3">
             {isLoading ? (
               <>

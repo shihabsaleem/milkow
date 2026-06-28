@@ -233,11 +233,12 @@ export default function BillingPage() {
                      <div ref={qrRef} className="bg-gray-200 p-6 rounded-4xl shadow-md my-4 relative overflow-hidden">
                         <div className="bg-white p-4 rounded-card shadow-inner relative z-10">
                            <QRCodeCanvas
-                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}`
-                                 /*  &am=${selectedInvoice.amount}
-                                   &cu=${paymentSettings.currency_code}
-                                   &aid=${config.aid}` */
-                              }
+                              // value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}`
+                              //    /*  &am=${selectedInvoice.amount}
+                              //      &cu=${paymentSettings.currency_code}
+                              //      &aid=${config.aid}` */
+                              // }
+                              value={`upi://pay?pa=Q314473056@ybl&pn=${encodeURIComponent(paymentSettings.payee_name)}&cu=INR&am=${selectedInvoice.amount}`}
                               size={200}
                               includeMargin={false}
                               level="H"

@@ -200,7 +200,7 @@ export default function CustomerProfilePage() {
                                  <div className="flex items-center gap-1.5 text-mono-text-muted text-[13px] sm:text-sm font-medium"><Phone size={14} className="text-mono-text-disabled" /> {customer.phone}</div>
                               </div>
                            </div>
-                           <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-card text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-mono-surface text-mono-text border-mono-text' : 'bg-mono-surface text-rose-600 border-rose-200'}`}>{customer.status}</button>
+                           <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-card text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-mono-surface text-mono-text border-mono-border/60 ' : 'bg-mono-surface text-rose-600 border-rose-200'}`}>{customer.status}</button>
                         </div>
                         <div className="grid grid-cols-2 gap-2 sm:gap-3">
                            <div className="bg-mono-bg rounded-card p-3 sm:p-4 border border-mono-divider"><div className="flex items-center gap-1.5 text-mono-text-disabled text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-mono-text">{customer.frequency}</p></div>
@@ -280,7 +280,7 @@ export default function CustomerProfilePage() {
                                        return (
                                           <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-card border transition-all bg-white border-mono-divider hover:border-mono-border">
                                              <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                                <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-card flex flex-col items-center justify-center font-bold bg-mono-text/10 text-mono-text">
+                                                <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-md flex flex-col items-center justify-center font-bold bg-mono-text/10 text-mono-text">
                                                    <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
                                                    <span className="text-base sm:text-lg leading-none">{day}</span>
                                                 </div>
@@ -296,7 +296,7 @@ export default function CustomerProfilePage() {
                                                          <div className="flex items-center gap-1.5">
                                                             <span className={`px-1 py-0.5 rounded text-[7px] sm:text-[8px] border font-bold shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-mono-text border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
                                                             {delivery.delivered ? (
-                                                               <span className="bg-mono-surface text-mono-text px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-text font-bold uppercase tracking-tighter">Delivered</span>
+                                                               <span className="bg-mono-surface text-mono-text px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-text/15 font-bold">Delivered</span>
                                                             ) : (() => {
                                                                const now = new Date();
                                                                const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -305,19 +305,19 @@ export default function CustomerProfilePage() {
                                                                const hour = now.getHours();
                                                                const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
                                                                if (isPast || (isToday && isShiftOver)) {
-                                                                  return <span className="bg-mono-surface text-rose-600 px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-rose-200 font-bold uppercase tracking-tighter">Undelivered</span>;
+                                                                  return <span className="bg-mono-surface text-rose-600 px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-rose-200 font-bold">Undelivered</span>;
                                                                }
-                                                               return <span className="bg-mono-surface text-mono-text-disabled px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold uppercase tracking-tighter">Pending</span>;
+                                                               return <span className="bg-mono-surface text-mono-text-disabled px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold">Pending</span>;
                                                             })()}
                                                             {delivery.billed && (
-                                                               <span className="bg-mono-surface text-mono-text-muted px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold uppercase tracking-tighter">Billed</span>
+                                                               <span className="bg-mono-surface text-mono-text-muted px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold">Billed</span>
                                                             )}
                                                          </div>
                                                       </div>
                                                    ))}
                                                 </div>
                                              </div>
-                                             <div className="text-right shrink-0 ml-2">
+                                             <div className="text-center shrink-0 ml-2">
                                                 <p className="font-bold text-[13px] sm:text-sm text-mono-text">₹{dayTotal.toFixed(0)}</p>
                                                 <p className="text-[8px] sm:text-[10px] font-bold text-mono-text-disabled uppercase">Total</p>
                                              </div>
@@ -399,7 +399,7 @@ export default function CustomerProfilePage() {
 
                   <div className="flex items-center justify-between mb-8 relative z-10">
                      <h3 className="text-xs md:text-sm font-semibold uppercase tracking-widest text-white/70">Financial Summary</h3>
-                     <span className={`text-[10px] font-bold tracking-widest px-3 py-1.5 rounded-full backdrop-blur-md border ${
+                     <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full backdrop-blur-md border ${
                         grandTotalAmount < 0 
                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
                            : 'bg-white/10 text-white border-white/20'

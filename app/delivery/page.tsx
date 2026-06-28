@@ -262,10 +262,10 @@ export default function DeliveryPage() {
                                           }
                                        }
                                     }}
-                                    className="w-full text-left px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-card transition-colors"
+                                    className="w-full text-left px-3 py-2 text-sm font-medium text-danger hover:bg-danger-soft rounded-card transition-colors"
                                  >
                                     <div className="flex items-center gap-3">
-                                       <RefreshCw size={16} className="text-red-600" />
+                                       <RefreshCw size={16} className="text-danger" />
                                        <span className="font-medium">Reset Shift</span>
                                     </div>
                                  </button>

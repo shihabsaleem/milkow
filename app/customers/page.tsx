@@ -58,8 +58,8 @@ export default function CustomersPage() {
           <div className="flex items-center gap-2 sm:gap-3 h-12 mt-1">
             <div
               className={`relative h-full bg-white border border-mono-border rounded-card shadow-sm overflow-hidden flex shrink-0 transition-all duration-300 ease-in-out ${isSearchExpanded || searchTerm
-                  ? 'flex-1 sm:w-auto'
-                  : 'w-12 sm:flex-1'
+                ? 'flex-1 sm:w-auto'
+                : 'w-12 sm:flex-1'
                 }`}
             >
               <button
@@ -105,8 +105,8 @@ export default function CustomersPage() {
             </div>
 
             <div className={`transition-all duration-300 ease-in-out flex shrink-0 h-full ${isSearchExpanded || searchTerm
-                ? 'w-12 opacity-100'
-                : 'flex-1 opacity-100 sm:w-1/4 sm:min-w-[150px]'
+              ? 'w-12 opacity-100'
+              : 'flex-1 opacity-100 sm:w-1/4 sm:min-w-[150px]'
               }`}>
               <div className="w-full flex items-center h-full">
                 <CustomSelect
@@ -149,14 +149,13 @@ export default function CustomersPage() {
               </div>
               <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <div className="flex flex-col items-center justify-center mr-2">
-                  <p className={`text-[14px] font-semibold text-mono-text leading-tight`}>
+                  <p className={`text-sm font-semibold text-mono-text leading-tight`}>
                     ₹{Math.abs(customer.financials?.current_balance || 0).toLocaleString()}
                   </p>
-                  <p className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-[4px] border mt-0.5 ${
-                    customer.financials && customer.financials.current_balance < 0 
-                      ? 'text-mono-text bg-mono-surface border-mono-border' 
+                  <p className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-[4px] border mt-0.5 ${customer.financials && customer.financials.current_balance < 0
+                      ? 'text-mono-text bg-mono-surface border-mono-border'
                       : 'text-mono-text bg-mono-surface border-mono-border'
-                  }`}>
+                    }`}>
                     {customer.financials && customer.financials.current_balance < 0 ? 'Advance' : 'Credit'}
                   </p>
                 </div>

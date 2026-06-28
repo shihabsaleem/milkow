@@ -52,8 +52,9 @@ export default function InventoryPage() {
             <button onClick={() => { setEditingIndex(null); setNewProduct({ name: "", size: "", stock: "", price: "", unit: "Bottles" }); setIsModalOpen(true); }} className="h-10 w-10 bg-mono-text text-white rounded-card flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
           </div>
           <div className="w-full bg-white border border-mono-border/60 rounded-card p-3.5 flex items-center gap-3 relative shadow-sm" onClick={() => dateInputRef.current?.showPicker()}>
-            <div className="p-2 bg-mono-text/10 text-mono-text rounded-card"><CalendarIcon size={18} /></div>
-            <div className="flex flex-col"><p className="text-[10px] font-bold uppercase tracking-wider text-mono-text-disabled leading-none mb-1">Inventory Date</p><p className="text-[14px] font-bold text-mono-text leading-none">{fmtDate(date)}</p></div>
+            <div className="p-2  text-mono-text rounded-card"><CalendarIcon size={24} /></div>
+            <div className="flex flex-col"><p className="text-[10px] font-medium uppercase tracking-wider text-mono-text-disabled leading-none mb-1">Inventory Date</p>
+              <p className="text-sm font-bold text-mono-text leading-none">{fmtDate(date)}</p></div>
             <input ref={dateInputRef} type="date" className="absolute inset-0 opacity-0 cursor-pointer" value={date} onChange={(e) => setDate(e.target.value)} />
             <div className="ml-auto text-mono-text-disabled"><ChevronRight size={16} /></div>
           </div>
@@ -103,7 +104,7 @@ export default function InventoryPage() {
               products.map((p, i) => (
                 <div key={i} onClick={() => openEditModal(i)} className="flex items-center justify-between p-4 rounded-card border transition-colors cursor-pointer bg-white border-mono-border">
                   <div><p className="text-[15px] font-bold text-mono-text">{p.name}</p><p className="text-xs font-medium mt-0.5 text-mono-text-disabled">{p.size} · {p.stock} in stock</p></div>
-                  <div className="flex flex-col items-end"><p className="text-[16px] font-semibold text-mono-text">₹{getProductPriceForDate(p)}</p><p className="text-[10px] font-bold text-mono-text-disabled uppercase tracking-tighter">Selling Price</p></div>
+                  <div className="flex flex-col items-end"><p className="text-md font-semibold text-mono-text">₹{getProductPriceForDate(p)}</p><p className="text-[10px] font-bold text-mono-text-disabled uppercase tracking-tighter">Selling Price</p></div>
                 </div>
               ))
             )}

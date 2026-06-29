@@ -572,7 +572,7 @@ export default function CustomerProfilePage() {
                               />
                            </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3"> <CustomSelect
+                        <div className="grid grid-cols-2 gap-3 items-end"> <CustomSelect
                            label="Type"
                            options={[
                               { value: "credit", label: "Credit" },
@@ -583,7 +583,7 @@ export default function CustomerProfilePage() {
                         />
                            <div className="flex flex-col gap-1.5">
                               <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled">
-                                 {editForm.outstanding_type === "advance" ? "Past Advance (₹)" : "Past Outstanding (₹)"}
+                                 {editForm.outstanding_type === "advance" ? "Advance (₹)" : "Outstanding (₹)"}
                               </label>
                               <input type="number" step="0.01" value={editForm.outstanding} onChange={e => setEditForm({ ...editForm, outstanding: e.target.value })} className="bg-mono-bg border border-mono-divider rounded-card px-4 py-3 text-sm focus:ring-2 transition-all" />
                            </div>

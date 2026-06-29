@@ -69,7 +69,7 @@ export default function CustomSelect({
   }, [isOpen]);
 
   return (
-    <div className={`relative ${fullWidth ? "w-full" : "w-fit"} ${isOpen ? "z-100" : "z-10"} h-full ${className}`} ref={containerRef}>
+    <div className={`relative flex flex-col ${fullWidth ? "w-full" : "w-fit"} ${isOpen ? "z-100" : "z-10"} ${className}`} ref={containerRef}>
       {label && (
         <label className="text-[11px] font-bold uppercase tracking-widest text-mono-text-disabled mb-1.5 block">
           {label}
@@ -80,7 +80,7 @@ export default function CustomSelect({
         type="button"
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center transition-all focus:ring-2 focus:ring-primary/20 h-full bg-white border border-mono-border rounded-card shadow-sm ${
+        className={`flex items-center overflow-hidden transition-all focus:ring-2 focus:ring-primary/20 bg-white border border-mono-border rounded-card shadow-sm ${
           iconOnly ? "justify-center w-full px-0 text-mono-text-muted hover:bg-mono-surface" : "justify-between px-4 py-3 text-sm " + (fullWidth ? "w-full" : "")
         } ${isOpen ? "ring-2 ring-primary/10" : ""}`}
       >
@@ -88,7 +88,7 @@ export default function CustomSelect({
           icon || <ChevronDown size={18} />
         ) : (
           <>
-            <span className={selectedOption ? "text-mono-text font-bold" : "text-mono-text-disabled"}>
+            <span className={`truncate min-w-0 ${selectedOption ? "text-mono-text font-bold" : "text-mono-text-disabled"}`}>
               {selectedOption ? selectedOption.label : placeholder}
             </span>
             <ChevronDown

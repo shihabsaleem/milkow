@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera, RotateCcw, ArrowDown, Share2, MoreVertical } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera, RotateCcw, ArrowDown, Share2, MoreVertical, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef } from "react";
 import Modal from "@/components/ui/Modal";
@@ -61,6 +61,11 @@ export default function CustomerProfilePage() {
    // const [returnNotes, setReturnNotes] = useState("");     // Return Item — commented out
    const [activeTab, setActiveTab] = useState<'calendar' | 'statement'>('calendar');
    const [isMenuOpen, setIsMenuOpen] = useState(false);
+   const [expandedDates, setExpandedDates] = useState<string[]>([]);
+
+   const toggleExpand = (dateStr: string) => {
+      setExpandedDates(prev => prev.includes(dateStr) ? prev.filter(d => d !== dateStr) : [...prev, dateStr]);
+   };
 
    const daysCount = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
    const isCurrentMonth = viewDate.getMonth() === new Date().getMonth() && viewDate.getFullYear() === new Date().getFullYear();
@@ -278,49 +283,78 @@ export default function CustomerProfilePage() {
                                        const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 
                                        return (
-                                          <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-card border transition-all bg-white border-mono-divider hover:border-mono-border">
-                                             <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                                <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-md flex flex-col items-center justify-center font-bold bg-mono-text/10 text-mono-text">
-                                                   <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
-                                                   <span className="text-base sm:text-lg leading-none">{day}</span>
-                                                </div>
-                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                                                   {dayDeliveries.map((delivery, dIdx) => (
-                                                      <div key={dIdx} className={`flex flex-col gap-1 ${dIdx > 0 ? "pt-2 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-mono-divider" : ""}`}>
-                                                         <p className="font-bold text-[13px] sm:text-[15px] text-mono-text leading-tight truncate max-w-[150px] sm:max-w-none">
-                                                            {[
-                                                               delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
-                                                               ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
-                                                            ].filter(Boolean).join(' + ')}
+                                          <div key={i} className="flex flex-col p-3 sm:p-4 rounded-card border transition-all bg-white border-mono-divider hover:border-mono-border cursor-pointer" onClick={() => toggleExpand(dateStr)}>
+                                             <div className="flex items-start justify-between">
+                                                <div className="flex items-start gap-3 sm:gap-4 overflow-hidden">
+                                                   <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-md flex flex-col items-center justify-center font-bold bg-mono-text/10 text-mono-text">
+                                                      <span className="text-[8px] sm:text-[9px] uppercase leading-none mb-0.5 opacity-60 font-bold">{monthName.slice(0, 3)}</span>
+                                                      <span className="text-base sm:text-lg leading-none">{day}</span>
+                                                   </div>
+                                                   <div className="flex flex-col justify-center h-10 sm:h-12">
+                                                      {!expandedDates.includes(dateStr) ? (
+                                                         <p className="text-xs font-medium text-mono-text flex items-center transition-all">
+                                                            {dayDeliveries.filter(d => d.delivered).length === 0 
+                                                               ? 'No delivery' 
+                                                               : `${dayDeliveries.filter(d => d.delivered).length} ${dayDeliveries.filter(d => d.delivered).length === 1 ? 'Delivery' : 'Deliveries'}`}
+                                                            <ChevronDown size={16} className="ml-1.5 opacity-70" />
                                                          </p>
-                                                         <div className="flex items-center gap-1.5">
-                                                            <span className={`px-1 py-0.5 rounded text-[7px] sm:text-[8px] border font-bold shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-mono-text border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
-                                                            {delivery.delivered ? (
-                                                               <span className="bg-mono-surface text-mono-text px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-text/15 font-bold">Delivered</span>
-                                                            ) : (() => {
-                                                               const now = new Date();
-                                                               const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                                                               const isPast = delivery.delivery_date < today;
-                                                               const isToday = delivery.delivery_date === today;
-                                                               const hour = now.getHours();
-                                                               const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
-                                                               if (isPast || (isToday && isShiftOver)) {
-                                                                  return <span className="bg-mono-surface text-rose-600 px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-rose-200 font-bold">Undelivered</span>;
-                                                               }
-                                                               return <span className="bg-mono-surface text-mono-text-disabled px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold">Pending</span>;
-                                                            })()}
-                                                            {delivery.billed && (
-                                                               <span className="bg-mono-surface text-mono-text-muted px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold">Billed</span>
-                                                            )}
-                                                         </div>
-                                                      </div>
-                                                   ))}
+                                                      ) : (
+                                                         <p className="text-xs font-medium text-mono-text flex items-center transition-all">
+                                                            Details
+                                                            <ChevronUp size={16} className="ml-1.5 opacity-70" />
+                                                         </p>
+                                                      )}
+                                                   </div>
+                                                </div>
+                                                <div className="text-right shrink-0 ml-2 flex flex-col justify-center h-10 sm:h-12">
+                                                   <p className="font-bold text-[13px] sm:text-sm text-mono-text">₹{dayTotal.toFixed(0)}</p>
+                                                   <p className="text-[8px] sm:text-[10px] font-bold text-mono-text-disabled uppercase mt-0.5">Total</p>
                                                 </div>
                                              </div>
-                                             <div className="text-center shrink-0 ml-2">
-                                                <p className="font-bold text-[13px] sm:text-sm text-mono-text">₹{dayTotal.toFixed(0)}</p>
-                                                <p className="text-[8px] sm:text-[10px] font-bold text-mono-text-disabled uppercase">Total</p>
-                                             </div>
+
+                                             <AnimatePresence>
+                                                {expandedDates.includes(dateStr) && (
+                                                   <motion.div
+                                                      initial={{ height: 0, opacity: 0 }}
+                                                      animate={{ height: "auto", opacity: 1 }}
+                                                      exit={{ height: 0, opacity: 0 }}
+                                                      className="overflow-hidden"
+                                                   >
+                                                      <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-mono-divider flex flex-col gap-2 pl-[3.25rem] sm:pl-[4rem]">
+                                                         {dayDeliveries.map((delivery, dIdx) => (
+                                                            <div key={dIdx} className={`flex flex-col gap-1.5 ${dIdx > 0 ? "pt-2 border-t border-mono-divider" : ""}`}>
+                                                               <p className="font-bold text-[13px] sm:text-[15px] text-mono-text leading-tight truncate max-w-[150px] sm:max-w-none">
+                                                                  {[
+                                                                     delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
+                                                                     ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)
+                                                                  ].filter(Boolean).join(' + ')}
+                                                               </p>
+                                                               <div className="flex items-center gap-1.5">
+                                                                  <span className={`px-1 py-0.5 rounded text-[7px] sm:text-[8px] border font-bold shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-50 text-mono-text border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
+                                                                  {delivery.delivered ? (
+                                                                     <span className="bg-mono-surface text-mono-text px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-text/15 font-bold">Delivered</span>
+                                                                  ) : (() => {
+                                                                     const now = new Date();
+                                                                     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                                                                     const isPast = delivery.delivery_date < today;
+                                                                     const isToday = delivery.delivery_date === today;
+                                                                     const hour = now.getHours();
+                                                                     const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
+                                                                     if (isPast || (isToday && isShiftOver)) {
+                                                                        return <span className="bg-mono-surface text-rose-600 px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-rose-200 font-bold">Undelivered</span>;
+                                                                     }
+                                                                     return <span className="bg-mono-surface text-mono-text-disabled px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold">Pending</span>;
+                                                                  })()}
+                                                                  {delivery.billed && (
+                                                                     <span className="bg-mono-surface text-mono-text-muted px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] border border-mono-border font-bold">Billed</span>
+                                                                  )}
+                                                               </div>
+                                                            </div>
+                                                         ))}
+                                                      </div>
+                                                   </motion.div>
+                                                )}
+                                             </AnimatePresence>
                                           </div>
                                        );
                                     })}

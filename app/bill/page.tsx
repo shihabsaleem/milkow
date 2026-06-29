@@ -7,7 +7,7 @@ import {
    AlertCircle, Share2, Check, RefreshCw, Smartphone,
    CheckCircle2, Copy, ArrowLeft, MapPin, Phone,
    Receipt, Calendar, List, Clock, X, ChevronLeft, ChevronRight,
-   Camera, Globe, MessageCircle
+   ChevronUp, ChevronDown, Camera, Globe, MessageCircle
 } from "lucide-react";
 import Image from "next/image";
 import { usePublicBillLogic } from "@/hooks/usePublicBillLogic";
@@ -34,6 +34,11 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
    } = usePublicBillLogic(initialPhone);
 
    const [activeTab, setActiveTab] = useState<'calendar' | 'statement' | 'pay'>('calendar');
+   const [expandedDates, setExpandedDates] = useState<string[]>([]);
+
+   const toggleExpand = (dateStr: string) => {
+      setExpandedDates(prev => prev.includes(dateStr) ? prev.filter(d => d !== dateStr) : [...prev, dateStr]);
+   };
 
    const displayDays = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
 
@@ -195,7 +200,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                      animate={{ y: 0 }}
                      exit={{ y: "100%" }}
                      transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                     className="w-full bg-mono-bg rounded-t-[3.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[90vh] pointer-events-auto"
+                     className="w-full bg-mono-bg rounded-t-xl shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[90vh] pointer-events-auto"
                   >
                      {/* Draggable Handle Indicator (Mobile Only) */}
                      <div className="w-full flex md:hidden justify-center pt-4 pb-2">
@@ -203,14 +208,14 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                      </div>
 
                      {/* Profile Card Header */}
-                     <div className="bg-white px-6 pb-6 pt-4 md:pt-8 rounded-t-[3.5rem] relative shrink-0">
+                     <div className="bg-white px-6 pb-6 pt-4 md:pt-8 rounded-t-md relative shrink-0">
                         <div className="flex items-start justify-between mb-6">
                            <div className="flex items-center gap-4 sm:gap-5">
                               <button onClick={handleReset} className="h-10 w-10 shrink-0 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center text-gray-600 transition-all active:scale-95">
                                  <ArrowLeft size={18} />
                               </button>
                               <div className="flex flex-col gap-1">
-                                 <h2 className="text-2xl font-black text-black tracking-tight leading-none">{billData.customer.name}</h2>
+                                 <h2 className="text-2xl font-semibold text-mono-text tracking-tight leading-none">{billData.customer.name}</h2>
                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <span className="flex items-center gap-1 text-mono-text-muted text-xs font-bold"><MapPin size={12} /> {billData.customer.area_name || 'No Area'}</span>
                                     <span className="w-1 h-1 rounded-full bg-gray-300" />
@@ -224,13 +229,13 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                               <div className="flex items-center gap-1.5 text-mono-text-muted text-[10px] sm:text-[11px] uppercase font-bold tracking-wider mb-2">
                                  <Clock size={14} /> Frequency
                               </div>
-                              <p className="text-sm sm:text-base font-black text-black">{billData.customer.frequency}</p>
+                              <p className="text-sm sm:text-base font-bold text-mono-text">{billData.customer.frequency}</p>
                            </div>
                            <div className={`rounded-2xl p-4 sm:p-5 border ${billData.financials.account_status === 'Advance' ? 'bg-emerald-50 border-emerald-200' : 'bg-[#111] border-black'}`}>
                               <div className={`flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase font-bold tracking-wider mb-2 ${billData.financials.account_status === 'Advance' ? 'text-emerald-700' : 'text-gray-400'}`}>
                                  <Receipt size={14} /> {billData.financials.account_status === 'Advance' ? 'Advance' : 'Total Payable'}
                               </div>
-                              <p className={`text-lg sm:text-xl font-black ${billData.financials.account_status === 'Advance' ? 'text-emerald-900' : 'text-white'}`}>
+                              <p className={`text-lg sm:text-xl font-bold ${billData.financials.account_status === 'Advance' ? 'text-emerald-900' : 'text-white'}`}>
                                  ₹{Math.abs(billData.financials.current_balance).toFixed(2)}
                               </p>
                            </div>
@@ -239,10 +244,10 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
 
                      <div className="px-6 bg-white shrink-0 shadow-[0_4px_10px_rgba(0,0,0,0.02)] z-10 pb-2">
                         <div className="flex relative gap-2 py-1 overflow-x-auto hide-scrollbar scroll-smooth">
-                           <button onClick={() => setActiveTab('calendar')} className={`relative flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold transition-all duration-300 rounded-xl whitespace-nowrap ${activeTab === 'calendar' ? 'bg-black text-white shadow-md' : 'bg-transparent text-mono-text-muted hover:bg-gray-100'}`}>
+                           <button onClick={() => setActiveTab('calendar')} className={`relative flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 rounded-xl whitespace-nowrap ${activeTab === 'calendar' ? 'bg-black text-white shadow-md' : 'bg-transparent text-mono-text-muted hover:bg-gray-100'}`}>
                               Deliveries
                            </button>
-                           <button onClick={() => setActiveTab('statement')} className={`relative flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold transition-all duration-300 rounded-xl whitespace-nowrap ${activeTab === 'statement' ? 'bg-black text-white shadow-md' : 'bg-transparent text-mono-text-muted hover:bg-gray-100'}`}>
+                           <button onClick={() => setActiveTab('statement')} className={`relative flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 rounded-xl whitespace-nowrap ${activeTab === 'statement' ? 'bg-black text-white shadow-md' : 'bg-transparent text-mono-text-muted hover:bg-gray-100'}`}>
                               Payments
                            </button>
                            <button onClick={() => setActiveTab('pay')} className={`relative flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold transition-all duration-300 rounded-xl whitespace-nowrap ml-auto ${activeTab === 'pay' ? 'bg-emerald-500 text-white shadow-md' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
@@ -258,20 +263,20 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                               <motion.div key="calendar" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }} className="w-full">
                                  <div className="w-full px-4 sm:px-6 py-6 pb-24">
                                     <div className="flex items-center justify-between gap-4 mb-6">
-                                       <h3 className="text-xl font-black text-black tracking-tight">Delivery History</h3>
+                                       <h3 className="text-xl font-semibold text-mono-text tracking-tight">Delivery History</h3>
                                        <div className="flex items-center gap-2 bg-white text-gray-600 px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
                                           <span className="text-[10px] font-bold uppercase tracking-widest">{filteredDeliveries.filter(d => d.delivered).length} Deliveries</span>
                                        </div>
                                     </div>
 
                                     <div className="flex items-center justify-between mb-6 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-                                       <button onClick={() => changeMonth(-1)} className="p-3 rounded-xl bg-gray-100 text-black hover:bg-gray-200 transition-all">
+                                       <button onClick={() => changeMonth(-1)} className="p-3 rounded-xl bg-gray-100 text-mono-text hover:bg-gray-200 transition-all">
                                           <ChevronLeft size={18} />
                                        </button>
-                                       <p className="text-sm font-bold text-black uppercase tracking-widest text-center flex-1">
+                                       <p className="text-sm font-bold text-mono-text uppercase tracking-widest text-center flex-1">
                                           {monthName} {yearName}
                                        </p>
-                                       <button onClick={() => changeMonth(1)} className="p-3 rounded-xl bg-gray-100 text-black hover:bg-gray-200 transition-all">
+                                       <button onClick={() => changeMonth(1)} className="p-3 rounded-xl bg-gray-100 text-mono-text hover:bg-gray-200 transition-all">
                                           <ChevronRight size={18} />
                                        </button>
                                     </div>
@@ -299,46 +304,75 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                           const dayTotal = dayDeliveries.filter(d => d.delivered).reduce((sum, d) => sum + calculateDeliveryTotal(d), 0);
 
                                           return (
-                                             <div key={i} className="flex items-center justify-between p-4 sm:p-5 rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all">
-                                                <div className="flex items-center gap-4 sm:gap-5 overflow-hidden">
-                                                   <div className="h-12 w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-bold bg-black text-white shadow-md">
-                                                      <span className="text-[9px] uppercase leading-none mb-0.5 font-bold opacity-80">{monthName.slice(0, 3)}</span>
-                                                      <span className="text-base leading-none">{day}</span>
-                                                   </div>
-                                                   <div className="flex flex-col gap-2">
-                                                      {dayDeliveries.map((delivery, dIdx) => (
-                                                         <div key={dIdx} className={`flex flex-col gap-1.5 ${dIdx > 0 ? "pt-2.5 border-t border-gray-100" : ""}`}>
-                                                            <p className="font-bold text-sm text-black leading-tight">
-                                                               {[
-                                                                  delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
-                                                                  ...(delivery.misc_items as any[] || []).map((m: any) => `${m.qty} ${m.name}`)
-                                                               ].filter(Boolean).join(' + ')}
+                                             <div key={i} className="flex flex-col p-4 sm:p-5 rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => toggleExpand(dateStr)}>
+                                                <div className="flex items-center justify-between">
+                                                   <div className="flex items-center gap-4 sm:gap-5 overflow-hidden">
+                                                      <div className="h-12 w-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-bold bg-black text-white shadow-md">
+                                                         <span className="text-[9px] uppercase leading-none mb-0.5 font-bold opacity-80">{monthName.slice(0, 3)}</span>
+                                                         <span className="text-base leading-none">{day}</span>
+                                                      </div>
+                                                      <div className="flex flex-col justify-center h-12">
+                                                         {!expandedDates.includes(dateStr) ? (
+                                                            <p className="text-xs font-medium text-mono-text flex items-center transition-all">
+                                                               {dayDeliveries.filter(d => d.delivered).length === 0
+                                                                  ? 'No delivery'
+                                                                  : `${dayDeliveries.filter(d => d.delivered).length} ${dayDeliveries.filter(d => d.delivered).length === 1 ? 'Delivery' : 'Deliveries'}`}
+                                                               <ChevronDown size={16} className="ml-1.5 opacity-70" />
                                                             </p>
-                                                            <div className="flex items-center gap-2">
-                                                               <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
-                                                               {delivery.delivered ? (
-                                                                  <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider">Delivered</span>
-                                                               ) : (() => {
-                                                                  const now = new Date();
-                                                                  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                                                                  const isPast = delivery.delivery_date < today;
-                                                                  const isToday = delivery.delivery_date === today;
-                                                                  const hour = now.getHours();
-                                                                  const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
-                                                                  if (isPast || (isToday && isShiftOver)) {
-                                                                     return <span className="bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md text-[9px] border border-rose-200 font-bold uppercase tracking-wider">Undelivered</span>;
-                                                                  }
-                                                                  return <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md text-[9px] border border-orange-200 font-bold uppercase tracking-wider">Pending</span>;
-                                                               })()}
-                                                            </div>
-                                                         </div>
-                                                      ))}
+                                                         ) : (
+                                                            <p className="text-xs font-medium text-mono-text flex items-center transition-all">
+                                                               Details
+                                                               <ChevronUp size={16} className="ml-1.5 opacity-70" />
+                                                            </p>
+                                                         )}
+                                                      </div>
+                                                   </div>
+                                                   <div className="text-right shrink-0 ml-3 flex flex-col justify-center h-12">
+                                                      <p className="font-semibold text-base sm:text-lg text-black">₹{dayTotal.toFixed(0)}</p>
+                                                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Total</p>
                                                    </div>
                                                 </div>
-                                                <div className="text-right shrink-0 ml-3">
-                                                   <p className="font-black text-base sm:text-lg text-black">₹{dayTotal.toFixed(0)}</p>
-                                                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Total</p>
-                                                </div>
+
+                                                <AnimatePresence>
+                                                   {expandedDates.includes(dateStr) && (
+                                                      <motion.div
+                                                         initial={{ height: 0, opacity: 0 }}
+                                                         animate={{ height: "auto", opacity: 1 }}
+                                                         exit={{ height: 0, opacity: 0 }}
+                                                         className="overflow-hidden"
+                                                      >
+                                                         <div className="pt-4 mt-4 border-t border-gray-100 flex flex-col gap-2 pl-16 sm:pl-[4.25rem]">
+                                                            {dayDeliveries.map((delivery, dIdx) => (
+                                                               <div key={dIdx} className={`flex flex-col gap-1.5 ${dIdx > 0 ? "pt-2.5 border-t border-gray-50" : ""}`}>
+                                                                  <p className="font-bold text-sm text-black leading-tight">
+                                                                     {[
+                                                                        delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
+                                                                        ...(delivery.misc_items as any[] || []).map((m: any) => `${m.qty} ${m.name}`)
+                                                                     ].filter(Boolean).join(' + ')}
+                                                                  </p>
+                                                                  <div className="flex items-center gap-2">
+                                                                     <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold shrink-0 ${delivery.shift === 'Morning Only' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>{delivery.shift === 'Morning Only' ? 'AM' : 'PM'}</span>
+                                                                     {delivery.delivered ? (
+                                                                        <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider">Delivered</span>
+                                                                     ) : (() => {
+                                                                        const now = new Date();
+                                                                        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                                                                        const isPast = delivery.delivery_date < today;
+                                                                        const isToday = delivery.delivery_date === today;
+                                                                        const hour = now.getHours();
+                                                                        const isShiftOver = (delivery.shift === 'Morning Only' && hour >= 12) || (delivery.shift === 'Evening Only' && hour >= 22);
+                                                                        if (isPast || (isToday && isShiftOver)) {
+                                                                           return <span className="bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md text-[9px] border border-rose-200 font-bold uppercase tracking-wider">Undelivered</span>;
+                                                                        }
+                                                                        return <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md text-[9px] border border-orange-200 font-bold uppercase tracking-wider">Pending</span>;
+                                                                     })()}
+                                                                  </div>
+                                                               </div>
+                                                            ))}
+                                                         </div>
+                                                      </motion.div>
+                                                   )}
+                                                </AnimatePresence>
                                              </div>
                                           );
                                        })}
@@ -350,7 +384,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                               <motion.div key="statement" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }} className="w-full">
                                  <div className="w-full px-4 sm:px-6 py-6 pb-24">
                                     <div className="flex items-center justify-between mb-6">
-                                       <h3 className="text-xl font-black text-black tracking-tight">Payment History</h3>
+                                       <h3 className="text-xl font-semibold text-mono-text tracking-tight">Payment History</h3>
                                        <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-white text-gray-600 rounded-lg border border-gray-200 shadow-sm">{billData.payments.length} Records</span>
                                     </div>
                                     {billData.payments.length === 0 ? (
@@ -374,7 +408,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                                          <Receipt size={20} />
                                                       </div>
                                                       <div>
-                                                         <p className="font-bold text-sm sm:text-base text-black">{dateStr}</p>
+                                                         <p className="font-bold text-sm sm:text-base text-mono-text">{dateStr}</p>
                                                          <div className="flex items-center gap-2 mt-1">
                                                             <span className="text-[10px] font-bold text-gray-400">{timeStr}</span>
                                                             <span className="w-1 h-1 rounded-full bg-gray-300" />
@@ -383,7 +417,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                                       </div>
                                                    </div>
                                                    <div className="text-right shrink-0 ml-3">
-                                                      <p className="font-black text-base sm:text-lg text-emerald-600">+₹{Number(p.amount).toFixed(2)}</p>
+                                                      <p className="font-semibold text-base sm:text-lg text-emerald-600">+₹{Number(p.amount).toFixed(2)}</p>
                                                       <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Received</p>
                                                    </div>
                                                 </div>
@@ -403,7 +437,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                           <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-5 relative z-10">
                                              <CheckCircle2 size={32} />
                                           </div>
-                                          <h2 className="text-2xl font-black text-black tracking-tight relative z-10">All Dues Cleared</h2>
+                                          <h2 className="text-2xl font-semibold text-mono-text tracking-tight relative z-10">All Dues Cleared</h2>
                                           <p className="text-sm text-mono-text-muted leading-relaxed mt-3 px-4 relative z-10 font-medium">
                                              {billData.financials.current_balance < 0 ?
                                                 `You have an advance balance of ₹${Math.abs(billData.financials.current_balance).toFixed(2)}. No payment is required at this time.` :
@@ -414,7 +448,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-100 shadow-sm relative overflow-hidden">
                                           <div className="text-center pb-8 border-b border-gray-100">
                                              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Total Payable</p>
-                                             <h2 className="text-5xl sm:text-6xl font-black text-black tracking-tighter">
+                                             <h2 className="text-5xl sm:text-6xl font-semibold text-mono-text tracking-tighter">
                                                 ₹{billData.financials.current_balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                                              </h2>
                                           </div>
@@ -438,7 +472,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                              </div>
 
                                              <div className="mt-6 text-center">
-                                                <p className="text-sm font-bold text-black">{billData.settings.payment?.payee_name || "Milkow Distributor"}</p>
+                                                <p className="text-sm font-bold text-mono-text">{billData.settings.payment?.payee_name || "Milkow Distributor"}</p>
                                                 <p className="text-[10px] font-bold tracking-widest uppercase mt-1.5 text-gray-400 flex items-center justify-center gap-1.5"><Smartphone size={12} /> Scan with any UPI App</p>
                                              </div>
                                           </div>
@@ -455,7 +489,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                              <div className="flex gap-3">
                                                 <button
                                                    onClick={copyUpiId}
-                                                   className="flex-1 bg-gray-100 hover:bg-gray-200 text-black font-bold h-14 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
+                                                   className="flex-1 bg-gray-100 hover:bg-gray-200 text-mono-text font-bold h-14 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
                                                 >
                                                    {copied ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
                                                    {copied ? "Copied UPI ID!" : "Copy UPI ID"}
@@ -463,7 +497,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
 
                                                 <button
                                                    onClick={shareBillLink}
-                                                   className="flex-1 bg-gray-100 hover:bg-gray-200 text-black font-bold h-14 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
+                                                   className="flex-1 bg-gray-100 hover:bg-gray-200 text-mono-text font-bold h-14 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
                                                 >
                                                    <Share2 size={16} />
                                                    Share Link

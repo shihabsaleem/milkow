@@ -7,8 +7,16 @@ import {
    AlertCircle, Share2, Check, RefreshCw, Smartphone,
    CheckCircle2, Copy, ArrowLeft, MapPin, Phone,
    Receipt, Calendar, List, Clock, X, ChevronLeft, ChevronRight,
-   ChevronUp, ChevronDown, Camera, Globe, MessageCircle
+   ChevronUp, ChevronDown, Globe, MessageCircle
 } from "lucide-react";
+
+const InstagramIcon = ({ size = 24, className = "" }: { size?: number | string, className?: string }) => (
+   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+   </svg>
+);
 import Image from "next/image";
 import { usePublicBillLogic } from "@/hooks/usePublicBillLogic";
 
@@ -51,27 +59,67 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                src="/assets/bg-landscape.png"
                alt="Landscape Background"
                fill
+               sizes="(max-width: 768px) 100vw, 40vw"
                className="object-cover opacity-80 pointer-events-none"
                priority
             />
 
-            {/* Header / Logo / Motto */}
+            {/* Header / Logo / Socials */}
             <AnimatePresence>
                {!billData && (
                   <motion.div
                      initial={{ opacity: 0, y: -20 }}
                      animate={{ opacity: 1, y: 0 }}
                      exit={{ opacity: 0, y: -20 }}
-                     className="absolute top-12 left-6 sm:left-12 z-10 flex flex-col gap-4"
+                     className="absolute inset-x-0 top-12 px-6 sm:px-12 z-10 flex justify-between items-center"
                   >
                      <Image
                         src="/assets/logo.svg"
                         alt="Milkow Logo"
-                        width={160}
+                        width={125}
                         height={40}
-                        className="object-contain filter drop-shadow-md"
+                        className="object-contain "
                         priority
                      />
+
+                     {/* Mobile Social Icons & Developer Credit (Hidden on lg) */}
+                     <div className="flex lg:hidden flex-col items-end">
+                        <div className="flex items-center gap-2 text-white/90">
+                           <a href="https://www.instagram.com/milkow_fresh" className="bg-white/20 backdrop-blur-sm rounded-full h-12 w-12 flex justify-center items-center border border-mono-border/20 hover:text-white hover:scale-110 transition-all drop-shadow-md">
+                              <InstagramIcon size={20} />
+                           </a>
+                           <a href="https://www.milkow.in" className="bg-white/20 backdrop-blur-sm rounded-full h-12 w-12 flex justify-center items-center border border-mono-border/20 hover:text-white hover:scale-110 transition-all drop-shadow-md">
+                              <Globe size={20} />
+                           </a>
+                           <a href="tel:+918113033322" className="bg-white/20 backdrop-blur-sm rounded-full h-12 w-12 flex justify-center items-center border border-mono-border/20 hover:text-white hover:scale-110 transition-all drop-shadow-md">
+                              <Phone size={20} />
+                           </a>
+                        </div>
+                     </div>
+                  </motion.div>
+               )}
+            </AnimatePresence>
+
+            {/* Desktop Bottom-Left Socials & Developer Credit (Visible only on lg+) */}
+            <AnimatePresence>
+               {!billData && (
+                  <motion.div
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     exit={{ opacity: 0, y: 20 }}
+                     className="hidden lg:flex absolute bottom-12 left-12 z-10 flex-col gap-4"
+                  >
+                     <div className="flex items-center gap-4 text-white/90">
+                        <a href="https://www.instagram.com/milkow_fresh" className="bg-white/20 backdrop-blur-sm rounded-full h-14 w-14 flex justify-center items-center border border-mono-border/20 hover:text-white hover:scale-110 transition-all drop-shadow-md">
+                           <InstagramIcon size={24} />
+                        </a>
+                        <a href="https://www.milkow.in" className="bg-white/20 backdrop-blur-sm rounded-full h-14 w-14 flex justify-center items-center border border-mono-border/20 hover:text-white hover:scale-110 transition-all drop-shadow-md">
+                           <Globe size={24} />
+                        </a>
+                        <a href="tel:+918113033322" className="bg-white/20 backdrop-blur-sm rounded-full h-14 w-14 flex justify-center items-center border border-mono-border/20 hover:text-white hover:scale-110 transition-all drop-shadow-md">
+                           <Phone size={24} />
+                        </a>
+                     </div>
                   </motion.div>
                )}
             </AnimatePresence>
@@ -188,8 +236,9 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                            </div>
                         </div>
 
-
-
+                        <div className="mt-6 mb-2 sm:mb-4 flex justify-center">
+                           <p className="text-[10px] sm:text-[11px] text-mono-text-disabled font-medium tracking-wide">Developed by <a href="https://shihabsaleem.site" className="text-mono-text">Shihab Saleem</a></p>
+                        </div>
                      </div>
                   </motion.div>
                ) : (
@@ -341,7 +390,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                                          exit={{ height: 0, opacity: 0 }}
                                                          className="overflow-hidden"
                                                       >
-                                                         <div className="pt-4 mt-4 border-t border-gray-100 flex flex-col gap-2 pl-16 sm:pl-[4.25rem]">
+                                                         <div className="pt-4 mt-4 border-t border-gray-100 flex flex-col gap-2 pl-16 sm:pl-17">
                                                             {dayDeliveries.map((delivery, dIdx) => (
                                                                <div key={dIdx} className={`flex flex-col gap-1.5 ${dIdx > 0 ? "pt-2.5 border-t border-gray-50" : ""}`}>
                                                                   <p className="font-bold text-sm text-black leading-tight">
@@ -510,6 +559,9 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                               </motion.div>
                            )}
                         </AnimatePresence>
+                        <div className="mt-8 mb-4 flex justify-center">
+                           <p className="text-[10px] sm:text-[11px] text-mono-text-disabled font-medium tracking-wide">Developed by <a href="https://shihabsaleem.site" className="text-mono-text">Shihab Saleem</a></p>
+                        </div>
                      </div>
                   </motion.div>
                )}

@@ -320,7 +320,7 @@ export default function CustomerProfilePage() {
                                                       exit={{ height: 0, opacity: 0 }}
                                                       className="overflow-hidden"
                                                    >
-                                                      <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-mono-divider flex flex-col gap-2 pl-[3.25rem] sm:pl-[4rem]">
+                                                      <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-mono-divider flex flex-col gap-2 pl-13 sm:pl-16">
                                                          {dayDeliveries.map((delivery, dIdx) => (
                                                             <div key={dIdx} className={`flex flex-col gap-1.5 ${dIdx > 0 ? "pt-2 border-t border-mono-divider" : ""}`}>
                                                                <p className="font-bold text-[13px] sm:text-[15px] text-mono-text leading-tight truncate max-w-[150px] sm:max-w-none">

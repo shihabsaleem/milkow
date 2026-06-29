@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import config from "@/config.json";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
@@ -15,6 +15,14 @@ import { recordPayment, settleAllDues } from "@/lib/financials";
 import { useBillingLogic } from "@/hooks/useBillingLogic";
 
 export default function BillingPage() {
+   return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+         <BillingContent />
+      </Suspense>
+   );
+}
+
+function BillingContent() {
    const router = useRouter();
    const { user, loading } = useAuth();
 

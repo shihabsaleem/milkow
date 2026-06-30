@@ -109,8 +109,7 @@ export function usePublicBillLogic(initialPhone?: string) {
     if (!billData || !billData.settings?.payment) return "";
     const payment = billData.settings.payment;
     const balance = billData.financials.current_balance;
-    // return `upi://pay?pa=${payment.upi_id}&pn=${encodeURIComponent(payment.payee_name)}`/*&am=${balance.toFixed(2)}&cu=${payment.currency_code}&aid=${config.aid}*/;
-    return `upi://pay?pa=Q314473056@ybl&pn=${encodeURIComponent(payment.payee_name)}&cu=INR&am=${balance.toFixed(2)}`;
+    return `upi://pay?pa=${payment.upi_id}&am=${balance.toFixed(2)}&cu=INR&tn=${encodeURIComponent(payment.payee_name)}`;
     
   };
 

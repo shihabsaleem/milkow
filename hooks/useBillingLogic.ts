@@ -295,11 +295,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       // Generate QR code directly onto an offscreen canvas — no DOM dependency,
       // no tainted-canvas issues from embedded SVG logos.
       if (paymentSettings) {
-         // const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}`
-         //                         /*  &am=${selectedInvoice.amount}
-         //                           &cu=${paymentSettings.currency_code}
-         //                           &aid=${config.aid}` */;
-         const upiValue = `upi://pay?pa=Q314473056@ybl&pn=${encodeURIComponent(paymentSettings.payee_name)}&cu=INR&am=${invoice.amount}`;
+      const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&am=${invoice.amount}&cu=INR&tn=${encodeURIComponent(paymentSettings.payee_name)}`;
          const qrOffscreen = document.createElement("canvas");
          await QRCode.toCanvas(qrOffscreen, upiValue, {
             width: qrSize,
@@ -379,11 +375,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
    const handleWhatsAppShare = async (invoice: (T.Bill & { customer: T.Customer })) => {
       if (!paymentSettings) return;
       const amount = Number(invoice.amount).toFixed(2);
-      // const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}`
-      //                            /*  &am=${selectedInvoice.amount}
-      //                              &cu=${paymentSettings.currency_code}
-      //                              &aid=${config.aid}` */;
-      const upiLink = `upi://pay?pa=Q314473056@ybl&pn=${encodeURIComponent(paymentSettings.payee_name)}&cu=INR&am=${amount}`;
+    const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&am=${amount}&cu=INR&tn=${encodeURIComponent(paymentSettings.payee_name)}`;
       const message = `Hi ${invoice.customer?.name}, your total outstanding bill is ₹${amount}. Please scan the UPI QR or pay via: ${upiLink}`;
 
       // Normalise phone: strip non-digits, then only prepend 91 if the number is

@@ -157,7 +157,7 @@ BEGIN
 
   -- 4. Get Data
   SELECT jsonb_agg(row_to_json(b)) INTO bills_data FROM bills b WHERE customer_id = target_customer.id;
-  SELECT jsonb_agg(row_to_json(d)) INTO deliveries_data FROM deliveries d WHERE customer_id = target_customer.id AND delivery_date >= date_trunc('month', CURRENT_DATE);
+  SELECT jsonb_agg(row_to_json(d)) INTO deliveries_data FROM deliveries d WHERE customer_id = target_customer.id;
   SELECT jsonb_agg(row_to_json(u)) INTO unbilled_data FROM deliveries u WHERE customer_id = target_customer.id AND delivered = true AND billed = false;
   SELECT jsonb_agg(row_to_json(p)) INTO payments_data FROM payments p WHERE customer_id = target_customer.id;
   SELECT jsonb_agg(row_to_json(pr)) INTO products_data FROM products pr WHERE franchise_id = target_customer.franchise_id;

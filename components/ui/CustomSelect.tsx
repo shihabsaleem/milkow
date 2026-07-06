@@ -81,7 +81,7 @@ export default function CustomSelect({
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center overflow-hidden transition-all focus:ring-2 focus:ring-primary/20 bg-white border border-mono-border rounded-card shadow-sm ${
-          iconOnly ? "justify-center w-full px-0 text-mono-text-muted hover:bg-mono-surface" : "justify-between px-4 py-3 text-sm " + (fullWidth ? "w-full" : "")
+          iconOnly ? "justify-center w-full px-0 py-3 text-mono-text-muted hover:bg-mono-surface" : "justify-between px-4 py-3 text-sm " + (fullWidth ? "w-full" : "")
         } ${isOpen ? "ring-2 ring-primary/10" : ""}`}
       >
         {iconOnly ? (

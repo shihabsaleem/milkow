@@ -294,8 +294,16 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
 
       // Generate QR code directly onto an offscreen canvas — no DOM dependency,
       // no tainted-canvas issues from embedded SVG logos.
+
+      //f2
       if (paymentSettings) {
-      const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&am=${invoice.amount}&cu=INR&tn=${encodeURIComponent(paymentSettings.payee_name)}`;
+         // 1. Fixed: Extracted float values and locked to 2 decimals
+         const amount = Number(invoice.amount).toFixed(2);
+         const payeeName = encodeURIComponent(paymentSettings.payee_name);
+
+         // 2. Constructed valid compliant P2P URI structure
+         const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${payeeName}&am=${amount}&cu=INR&tn=Dairy%20Bill`;
+
          const qrOffscreen = document.createElement("canvas");
          await QRCode.toCanvas(qrOffscreen, upiValue, {
             width: qrSize,
@@ -371,16 +379,19 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          setIsShareLoading(false);
       }
    };
-
+   //f1
    const handleWhatsAppShare = async (invoice: (T.Bill & { customer: T.Customer })) => {
       if (!paymentSettings) return;
+
+      // 1. Strict formatting alignment
       const amount = Number(invoice.amount).toFixed(2);
-    const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&am=${amount}&cu=INR&tn=${encodeURIComponent(paymentSettings.payee_name)}`;
+      const payeeName = encodeURIComponent(paymentSettings.payee_name);
+
+      // 2. Added &pn and sanitized transaction note string
+      const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${payeeName}&am=${amount}&cu=INR&tn=Dairy%20Bill`;
       const message = `Hi ${invoice.customer?.name}, your total outstanding bill is ₹${amount}. Please scan the UPI QR or pay via: ${upiLink}`;
 
-      // Normalise phone: strip non-digits, then only prepend 91 if the number is
-      // exactly 10 digits (Indian local). If it's already 12+ digits it has a
-      // country code embedded — use it as-is.
+      // 3. Normalize phone number properties
       const digitsOnly = (invoice.customer?.phone || "").replace(/\D/g, "");
       const e164 = digitsOnly.length > 10 ? digitsOnly : `91${digitsOnly}`;
       const url = `https://wa.me/${e164}?text=${encodeURIComponent(message)}`;

@@ -104,14 +104,16 @@ export function usePublicBillLogic(initialPhone?: string) {
       console.error(e);
     }
   };
-
-  const getUpiLink = () => {
-    if (!billData || !billData.settings?.payment) return "";
-    const payment = billData.settings.payment;
-    const balance = billData.financials.current_balance;
-    return `upi://pay?pa=${payment.upi_id}&am=${balance.toFixed(2)}&cu=INR&tn=${encodeURIComponent(payment.payee_name)}`;
-    
-  };
+//f3
+const getUpiLink = () => {
+   if (!billData || !billData.settings?.payment) return "";
+   
+   const payment = billData.settings.payment;
+   const balance = Number(billData.financials.current_balance).toFixed(2);
+   const payeeName = encodeURIComponent(payment.payee_name);
+   
+   return `upi://pay?pa=${payment.upi_id}&pn=${payeeName}&am=${balance}&cu=INR&tn=Dairy%20Bill`;
+};
 
   // Helper functions for Ledger View
   const changeMonth = (delta: number) => {

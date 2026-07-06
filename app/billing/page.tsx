@@ -240,9 +240,9 @@ function BillingContent() {
                      <div className="mb-4 mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-mono-text-disabled">Payment Request</p><h2 className="text-3xl font-semibold text-mono-text">₹{Number(selectedInvoice.amount).toFixed(2)}</h2></div>
                      <div ref={qrRef} className="bg-gray-200 p-6 rounded-4xl shadow-md my-4 relative overflow-hidden">
                         <div className="bg-white p-4 rounded-card shadow-inner relative z-10">
+                          {/* //f4 */}
                            <QRCodeCanvas
-                            
-                              value={`upi://pay?pa=${paymentSettings.upi_id}&am=${selectedInvoice.amount}&cu=INR&tn=${encodeURIComponent(paymentSettings.payee_name)}`}
+                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${Number(selectedInvoice.amount).toFixed(2)}&cu=INR&tn=Dairy%20Bill`}
                               size={200}
                               includeMargin={false}
                               level="H"

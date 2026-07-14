@@ -200,7 +200,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       });
    };
 
-   const getPaymentCardFile = async (invoice: T.Bill & { customer: T.Customer }) => {
+   const getPaymentCardFile = async (invoice: T.Bill & { customer: T.Customer }, paytmOrderId?: string | null) => {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return null;
@@ -313,7 +313,10 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          const payeeName = encodeURIComponent(paymentSettings.payee_name);
 
          // 2. Constructed valid compliant P2P URI structure
-         const upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${payeeName}&am=${amount}&cu=INR&tn=Dairy%20Bill`;
+         let upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${payeeName}&am=${amount}&cu=INR&tn=Dairy%20Bill`;
+         if (paytmOrderId) {
+            upiValue += `&tr=${paytmOrderId}`;
+         }
 
          const qrOffscreen = document.createElement("canvas");
          await QRCode.toCanvas(qrOffscreen, upiValue, {
@@ -347,11 +350,11 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       return new File([blob], `Milkow_Bill_${invoice.customer?.name}.png`, { type: "image/png" });
    };
 
-   const handleShareCard = async (selectedInvoice: (T.Bill & { customer: T.Customer }) | null) => {
+   const handleShareCard = async (selectedInvoice: (T.Bill & { customer: T.Customer }) | null, paytmOrderId?: string | null) => {
       if (!selectedInvoice || isShareLoading) return;
       setIsShareLoading(true);
       try {
-         const file = await getPaymentCardFile(selectedInvoice);
+         const file = await getPaymentCardFile(selectedInvoice, paytmOrderId);
          if (!file) throw new Error("Failed to generate payment card.");
 
          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -391,7 +394,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       }
    };
    //f1
-   const handleWhatsAppShare = async (invoice: (T.Bill & { customer: T.Customer })) => {
+   const handleWhatsAppShare = async (invoice: (T.Bill & { customer: T.Customer }), paytmOrderId?: string | null) => {
       if (!paymentSettings) return;
 
       // 1. Strict formatting alignment
@@ -399,7 +402,11 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       const payeeName = encodeURIComponent(paymentSettings.payee_name);
 
       // 2. Added &pn and sanitized transaction note string
-      const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${payeeName}&am=${amount}&cu=INR&tn=Dairy%20Bill`;
+      let upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=${payeeName}&am=${amount}&cu=INR&tn=Dairy%20Bill`;
+      if (paytmOrderId) {
+         upiLink += `&tr=${paytmOrderId}`;
+      }
+      
       const message = `Hi ${invoice.customer?.name}, your total outstanding bill is ₹${amount}. Please scan the UPI QR or pay via: ${upiLink}`;
 
       // 3. Normalize phone number properties

@@ -300,8 +300,8 @@ function BillingContent() {
                      </div>
                      <div className="w-full flex flex-col gap-3 mt-4">
                         <div className="flex gap-2">
-                           <button onClick={() => handleWhatsAppShare(selectedInvoice)} className="flex-1 bg-success-soft text-success/80 py-3.5 rounded-card font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><MessageCircle size={18} /> WhatsApp</button>
-                           <button onClick={() => handleShareCard(selectedInvoice)} disabled={isShareLoading} className="flex-1 bg-mono-text text-white py-3.5 rounded-card font-bold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60 disabled:pointer-events-none">{isShareLoading ? <><span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Generating...</> : <><Share2 size={18} /> Share Card</>}</button>
+                           <button onClick={() => handleWhatsAppShare(selectedInvoice, paytmOrderId)} className="flex-1 bg-success-soft text-success/80 py-3.5 rounded-card font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><MessageCircle size={18} /> WhatsApp</button>
+                           <button onClick={() => handleShareCard(selectedInvoice, paytmOrderId)} disabled={isShareLoading} className="flex-1 bg-mono-text text-white py-3.5 rounded-card font-bold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60 disabled:pointer-events-none">{isShareLoading ? <><span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Generating...</> : <><Share2 size={18} /> Share Card</>}</button>
                         </div>
                         <button onClick={() => handleMarkAsPaid(selectedInvoice.id, setSelectedInvoice)} className="w-full bg-mono-surface text-mono-text-muted py-3.5 rounded-card font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><Wallet2 size={18} /> Manual Confirmation</button>
                      </div>

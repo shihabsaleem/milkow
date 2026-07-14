@@ -36,9 +36,25 @@ export async function getPublicBill(phone: string): Promise<{ success?: boolean;
       return { error: "No customer found with this phone number. Please verify the digits or contact the administrator." };
     }
 
+    const typedData = data as FullLedgerResponse & { paytmSettings?: any };
+
+    // Fetch Paytm settings to see if we should generate dynamic QR
+    if (typedData.customer?.franchise_id) {
+      const { data: paytmData } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'paytm')
+        .eq('franchise_id', typedData.customer.franchise_id)
+        .maybeSingle();
+
+      if (paytmData) {
+        typedData.paytmSettings = paytmData.value;
+      }
+    }
+
     return {
       success: true,
-      data: data as FullLedgerResponse,
+      data: typedData,
     };
   } catch (error) {
     console.error("Public bill retrieval failed:", error);

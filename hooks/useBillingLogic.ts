@@ -14,6 +14,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
    const [products, setProducts] = useState<T.Product[]>([]);
    const [routesList, setRoutesList] = useState<T.Area[]>([]);
    const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
+   const [paytmSettings, setPaytmSettings] = useState<any>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [isShareLoading, setIsShareLoading] = useState(false);
    const [showToast, setShowToast] = useState(false);
@@ -43,6 +44,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          { data: productList },
          { data: unbilledData },
          { data: settingsData },
+         { data: paytmData },
          { data: customersData }
       ] = await Promise.all([
          supabase.from('areas').select('*').eq('franchise_id', activeFranchiseId).order('name', { ascending: true }),
@@ -50,6 +52,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          supabase.from('products').select('*').eq('franchise_id', activeFranchiseId),
          supabase.from('deliveries').select('*, customers(*)').eq('franchise_id', activeFranchiseId).eq('delivered', true).eq('billed', false),
          supabase.from('system_settings').select('value').eq('franchise_id', activeFranchiseId).eq('key', 'general').maybeSingle(),
+         supabase.from('system_settings').select('value').eq('franchise_id', activeFranchiseId).eq('key', 'paytm').maybeSingle(),
          supabase.from('customers').select('id, phone').eq('franchise_id', activeFranchiseId)
       ]);
 
@@ -94,12 +97,19 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          }
       }
 
+      let ptSettings: any = null;
+      if (paytmData) {
+         ptSettings = paytmData.value;
+         setPaytmSettings(ptSettings);
+      }
+
       const pageCacheKey = `milkow_billing_page_${activeFranchiseId}`;
       const pageCacheData = {
          routesList: routeSets || [],
          products: prods,
          bills: combinedBills,
-         paymentSettings: pSettings
+         paymentSettings: pSettings,
+         paytmSettings: ptSettings
       };
       localStorage.setItem(pageCacheKey, JSON.stringify(pageCacheData));
 
@@ -118,6 +128,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
             if (parsed.products) setProducts(parsed.products);
             if (parsed.bills) setBills(parsed.bills);
             if (parsed.paymentSettings) setPaymentSettings(parsed.paymentSettings);
+            if (parsed.paytmSettings) setPaytmSettings(parsed.paytmSettings);
             setIsLoading(false);
          } catch (e) { }
       }
@@ -402,6 +413,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       bills,
       routesList,
       paymentSettings,
+      paytmSettings,
       isLoading,
       isShareLoading,
       showToast,
@@ -411,6 +423,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
       fetchData,
       handleMarkAsPaid,
       handleShareCard,
-      handleWhatsAppShare
+      handleWhatsAppShare,
+      activeFranchiseId
    };
 }

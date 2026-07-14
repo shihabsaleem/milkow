@@ -43,7 +43,13 @@ export default function UserProfilePage() {
       handleLogout,
       fetchSettings,
       role,
-      franchiseName
+      franchiseName,
+      paytmEnabled,
+      setPaytmEnabled,
+      paytmMid,
+      setPaytmMid,
+      paytmMerchantKey,
+      setPaytmMerchantKey
    } = useProfileLogic();
 
 
@@ -159,6 +165,64 @@ export default function UserProfilePage() {
                         className="w-full bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-mono-text transition-all"
                      />
                   </div>
+               </div>
+
+               {/* Paytm Integration Section */}
+               <div className="bg-white rounded-card p-6 shadow-sm border border-mono-divider flex flex-col gap-5">
+                  <h3 className="font-semibold text-mono-text border-b border-mono-divider pb-3 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 bg-[#00baf2] rounded-full"></span>
+                     Paytm Dynamic QR (Automated Tracking)
+                  </h3>
+
+                  <div className="flex items-center justify-between">
+                     <div className="flex flex-col">
+                        <label className="text-sm font-bold text-mono-text">Enable Paytm API</label>
+                        <p className="text-[10px] text-mono-text-disabled">Automatically track incoming payments via Paytm Business</p>
+                     </div>
+                     <button
+                        onClick={() => setPaytmEnabled(!paytmEnabled)}
+                        className={`w-12 h-6 rounded-full p-1 transition-colors ${paytmEnabled ? 'bg-[#00baf2]' : 'bg-mono-border'}`}
+                     >
+                        <motion.div
+                           className="w-4 h-4 bg-white rounded-full shadow-sm"
+                           animate={{ x: paytmEnabled ? 24 : 0 }}
+                           transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        />
+                     </button>
+                  </div>
+
+                  <AnimatePresence>
+                     {paytmEnabled && (
+                        <motion.div
+                           initial={{ height: 0, opacity: 0 }}
+                           animate={{ height: "auto", opacity: 1 }}
+                           exit={{ height: 0, opacity: 0 }}
+                           className="flex flex-col gap-4 overflow-hidden pt-2 border-t border-mono-divider"
+                        >
+                           <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-bold text-mono-text-disabled uppercase tracking-widest pl-1">Merchant ID (MID)</label>
+                              <input
+                                 type="text"
+                                 value={paytmMid}
+                                 onChange={(e) => setPaytmMid(e.target.value)}
+                                 className="w-full bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-[#00baf2]/20 focus:border-[#00baf2] transition-all"
+                                 placeholder="Enter Paytm MID"
+                              />
+                           </div>
+
+                           <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-bold text-mono-text-disabled uppercase tracking-widest pl-1">Merchant Key</label>
+                              <input
+                                 type="password"
+                                 value={paytmMerchantKey}
+                                 onChange={(e) => setPaytmMerchantKey(e.target.value)}
+                                 className="w-full bg-mono-bg border border-mono-border rounded-card px-4 py-3 text-sm font-medium text-mono-text focus:outline-none focus:ring-2 focus:ring-[#00baf2]/20 focus:border-[#00baf2] transition-all"
+                                 placeholder="Enter Paytm Merchant Key"
+                              />
+                           </div>
+                        </motion.div>
+                     )}
+                  </AnimatePresence>
                </div>
 
                {/* Automation Settings Section */}

@@ -24,6 +24,10 @@ export function useProfileLogic() {
   const [morningCloseTime, setMorningCloseTime] = useState("23:59");
   const [eveningCloseTime, setEveningCloseTime] = useState("23:59");
 
+  const [paytmEnabled, setPaytmEnabled] = useState(false);
+  const [paytmMid, setPaytmMid] = useState("");
+  const [paytmMerchantKey, setPaytmMerchantKey] = useState("");
+
   const [areas, setAreas] = useState<T.Area[]>([]);
   const [franchiseName, setFranchiseName] = useState("");
   const [newRoute, setNewRoute] = useState("");
@@ -51,6 +55,14 @@ export function useProfileLogic() {
       setPin(val.system_user?.pin || "");
       setPayeeName(val.payment?.payee_name || "");
       setUpiId(val.payment?.upi_id || "");
+    }
+
+    const { data: paytmData } = await supabase.from('system_settings').select('*').eq('franchise_id', activeFranchiseId).eq('key', 'paytm').maybeSingle();
+    if (paytmData && paytmData.value) {
+      const paytmVal = paytmData.value as any;
+      setPaytmEnabled(paytmVal.enabled ?? false);
+      setPaytmMid(paytmVal.mid || "");
+      setPaytmMerchantKey(paytmVal.merchant_key || "");
     }
 
     const { data: autoData } = await supabase.from('system_settings').select('*').eq('franchise_id', activeFranchiseId).eq('key', 'automation').maybeSingle();
@@ -132,6 +144,17 @@ export function useProfileLogic() {
             eveningCloseTime
           }
         });
+
+        await supabase.from('system_settings').upsert({
+          key: 'paytm',
+          franchise_id: activeFranchiseId,
+          value: {
+            enabled: paytmEnabled,
+            mid: paytmMid,
+            merchant_key: paytmMerchantKey
+          }
+        });
+        
         fetchSettings(true);
       };
 
@@ -243,6 +266,12 @@ export function useProfileLogic() {
     setMorningCloseTime,
     eveningCloseTime,
     setEveningCloseTime,
+    paytmEnabled,
+    setPaytmEnabled,
+    paytmMid,
+    setPaytmMid,
+    paytmMerchantKey,
+    setPaytmMerchantKey,
     areas,
     newRoute,
     setNewRoute,

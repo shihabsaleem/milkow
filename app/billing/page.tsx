@@ -48,11 +48,46 @@ function BillingContent() {
       handleMarkAsPaid,
       handleShareCard,
       handleWhatsAppShare,
-      isShareLoading
+      isShareLoading,
+      paytmSettings,
+      activeFranchiseId
    } = useBillingLogic(qrRef);
 
    const [searchTerm, setSearchTerm] = useState("");
    const [selectedInvoice, setSelectedInvoice] = useState<(T.Bill & { customer: T.Customer }) | null>(null);
+   const [paytmOrderId, setPaytmOrderId] = useState<string | null>(null);
+
+   useEffect(() => {
+      if (selectedInvoice && paytmSettings?.enabled) {
+         fetch('/api/paytm/generate', {
+            method: 'POST',
+            body: JSON.stringify({
+               amount: selectedInvoice.amount,
+               billId: selectedInvoice.id,
+               franchiseId: activeFranchiseId,
+               customerId: selectedInvoice.customer_id
+            })
+         })
+         .then(res => res.json())
+         .then(data => {
+            if (data.success) {
+               setPaytmOrderId(data.orderId);
+            }
+         }).catch(err => console.error("Paytm init failed:", err));
+      } else {
+         setPaytmOrderId(null);
+      }
+   }, [selectedInvoice, paytmSettings, activeFranchiseId]);
+
+   useEffect(() => {
+      if (selectedInvoice) {
+         const stillExists = bills.find(b => b.id === selectedInvoice.id);
+         if (!stillExists) {
+            setSelectedInvoice(null);
+            // Optional: You could show a toast here "Payment Received Automatically"
+         }
+      }
+   }, [bills, selectedInvoice]);
    const [selectedRoute, setSelectedRoute] = useState<number | "">(() => {
       if (typeof window !== "undefined") {
          const saved = localStorage.getItem('milkow_selected_route');
@@ -242,7 +277,7 @@ function BillingContent() {
                         <div className="bg-white p-4 rounded-card shadow-inner relative z-10">
                           {/* //f4 */}
                            <QRCodeCanvas
-                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${Number(selectedInvoice.amount).toFixed(2)}&cu=INR&tn=Dairy%20Bill`}
+                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${Number(selectedInvoice.amount).toFixed(2)}&cu=INR&tn=Dairy%20Bill${paytmOrderId ? `&tr=${paytmOrderId}` : ''}`}
                               size={200}
                               includeMargin={false}
                               level="H"
@@ -260,6 +295,7 @@ function BillingContent() {
                            <p className="text-[10px] font-bold opacity-60 uppercase text-black">{paymentSettings.payee_name}</p>
                            <p className="text-sm text-black font-bold">{selectedInvoice.customer?.name}</p>
                            <p className="text-[11px] font-bold opacity-75 text-black mt-1">{paymentSettings.upi_id}</p>
+                           {paytmOrderId && <p className="text-[10px] font-bold opacity-75 text-emerald-600 mt-2 bg-emerald-50 px-2 py-1 rounded-full animate-pulse">Awaiting Auto-Confirmation</p>}
                         </div>
                      </div>
                      <div className="w-full flex flex-col gap-3 mt-4">

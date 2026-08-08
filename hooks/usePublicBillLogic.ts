@@ -136,15 +136,17 @@ export function usePublicBillLogic(initialPhone?: string) {
     if (!billData?.settings?.payment) return "";
     
     const payment = billData.settings.payment;
-    const balance = Number(billData.financials.current_balance).toFixed(2);
+    // Mirror the working QR image link format exactly (same as useBillingLogic.ts QR generation)
+    const amount = Number(billData.financials.current_balance).toFixed(2);
     const payeeName = encodeURIComponent(payment.payee_name);
     
-    let link = `upi://pay?pa=${payment.upi_id}&pn=${payeeName}&am=${balance}&cu=INR&tn=Dairy%20Bill`;
+    let link = `upi://pay?pa=${payment.upi_id}&pn=${payeeName}&am=${amount}&cu=INR&tn=Dairy%20Bill`;
     if (paytmOrderId) {
       link += `&tr=${paytmOrderId}`;
     }
     return link;
   };
+
 
   // Helper functions for Ledger View
   const changeMonth = (delta: number) => {

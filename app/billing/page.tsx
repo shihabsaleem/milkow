@@ -268,27 +268,35 @@ function BillingContent() {
          </main>
 
          <AnimatePresence>
-            {selectedInvoice && paymentSettings && (
+            {selectedInvoice && paymentSettings && (() => {
+               // Mirror the working QR image link format exactly
+               const _amount = Number(selectedInvoice.amount).toFixed(2);
+               const _payeeName = encodeURIComponent(paymentSettings.payee_name);
+               let _upiValue = `upi://pay?pa=${paymentSettings.upi_id}&pn=${_payeeName}&am=${_amount}&cu=INR&tn=Dairy%20Bill`;
+               if (paytmOrderId) _upiValue += `&tr=${paytmOrderId}`;
+               return (
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm flex justify-center items-end">
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full bg-white rounded-t-3xl pt-6 pb-12 px-6 flex flex-col items-center text-center relative max-w-sm">
                      <button onClick={() => setSelectedInvoice(null)} className="absolute top-4 right-4 p-2 bg-mono-surface rounded-full text-mono-text-muted"><X size={20} /></button>
-                     <div className="mb-4 mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-mono-text-disabled">Payment Request</p><h2 className="text-3xl font-semibold text-mono-text">₹{Number(selectedInvoice.amount).toFixed(2)}</h2></div>
+                     <div className="mb-4 mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-mono-text-disabled">Payment Request</p><h2 className="text-3xl font-semibold text-mono-text">₹{_amount}</h2></div>
                      <div ref={qrRef} className="bg-gray-200 p-6 rounded-4xl shadow-md my-4 relative overflow-hidden">
                         <div className="bg-white p-4 rounded-card shadow-inner relative z-10">
                           {/* //f4 */}
                            <QRCodeCanvas
-                              value={`upi://pay?pa=${paymentSettings.upi_id}&pn=${encodeURIComponent(paymentSettings.payee_name)}&am=${Number(selectedInvoice.amount).toFixed(2)}&cu=INR&tn=Dairy%20Bill${paytmOrderId ? `&tr=${paytmOrderId}` : ''}`}
+                              value={_upiValue}
                               size={200}
                               includeMargin={false}
                               level="H"
-                              imageSettings={{
-                                 src: "/assets/icon.svg",
-                                 x: undefined,
-                                 y: undefined,
-                                 height: 40,
-                                 width: 40,
-                                 excavate: true,
-                              }}
+                              // imageSettings removed — embedded icon excavates QR modules
+                              // and can cause UPI app scan failures
+                              // imageSettings={{
+                              //    src: "/assets/icon.svg",
+                              //    x: undefined,
+                              //    y: undefined,
+                              //    height: 40,
+                              //    width: 40,
+                              //    excavate: true,
+                              // }}
                            />
                         </div>
                         <div className="mt-4 text-white">
@@ -307,7 +315,8 @@ function BillingContent() {
                      </div>
                   </motion.div>
                </motion.div>
-            )}
+               );
+            })()}
          </AnimatePresence>
 
          <AnimatePresence>

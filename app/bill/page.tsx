@@ -509,14 +509,16 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                                    size={180}
                                                    includeMargin={false}
                                                    level="H"
-                                                   imageSettings={{
-                                                      src: "/assets/icon.svg",
-                                                      x: undefined,
-                                                      y: undefined,
-                                                      height: 36,
-                                                      width: 36,
-                                                      excavate: true,
-                                                   }}
+                                                   // imageSettings removed — embedded icon excavates QR modules
+                                                   // and can cause UPI app scan failures
+                                                   // imageSettings={{
+                                                   //    src: "/assets/icon.svg",
+                                                   //    x: undefined,
+                                                   //    y: undefined,
+                                                   //    height: 36,
+                                                   //    width: 36,
+                                                   //    excavate: true,
+                                                   // }}
                                                 />
                                              </div>
 

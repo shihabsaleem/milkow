@@ -509,7 +509,7 @@ export default function PublicBillPage({ initialPhone }: { initialPhone?: string
                                                    size={180}
                                                    includeMargin={false}
                                                    level="H"
-                                                   // imageSettings removed — embedded icon excavates QR modules
+                                                   // image Settings removed — embedded icon excavates QR modules
                                                    // and can cause UPI app scan failures
                                                    // imageSettings={{
                                                    //    src: "/assets/icon.svg",

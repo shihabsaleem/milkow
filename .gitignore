@@ -53,3 +53,5 @@ LICENSE
 README.md.bak
 npm-debug.log
 doc.md
+
+.vercel

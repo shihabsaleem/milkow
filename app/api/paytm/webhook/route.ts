@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-// @ts-ignore
+// @ts-expect-error - `paytmchecksum` ships no type declarations; checksum is verified at runtime.
 import PaytmChecksum from 'paytmchecksum';
 
 export async function POST(req: Request) {

@@ -1,0 +1,64 @@
+name: CI
+
+# Gates every push and PR on the three things that must never break:
+#   typecheck -> lint -> build
+#
+# Rationale: this repo has no test suite and no monitoring, so this workflow is
+# the only automated signal that a change is safe. Keep it fast and keep it green.
+#
+# Lint currently runs at zero errors with ~196 tracked warnings (see the rule
+# relaxations in eslint.config.mjs). Warnings are visible in the log but do not
+# fail the build, so new *errors* are caught without the gate being red on its
+# first run.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref — a busy branch shouldn't burn minutes
+# re-running a build nobody is waiting for.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, lint, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Placeholder-but-well-formed Supabase values. Without these, lib/supabase.ts
+      # silently swaps in the no-op mock client and the build "passes" without ever
+      # exercising the real client path — the exact failure mode this gate exists
+      # to catch. Dummy values make a misconfiguration loud instead of silent.
+      # The service-role key is read lazily inside the franchise API routes only;
+      # it is never used at build time and is not a real credential here.
+      - name: Typecheck
+        run: npm run typecheck
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+          NEXT_PUBLIC_APP_URL: https://ci.invalid

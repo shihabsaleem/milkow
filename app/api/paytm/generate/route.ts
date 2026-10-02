@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-// @ts-ignore
+// @ts-expect-error - `paytmchecksum` ships no type declarations; verified at runtime in verifySignature below.
 import PaytmChecksum from 'paytmchecksum';
 import { randomUUID } from 'crypto';
 

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { checkAndRunAutomations } from "@/lib/automation";
+import { clearMilkowStorage } from "@/lib/storage";
 import { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -187,10 +188,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setRole(null);
         setFranchiseId(null);
         handleSetImpersonatedFranchiseId(null);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem("milkow_role");
-          localStorage.removeItem("milkow_franchise_id");
-        }
+        // Session ended without an explicit logout (expiry, refresh failure,
+        // revoked token). Purge caches too — otherwise the next user to sign in
+        // on this device paints the previous tenant's customers and balances.
+        clearMilkowStorage();
       }
       setLoading(false);
     });
@@ -207,12 +208,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setRole(null);
       setFranchiseId(null);
       handleSetImpersonatedFranchiseId(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem("milkow_role");
-        localStorage.removeItem("milkow_franchise_id");
-      }
     } catch (error) {
       console.error("Error signing out:", error);
+    } finally {
+      // Always purge, even if signOut failed — a lingering session should never
+      // leave tenant data cached on a shared device.
+      clearMilkowStorage();
     }
   };
 

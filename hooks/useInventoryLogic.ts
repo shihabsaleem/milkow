@@ -105,7 +105,7 @@ export function useInventoryLogic() {
       setPipeline(newPipeline);
     }
     
-    let newClosedShifts: { [date: string]: string[] } = {};
+    const newClosedShifts: { [date: string]: string[] } = {};
     let newDailyPrices = {};
     
     if (settings && settings.value) {

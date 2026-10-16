@@ -4,8 +4,10 @@
 created pre-marked `delivered = true`, so the driver doesn't tap every daily customer each shift.
 Rows still appear on the run sheet and can be unchecked if the milk wasn't actually delivered.
 
-**Status:** not applied — re-verified against the live project (`deliveries.auto_marked` still returns
-`42703 column does not exist`). This file is for you to run.
+**Status:** ✅ **applied** — verified against the live project: `customers.auto_entry` and
+`deliveries.auto_marked` both exist as `boolean NOT NULL DEFAULT false`. **No customer is enabled yet
+(0 of 253)**, so the customer **Auto** chips and the delivery-page **Auto** badge are still hidden.
+That is expected — they only appear once you switch Auto Entry on for a customer. See §3.
 
 > ⚠️ **Do not paste this whole document into the SQL Editor.** It is Markdown, and its `#` headings
 > are not valid SQL — doing so gives `42601: syntax error at or near "#"`. Copy only the text inside
@@ -36,6 +38,8 @@ apply this migration *before* deploying it.
 ---
 
 ## 1. Apply and verify — one paste
+
+> **Already applied.** Kept for reference; re-running is safe (`IF NOT EXISTS`).
 
 Copy everything inside the single block below into the Supabase dashboard → **SQL Editor** → **Run**.
 It adds both columns and prints the verification table at the bottom.

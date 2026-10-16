@@ -240,13 +240,24 @@ export function useDeliveryLogic() {
    };
 
    const toggleDelivery = async (id: string) => {
-      if (isShiftClosed) {
+      const stop = deliveries.find(d => d.id === id);
+      if (!stop) return;
+
+      const nowDelivered = !stop.delivered;
+
+      if (isShiftClosed && !nowDelivered) {
+         // After close, only the "mark delivered" direction is allowed — that's a correction of
+         // a wrong un-check, and closeShift is re-entrant so it gets billed on the next run.
+         //
+         // Un-marking stays blocked deliberately. The row may already be billed, and there is no
+         // reversal mechanism, so clearing `delivered` would leave the customer charged for milk
+         // they never got. Guarding the safe direction only avoids picking which error to make.
          const skip = localStorage.getItem('skip_shift_closed_modal') === 'true';
          if (!skip) {
             setModalConfig({
                isOpen: true,
                title: "Shift Closed",
-               message: `The ${shift} shift is closed for today.`,
+               message: `The ${shift} shift is closed for today. You can still mark a delivery as delivered, but un-marking is locked to avoid incorrect charges.`,
                type: 'info',
                showDontShowAgain: true,
                onConfirm: (dontShow) => {
@@ -257,10 +268,6 @@ export function useDeliveryLogic() {
          }
          return;
       }
-      const stop = deliveries.find(d => d.id === id);
-      if (!stop) return;
-
-      const nowDelivered = !stop.delivered;
 
       if (nowDelivered) {
          const zeroStockItems: string[] = [];

@@ -435,9 +435,12 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only', franchi
       .maybeSingle();
 
     const settings = (settingsData as any)?.value || {};
-    if (settings[settingsKey] === today) {
-      return { ran: false, count: 0, message: `${shift} already closed for ${today}` };
-    }
+
+    // NOTE: this function is intentionally re-entrant — there is no "already closed" early
+    // return. The query below only selects `billed = false`, so re-running bills nothing extra,
+    // which makes repeat calls safe. The guard this replaced caused a real loss of revenue: a
+    // delivery re-marked as delivered after the shift closed could never be billed, because the
+    // day's close was already stamped.
 
     // Find all delivered+unbilled deliveries for this shift today
     const { data: unbilled, error } = await supabase
@@ -452,7 +455,8 @@ export async function closeShift(shift: 'Morning Only' | 'Evening Only', franchi
     if (error) throw error;
 
     if (!unbilled || unbilled.length === 0) {
-      // Still stamp the timestamp so we don't re-check repeatedly
+      // Nothing to bill right now. The timestamp is still stamped so the UI knows the shift
+      // is closed, but it no longer gates this function — see the note above.
       await supabase.from('system_settings').upsert({
         key: 'automation',
         franchise_id: franchiseId,

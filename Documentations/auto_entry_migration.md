@@ -4,7 +4,12 @@
 created pre-marked `delivered = true`, so the driver doesn't tap every daily customer each shift.
 Rows still appear on the run sheet and can be unchecked if the milk wasn't actually delivered.
 
-**Status:** not applied. This file is for you to run.
+**Status:** not applied — re-verified against the live project (`deliveries.auto_marked` still returns
+`42703 column does not exist`). This file is for you to run.
+
+> ⚠️ **Do not paste this whole document into the SQL Editor.** It is Markdown, and its `#` headings
+> are not valid SQL — doing so gives `42601: syntax error at or near "#"`. Copy only the text inside
+> the fenced `sql` blocks.
 
 ---
 
@@ -15,46 +20,58 @@ Rows still appear on the run sheet and can be unchecked if the milk wasn't actua
 - [ ] Both statements are `IF NOT EXISTS` — safe to re-run
 
 This migration is **purely additive**: two new columns with defaults. It changes no existing
-behaviour and no existing row's data. Deploying the app code before applying this is safe —
-`auto_entry` reads as `NULL`, every auto-entry code path is gated on it being `true`, so
-nothing happens until a customer opts in.
+behaviour and no existing row's data.
+
+The app is safe to deploy *before* this runs — every auto-entry code path is gated on the columns
+existing. That guarantee only became true in commit `29f2da1`. The original Auto Entry commit
+(`5ef8d8c`) put `auto_marked` in the route-insert payload unconditionally, so while the column was
+missing PostgREST rejected the whole statement (`PGRST204: Could not find the 'auto_marked' column`)
+and **no delivery rows were created at all**. If you are ever running code older than `29f2da1`,
+apply this migration *before* deploying it.
 
 ---
 
-## 1. Apply
+## 1. Apply and verify — one paste
 
-Paste into the Supabase dashboard → **SQL Editor** → **Run**.
+Copy everything inside the single block below into the Supabase dashboard → **SQL Editor** → **Run**.
+It adds both columns and prints the verification table at the bottom.
 
 ```sql
--- ─────────────────────────────────────────────────────────────
--- customers.auto_entry
--- When true, this customer's daily delivery rows are created
--- pre-marked as delivered and their stock deducted at creation.
--- ─────────────────────────────────────────────────────────────
 ALTER TABLE customers
   ADD COLUMN IF NOT EXISTS auto_entry BOOLEAN NOT NULL DEFAULT false;
 
 COMMENT ON COLUMN customers.auto_entry IS
   'If true, deliveries for this customer are auto-marked delivered on creation and appear pre-checked on the driver run sheet. Driver can still uncheck.';
 
--- ─────────────────────────────────────────────────────────────
--- deliveries.auto_marked
--- Distinguishes a system auto-mark from a delivery the driver
--- personally ticked. Drives the "auto" badge in the delivery UI,
--- so a default is never mistaken for a human confirmation.
--- ─────────────────────────────────────────────────────────────
 ALTER TABLE deliveries
   ADD COLUMN IF NOT EXISTS auto_marked BOOLEAN NOT NULL DEFAULT false;
 
 COMMENT ON COLUMN deliveries.auto_marked IS
   'True if this row was auto-marked delivered at creation. Cleared when the driver explicitly toggles the delivery.';
+
+SELECT column_name, data_type, column_default, is_nullable
+FROM information_schema.columns
+WHERE table_name IN ('customers', 'deliveries')
+  AND column_name IN ('auto_entry', 'auto_marked')
+ORDER BY table_name, column_name;
 ```
+
+Expected result — two rows:
+
+| table_name | column_name | data_type | column_default | is_nullable |
+|---|---|---|---|---|
+| customers | auto_entry | boolean | false | NO |
+| deliveries | auto_marked | boolean | false | NO |
+
+Then **hard-reload** the app (`Ctrl+Shift+R`). The **Auto Entry** toggle appears in the customer
+forms, directly below Delivery Frequency.
 
 ---
 
-## 2. Verify
+## 2. Verify later (optional)
 
-Both should return `auto_entry = 0` (nobody opted in yet).
+This `SELECT` is already included at the end of §1. Run it on its own any time you want to re-check
+that the columns are present.
 
 ```sql
 SELECT column_name, data_type, column_default, is_nullable

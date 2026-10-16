@@ -205,14 +205,16 @@ export default function CustomerProfilePage() {
                               <div className="flex flex-col gap-1">
                                  <div className="flex items-center gap-1.5 text-mono-text-muted text-[13px] sm:text-sm font-medium"><MapPin size={14} className="text-mono-text-disabled" /> {customer.area?.name || 'No Area'}</div>
                                  <div className="flex items-center gap-1.5 text-mono-text-muted text-[13px] sm:text-sm font-medium"><Phone size={14} className="text-mono-text-disabled" /> {customer.phone}</div>
-                                 {customer.auto_entry !== undefined && (
-                                    <span title={customer.auto_entry ? "Deliveries for this customer are pre-ticked each shift." : "The driver ticks this customer's deliveries manually."} className={`mt-0.5 self-start text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] border ${customer.auto_entry ? "bg-mono-text text-white border-mono-text" : "bg-mono-surface text-mono-text-disabled border-mono-border/60"}`}>
-                                       {customer.auto_entry ? "Auto" : "Manual"}
-                                    </span>
-                                 )}
                               </div>
                            </div>
-                           <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-card text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-mono-surface text-mono-text border-mono-border/60 ' : 'bg-mono-surface text-rose-600 border-rose-200'}`}>{customer.status}</button>
+                           <div className="flex flex-col items-end gap-2 shrink-0">
+                              <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-card text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-mono-surface text-mono-text border-mono-border/60 ' : 'bg-mono-surface text-rose-600 border-rose-200'}`}>{customer.status}</button>
+                              {customer.auto_entry !== undefined && (
+                                 <span title={customer.auto_entry ? "Deliveries for this customer are pre-ticked each shift." : "The driver ticks this customer's deliveries manually."} className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] border ${customer.auto_entry ? "bg-mono-text text-white border-mono-text" : "bg-mono-surface text-mono-text-disabled border-mono-border/60"}`}>
+                                    {customer.auto_entry ? "Auto" : "Manual"}
+                                 </span>
+                              )}
+                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2 sm:gap-3">
                            <div className="bg-mono-bg rounded-card p-3 sm:p-4 border border-mono-divider"><div className="flex items-center gap-1.5 text-mono-text-disabled text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 sm:mb-2"><Clock size={12} /> Frequency</div><p className="text-[13px] sm:text-sm font-bold text-mono-text">{customer.frequency}</p></div>

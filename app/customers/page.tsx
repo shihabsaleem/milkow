@@ -147,12 +147,18 @@ export default function CustomersPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 min-w-0">
                     <h3 className="font-semibold text-mono-text group-hover:text-mono-text transition-colors truncate">{customer.name}</h3>
-                    {customer.auto_entry === true && (
+                    {customer.auto_entry !== undefined && (
                       <span
-                        title="Auto Entry is on: this customer's deliveries are pre-ticked each shift."
-                        className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] shrink-0 bg-mono-surface text-mono-text border border-mono-border/60"
+                        title={customer.auto_entry
+                          ? "Auto Entry is on: this customer's deliveries are pre-ticked each shift."
+                          : "Manual entry: the driver ticks this customer's deliveries."}
+                        className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] shrink-0 border ${
+                          customer.auto_entry
+                            ? "bg-mono-text text-white border-mono-text"
+                            : "bg-mono-surface text-mono-text-disabled border-mono-border/60"
+                        }`}
                       >
-                        Auto
+                        {customer.auto_entry ? "Auto" : "Manual"}
                       </span>
                     )}
                   </div>

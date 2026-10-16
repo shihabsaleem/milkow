@@ -330,6 +330,14 @@ export default function DeliveryPage() {
                                     <div className="flex flex-col">
                                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                           <h3 className={`font-semibold text-[15px] leading-tight ${delivery.delivered ? 'text-mono-text-muted line-through' : 'text-mono-text'}`}>{delivery.customer?.name}</h3>
+                                          {delivery.delivered && delivery.auto_marked && (
+                                             <span
+                                                title="Pre-ticked by Auto Entry. Untick if the milk was not actually delivered."
+                                                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md shrink-0 bg-mono-surface text-mono-text-disabled border border-mono-border/60"
+                                             >
+                                                Auto
+                                             </span>
+                                          )}
                                           {delivery.customer?.financials && delivery.customer.financials.current_balance !== 0 && (
                                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${delivery.customer.financials.current_balance < 0
                                                 ? 'bg-mono-text/5 text-mono-text border border-mono-border/10'

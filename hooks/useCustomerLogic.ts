@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import * as T from "@/types/database";
 // import { toPng } from "html-to-image"; // commented out — long screenshot setup
 import { recordPayment, settleAllDues/*, recordReturn*/ } from "@/lib/financials"; // recordReturn commented out — Return Item disabled
+import { isAutoEntrySupported } from "@/lib/automation";
 
 export function useCustomerLogic(
    customerIdParam: string,
@@ -27,11 +28,20 @@ export function useCustomerLogic(
    const [areas, setAreas] = useState<T.Area[]>([]);
    const [editForm, setEditForm] = useState({ 
       name: "", phone: "", area_id: "", frequency: "Morning Only", 
+      auto_entry: false,
       outstanding: "", outstanding_type: "credit", 
       default_product_id: "", default_qty: "1" 
    });
 
    const [isSubmitting, setIsSubmitting] = useState(false);
+
+   // Whether the Auto Entry migration has been applied. The toggle is hidden until it has,
+   // so nobody can flip a switch that would silently fail to save.
+   const [autoEntryAvailable, setAutoEntryAvailable] = useState(false);
+
+   useEffect(() => {
+      isAutoEntrySupported().then(setAutoEntryAvailable).catch(() => setAutoEntryAvailable(false));
+   }, []);
 
    const [modalConfig, setModalConfig] = useState<{
       isOpen: boolean;
@@ -94,6 +104,7 @@ export function useCustomerLogic(
             phone: custData.phone,
             area_id: custData.area_id?.toString() || "",
             frequency: custData.frequency,
+            auto_entry: custData.auto_entry === true,
             outstanding: Math.abs(outstandingVal).toString(),
             outstanding_type: outstandingVal < 0 ? "advance" : "credit",
             default_product_id: custData.default_product_id?.toString() || "",
@@ -187,6 +198,12 @@ export function useCustomerLogic(
          default_product_id: editForm.default_product_id || null,
          default_qty: parseInt(editForm.default_qty) || 1
       };
+      
+      // Only send auto_entry once the migration has been applied — writing a column that
+      // doesn't exist yet would fail the whole customer update.
+      if (await isAutoEntrySupported()) {
+         updatePayload.auto_entry = editForm.auto_entry === true;
+      }
       
       if (userChangedOutstanding) {
          updatePayload.past_outstanding = finalOutstanding;
@@ -473,6 +490,7 @@ export function useCustomerLogic(
       areas,
       editForm,
       setEditForm,
+      autoEntryAvailable,
       modalConfig,
       setModalConfig,
       fetchData,

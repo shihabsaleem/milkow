@@ -14,6 +14,30 @@ function todayStr(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/**
+ * Whether the Auto Entry columns exist yet.
+ *
+ * The migration (Documentations/auto_entry_migration.md) may not have been applied, and
+ * shipping code that inserts a non-existent column would fail the WHOLE route reset —
+ * meaning no delivery rows at all, for every customer. So probe once and degrade to the
+ * pre-Auto-Entry behaviour until the migration lands.
+ */
+let autoEntrySupported: boolean | null = null;
+
+export async function isAutoEntrySupported(): Promise<boolean> {
+  if (autoEntrySupported !== null) return autoEntrySupported;
+
+  const { error } = await supabase.from('deliveries').select('auto_marked').limit(1);
+  autoEntrySupported = !error;
+
+  if (!autoEntrySupported) {
+    console.warn(
+      '[Automation] ⚠️ Auto Entry columns not found — deliveries will be created undelivered as before. Apply Documentations/auto_entry_migration.md to enable the feature.'
+    );
+  }
+  return autoEntrySupported;
+}
+
 
 
 // ─────────────────────────────────────────────
@@ -45,48 +69,115 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
 
     const existingMap = new Set(existingDeliveries?.map((d: any) => `${d.customer_id}-${d.shift}`) || []);
 
+    // Probe for the Auto Entry columns. If the migration hasn't been applied we fall back
+    // to the previous behaviour (everything created undelivered) rather than failing.
+    const autoEntry = await isAutoEntrySupported();
+
     // 3. Identify missing records
     const deliveriesToCreate: any[] = [];
+
+    // Stock owed by auto-marked rows, aggregated per product. Deducted at creation
+    // because a row the driver never touches is never synced, so syncBatchDeliveries
+    // would never deduct it.
+    const autoStockByProduct = new Map<string, number>();
+    const addAutoStock = (productId: string | null, qty: number) => {
+      if (!productId || qty <= 0) return;
+      autoStockByProduct.set(productId, (autoStockByProduct.get(productId) || 0) + qty);
+    };
+
     customers.forEach((c: any) => {
       const freq = c.frequency || 'Morning Only';
+
+      // Strict true only. A NULL (migration not applied / not yet set) means "off".
+      const isAuto = autoEntry && c.auto_entry === true;
 
       const needsMorning = freq === 'Morning Only' || freq === 'Morning & Evening';
       const needsEvening = freq === 'Evening Only' || freq === 'Morning & Evening';
 
+      const base = {
+        customer_id: c.id,
+        franchise_id: c.franchise_id,
+        delivery_date: today,
+        product_id: c.default_product_id,
+        milk_qty: c.default_qty || 1,
+        sequence_no: Math.floor(Number(c.delivery_order) || 0),
+        // An auto row starts delivered AND already deducted, so that an uncheck later
+        // hits the existing "delivered -> undelivered" restore path in syncBatchDeliveries
+        // and puts the stock back exactly once.
+        delivered: isAuto,
+        inventory_deducted: isAuto,
+        auto_marked: isAuto,
+        misc_items: []
+      };
+
       if (needsMorning && !existingMap.has(`${c.id}-Morning Only`)) {
-        deliveriesToCreate.push({
-          customer_id: c.id,
-          franchise_id: c.franchise_id,
-          delivery_date: today,
-          shift: 'Morning Only',
-          product_id: c.default_product_id,
-          milk_qty: c.default_qty || 1,
-          sequence_no: Math.floor(Number(c.delivery_order) || 0),
-          delivered: false,
-          inventory_deducted: false,
-          misc_items: []
-        });
+        deliveriesToCreate.push({ ...base, shift: 'Morning Only' });
+        if (isAuto) addAutoStock(base.product_id, base.milk_qty);
       }
 
       if (needsEvening && !existingMap.has(`${c.id}-Evening Only`)) {
-        deliveriesToCreate.push({
-          customer_id: c.id,
-          franchise_id: c.franchise_id,
-          delivery_date: today,
-          shift: 'Evening Only',
-          product_id: c.default_product_id,
-          milk_qty: c.default_qty || 1,
-          sequence_no: Math.floor(Number(c.delivery_order) || 0),
-          delivered: false,
-          inventory_deducted: false,
-          misc_items: []
-        });
+        deliveriesToCreate.push({ ...base, shift: 'Evening Only' });
+        if (isAuto) addAutoStock(base.product_id, base.milk_qty);
       }
     });
 
     if (deliveriesToCreate.length > 0) {
-      const { error: insertError } = await supabase.from('deliveries').insert(deliveriesToCreate);
+      const { data: inserted, error: insertError } = await supabase
+        .from('deliveries')
+        .insert(deliveriesToCreate)
+        .select('id, auto_marked');
+
       if (insertError) throw insertError;
+
+      const insertedRows = (inserted || []) as { id: string; auto_marked: boolean }[];
+
+      // 3b. Deduct stock for auto-marked rows.
+      // Order matters: we insert first, then deduct. If the deduction fails we delete the
+      // rows we just created, so the next login retries cleanly instead of leaving rows
+      // that claim delivery without the stock having left the building.
+      if (autoStockByProduct.size > 0) {
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('id, name, stock')
+          .eq('franchise_id', franchiseId);
+
+        const productsById = new Map<string, T.Product>(
+          (productsData || []).map((p: any) => [p.id, p as T.Product])
+        );
+        const autoIds = insertedRows.filter((r) => r.auto_marked).map((r) => r.id);
+        let deductionFailed = false;
+
+        for (const [productId, qty] of autoStockByProduct.entries()) {
+          const prod = productsById.get(productId);
+          if (!prod) {
+            console.error(`[Automation] ⚠️ Auto Entry: product ${productId} not found, cannot deduct ${qty}`);
+            deductionFailed = true;
+            break;
+          }
+
+          const { error: stockError } = await supabase
+            .from('products')
+            .update({ stock: Math.max(0, (prod.stock || 0) - qty) })
+            .eq('id', productId);
+
+          if (stockError) {
+            console.error(`[Automation] ❌ Auto Entry stock deduction failed for ${prod.name}:`, stockError.message);
+            deductionFailed = true;
+            break;
+          }
+        }
+
+        if (deductionFailed) {
+          // Roll back the auto rows so the next reset retries the whole thing.
+          if (autoIds.length > 0) {
+            const { error: rollbackError } = await supabase.from('deliveries').delete().in('id', autoIds);
+            if (rollbackError) {
+              console.error('[Automation] ❌ CRITICAL: could not roll back auto-marked rows:', rollbackError.message);
+            }
+          }
+          throw new Error('Auto Entry stock deduction failed — route rows rolled back');
+        }
+      }
 
       // 1. Fetch current settings to merge
       const { data: currentSettings } = await supabase.from('system_settings').select('value').eq('franchise_id', franchiseId).eq('key', 'automation').maybeSingle();
@@ -99,7 +190,8 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
         value: { ...existingValue, lastRouteReset: today }
       });
 
-      console.log(`[Automation] ✅ Created ${deliveriesToCreate.length} missing route records for ${today}`);
+      const autoCount = insertedRows.filter((r) => r.auto_marked).length;
+      console.log(`[Automation] ✅ Created ${deliveriesToCreate.length} missing route records for ${today} (${autoCount} auto-marked)`);
       return { ran: true, message: `Added ${deliveriesToCreate.length} new records to today's route.` };
     }
 
@@ -471,6 +563,9 @@ export async function syncBatchDeliveries(
   const productById = new Map(products.map(p => [p.id, p]));
 
   // 2. Bulk Update deliveries
+  // Guard the auto_marked column so a sync still succeeds before the migration is applied.
+  const autoEntry = await isAutoEntrySupported();
+
   const dbUpdates = changedDeliveries.map(d => {
     // Calculate total cost
     const mainProd = productById.get(d.product_id || "");
@@ -482,7 +577,9 @@ export async function syncBatchDeliveries(
       if (p) total += (item.qty || 0) * p.price;
     });
 
-    return {
+    const initial = initialDeliveries.find(sd => sd.id === d.id);
+
+    const row: any = {
       id: d.id,
       customer_id: d.customer_id,
       franchise_id: d.franchise_id,
@@ -493,10 +590,21 @@ export async function syncBatchDeliveries(
       misc_items: d.misc_items,
       delivered: d.delivered,
       sequence_no: d.sequence_no,
+      // Bookkeeping only. The live deduct/restore helpers that read this flag are dead code;
+      // actual stock movement is driven by the delivered-transition cases below. Kept accurate
+      // anyway so reviving those helpers later wouldn't corrupt stock.
       inventory_deducted: d.delivered,
       billed: d.billed,
       total_cost: total
     };
+
+    if (autoEntry) {
+      // Drop the "auto" badge only when the driver actually flipped the delivered state.
+      // Quantity-only edits keep it, so the badge keeps meaning "not yet confirmed by hand".
+      row.auto_marked = initial && initial.delivered !== d.delivered ? false : (d.auto_marked ?? false);
+    }
+
+    return row;
   });
 
   const { error: upsertError } = await supabase

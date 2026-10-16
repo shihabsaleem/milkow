@@ -7,6 +7,7 @@ import { useState, useRef } from "react";
 import Modal from "@/components/ui/Modal";
 import * as T from "@/types/database";
 import CustomSelect from "@/components/ui/CustomSelect";
+import AutoEntryToggle from "@/components/ui/AutoEntryToggle";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import { useCustomerLogic } from "@/hooks/useCustomerLogic";
 
@@ -31,6 +32,7 @@ export default function CustomerProfilePage() {
       areas,
       editForm,
       setEditForm,
+      autoEntryAvailable,
       modalConfig,
       setModalConfig,
       fetchData,
@@ -553,6 +555,12 @@ export default function CustomerProfilePage() {
                            value={editForm.frequency}
                            onChange={val => setEditForm({ ...editForm, frequency: val })}
                         />
+                        {autoEntryAvailable && (
+                           <AutoEntryToggle
+                              enabled={editForm.auto_entry}
+                              onChange={val => setEditForm({ ...editForm, auto_entry: val })}
+                           />
+                        )}
                         <div className="grid grid-cols-2 gap-3">
                            <CustomSelect
                               label="Daily Product"

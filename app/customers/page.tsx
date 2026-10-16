@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Modal from "@/components/ui/Modal";
 import CustomSelect from "@/components/ui/CustomSelect";
+import AutoEntryToggle from "@/components/ui/AutoEntryToggle";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import { Plus, Search, MapPin, ChevronRight, X, ListOrdered } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,6 +26,7 @@ export default function CustomersPage() {
     setSelectedAreaId,
     newCustomer,
     setNewCustomer,
+    autoEntryAvailable,
     products,
     isLoading,
     isSubmitting,
@@ -209,6 +211,12 @@ export default function CustomersPage() {
                   value={newCustomer.frequency}
                   onChange={val => setNewCustomer({ ...newCustomer, frequency: val })}
                 />
+                {autoEntryAvailable && (
+                  <AutoEntryToggle
+                    enabled={newCustomer.auto_entry}
+                    onChange={val => setNewCustomer({ ...newCustomer, auto_entry: val })}
+                  />
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <CustomSelect
                     label="Daily Product"

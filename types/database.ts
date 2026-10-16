@@ -56,6 +56,7 @@ export interface Customer {
   phone: string;
   area_id: number;
   frequency: 'Morning Only' | 'Evening Only' | 'Morning & Evening';
+  auto_entry?: boolean;
   status: 'Active' | 'Inactive';
   delivery_order?: number;
   default_qty: number;
@@ -76,6 +77,7 @@ export interface Delivery {
   delivered: boolean;
   sequence_no: number;
   inventory_deducted: boolean;
+  auto_marked?: boolean;
   billed: boolean;
   created_at?: string;
 }

@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import * as T from "@/types/database";
-import { checkAndRunAutomations } from "@/lib/automation";
+import { checkAndRunAutomations, isAutoEntrySupported } from "@/lib/automation";
 
 export function useCustomersLogic() {
   const router = useRouter();
@@ -31,11 +31,20 @@ export function useCustomersLogic() {
     phone: "",
     area_id: "",
     frequency: "Morning Only",
+    auto_entry: false,
     outstanding: "",
     default_qty: "1",
     default_product_id: ""
   });
   const [products, setProducts] = useState<T.Product[]>([]);
+
+  // Whether the Auto Entry migration has been applied. The toggle is hidden until it has.
+  const [autoEntryAvailable, setAutoEntryAvailable] = useState(false);
+
+  useEffect(() => {
+    isAutoEntrySupported().then(setAutoEntryAvailable).catch(() => setAutoEntryAvailable(false));
+  }, []);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -146,6 +155,7 @@ export function useCustomersLogic() {
       phone: "",
       area_id: "",
       frequency: "Morning Only",
+      auto_entry: false,
       outstanding: "",
       default_qty: "1",
       default_product_id: ""
@@ -184,7 +194,10 @@ export function useCustomersLogic() {
           default_qty: parseInt(customerToSave.default_qty) || 1,
           default_product_id: customerToSave.default_product_id || null,
           past_outstanding: parseFloat(customerToSave.outstanding) || 0,
-          delivery_order: newOrder
+          delivery_order: newOrder,
+          // Only included once the migration has been applied — inserting a column that
+          // doesn't exist would fail the whole customer insert.
+          ...(autoEntryAvailable ? { auto_entry: customerToSave.auto_entry === true } : {})
         });
 
         if (insertError) {
@@ -235,6 +248,7 @@ export function useCustomersLogic() {
     setSelectedAreaId,
     newCustomer,
     setNewCustomer,
+    autoEntryAvailable,
     products,
     isLoading,
     isSubmitting,

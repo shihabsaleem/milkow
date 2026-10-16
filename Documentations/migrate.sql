@@ -39,6 +39,10 @@ ALTER TABLE bills ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchis
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
 ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS franchise_id UUID REFERENCES franchises(id) ON DELETE CASCADE DEFAULT '00000000-0000-0000-0000-000000000000';
 
+-- 2b. Auto Entry columns (per-customer pre-marked deliveries). See auto_entry_migration.sql.
+ALTER TABLE customers  ADD COLUMN IF NOT EXISTS auto_entry  BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE deliveries ADD COLUMN IF NOT EXISTS auto_marked BOOLEAN NOT NULL DEFAULT false;
+
 -- 3. Add multi-tenant unique constraints
 ALTER TABLE areas DROP CONSTRAINT IF EXISTS areas_name_key;
 ALTER TABLE areas ADD CONSTRAINT areas_name_franchise_id_key UNIQUE (name, franchise_id);

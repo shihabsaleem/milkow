@@ -205,6 +205,11 @@ export default function CustomerProfilePage() {
                               <div className="flex flex-col gap-1">
                                  <div className="flex items-center gap-1.5 text-mono-text-muted text-[13px] sm:text-sm font-medium"><MapPin size={14} className="text-mono-text-disabled" /> {customer.area?.name || 'No Area'}</div>
                                  <div className="flex items-center gap-1.5 text-mono-text-muted text-[13px] sm:text-sm font-medium"><Phone size={14} className="text-mono-text-disabled" /> {customer.phone}</div>
+                                 {customer.auto_entry === true && (
+                                    <span title="Deliveries for this customer are pre-ticked each shift." className="mt-0.5 self-start text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] bg-mono-surface text-mono-text border border-mono-border/60">
+                                       Auto Entry
+                                    </span>
+                                 )}
                               </div>
                            </div>
                            <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-card text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-mono-surface text-mono-text border-mono-border/60 ' : 'bg-mono-surface text-rose-600 border-rose-200'}`}>{customer.status}</button>

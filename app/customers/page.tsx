@@ -145,7 +145,17 @@ export default function CustomersPage() {
               <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 pr-2">
                 <div className={`h-12 w-12 rounded-sm flex items-center justify-center text-lg font-bold shrink-0 ${customer.status === 'Active' ? 'bg-mono-text/10 text-mono-text' : 'bg-mono-surface text-mono-text-disabled'}`}>{customer.name.charAt(0)}</div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-mono-text group-hover:text-mono-text transition-colors truncate">{customer.name}</h3>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h3 className="font-semibold text-mono-text group-hover:text-mono-text transition-colors truncate">{customer.name}</h3>
+                    {customer.auto_entry === true && (
+                      <span
+                        title="Auto Entry is on: this customer's deliveries are pre-ticked each shift."
+                        className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] shrink-0 bg-mono-surface text-mono-text border border-mono-border/60"
+                      >
+                        Auto
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-mono-text-disabled flex items-center gap-1 mt-0.5 truncate"><MapPin size={12} className="shrink-0" /> <span className="truncate">{customer.area?.name || 'No Area'}</span></p>
                 </div>
               </div>

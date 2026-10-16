@@ -76,30 +76,70 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
     // 3. Identify missing records
     const deliveriesToCreate: any[] = [];
 
-    // Stock owed by auto-marked rows, aggregated per product. Deducted at creation
-    // because a row the driver never touches is never synced, so syncBatchDeliveries
-    // would never deduct it.
-    const autoStockByProduct = new Map<string, number>();
-    const addAutoStock = (productId: string | null, qty: number) => {
-      if (!productId || qty <= 0) return;
-      autoStockByProduct.set(productId, (autoStockByProduct.get(productId) || 0) + qty);
-    };
+    // ── Stock gating for Auto Entry ───────────────────────────────────────────
+    // An auto-marked row is delivered the moment it is created, so it must be backed by
+    // real stock — otherwise we would bill a customer for milk we never had. Load stock up
+    // front, reserve it as we allocate, and only auto-mark customers we can fully cover.
+    // Anything we cannot cover is created undelivered, exactly as if Auto Entry were off,
+    // so the driver can still hand-deliver it (which deducts on the normal sync path).
+    //
+    // Allocation is greedy in route order (customers are already sorted by delivery_order),
+    // and a customer is never half-marked: a Morning & Evening customer needs stock for both.
+    const stockByProduct = new Map<string, number>();
+    const productNameById = new Map<string, string>();
+    const reservedByProduct = new Map<string, number>();
+
+    if (autoEntry) {
+      const { data: productsData } = await supabase
+        .from('products')
+        .select('id, name, stock')
+        .eq('franchise_id', franchiseId);
+
+      for (const p of productsData || []) {
+        stockByProduct.set(p.id, p.stock || 0);
+        productNameById.set(p.id, p.name);
+      }
+    }
 
     customers.forEach((c: any) => {
       const freq = c.frequency || 'Morning Only';
 
-      // Strict true only. A NULL (migration not applied / not yet set) means "off".
-      const isAuto = autoEntry && c.auto_entry === true;
-
       const needsMorning = freq === 'Morning Only' || freq === 'Morning & Evening';
       const needsEvening = freq === 'Evening Only' || freq === 'Morning & Evening';
+
+      // Only the shifts that don't already exist for today.
+      const newShifts: string[] = [];
+      if (needsMorning && !existingMap.has(`${c.id}-Morning Only`)) newShifts.push('Morning Only');
+      if (needsEvening && !existingMap.has(`${c.id}-Evening Only`)) newShifts.push('Evening Only');
+      if (newShifts.length === 0) return;
+
+      const productId: string | null = c.default_product_id ?? null;
+      const qty = c.default_qty || 1;
+      const required = qty * newShifts.length;
+
+      // Strict true only. A NULL (migration not applied / not yet set) means "off".
+      // `isAuto` stays false unless the whole customer is covered by available stock.
+      let isAuto = false;
+      if (autoEntry && c.auto_entry === true) {
+        if (!productId) {
+          console.warn(`[Automation] ⚠️ Auto Entry skipped for ${c.name}: no default product, so stock cannot be deducted.`);
+        } else if (!stockByProduct.has(productId)) {
+          console.warn(`[Automation] ⚠️ Auto Entry skipped for ${c.name}: product ${productId} not found in this franchise.`);
+        } else if ((stockByProduct.get(productId) || 0) < required) {
+          console.warn(`[Automation] ⚠️ Auto Entry skipped for ${c.name}: needs ${required} × ${productNameById.get(productId)}, only ${stockByProduct.get(productId)} in stock.`);
+        } else {
+          isAuto = true;
+          stockByProduct.set(productId, (stockByProduct.get(productId) || 0) - required);
+          reservedByProduct.set(productId, (reservedByProduct.get(productId) || 0) + required);
+        }
+      }
 
       const base = {
         customer_id: c.id,
         franchise_id: c.franchise_id,
         delivery_date: today,
-        product_id: c.default_product_id,
-        milk_qty: c.default_qty || 1,
+        product_id: productId,
+        milk_qty: qty,
         sequence_no: Math.floor(Number(c.delivery_order) || 0),
         // An auto row starts delivered AND already deducted, so that an uncheck later
         // hits the existing "delivered -> undelivered" restore path in syncBatchDeliveries
@@ -114,14 +154,8 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
         ...(autoEntry ? { auto_marked: isAuto } : {})
       };
 
-      if (needsMorning && !existingMap.has(`${c.id}-Morning Only`)) {
-        deliveriesToCreate.push({ ...base, shift: 'Morning Only' });
-        if (isAuto) addAutoStock(base.product_id, base.milk_qty);
-      }
-
-      if (needsEvening && !existingMap.has(`${c.id}-Evening Only`)) {
-        deliveriesToCreate.push({ ...base, shift: 'Evening Only' });
-        if (isAuto) addAutoStock(base.product_id, base.milk_qty);
+      for (const shift of newShifts) {
+        deliveriesToCreate.push({ ...base, shift });
       }
     });
 
@@ -135,40 +169,30 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
 
       const insertedRows = (inserted || []) as { id: string; auto_marked?: boolean }[];
 
-      // 3b. Deduct stock for auto-marked rows.
+      // 3b. Deduct the stock reserved above.
       // Order matters: we insert first, then deduct. If the deduction fails we delete the
       // rows we just created, so the next login retries cleanly instead of leaving rows
       // that claim delivery without the stock having left the building.
-      if (autoStockByProduct.size > 0) {
-        const { data: productsData } = await supabase
-          .from('products')
-          .select('id, name, stock')
-          .eq('franchise_id', franchiseId);
-
-        const productsById = new Map<string, T.Product>(
-          (productsData || []).map((p: any) => [p.id, p as T.Product])
-        );
+      if (reservedByProduct.size > 0) {
         const autoIds = autoEntry ? insertedRows.filter((r) => r.auto_marked).map((r) => r.id) : [];
         let deductionFailed = false;
 
-        for (const [productId, qty] of autoStockByProduct.entries()) {
-          const prod = productsById.get(productId);
-          if (!prod) {
-            console.error(`[Automation] ⚠️ Auto Entry: product ${productId} not found, cannot deduct ${qty}`);
-            deductionFailed = true;
-            break;
-          }
+        for (const [productId, qty] of reservedByProduct.entries()) {
+          // stockByProduct was decremented when we reserved, so it already holds the new value.
+          const newStock = Math.max(0, stockByProduct.get(productId) ?? 0);
 
           const { error: stockError } = await supabase
             .from('products')
-            .update({ stock: Math.max(0, (prod.stock || 0) - qty) })
+            .update({ stock: newStock })
             .eq('id', productId);
 
           if (stockError) {
-            console.error(`[Automation] ❌ Auto Entry stock deduction failed for ${prod.name}:`, stockError.message);
+            console.error(`[Automation] ❌ Auto Entry stock deduction failed for ${productNameById.get(productId) || productId}:`, stockError.message);
             deductionFailed = true;
             break;
           }
+
+          console.log(`[Automation] 📦 Auto Entry: deducted ${qty} × ${productNameById.get(productId) || productId}, stock now ${newStock}`);
         }
 
         if (deductionFailed) {

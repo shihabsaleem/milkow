@@ -4,6 +4,10 @@
 created pre-marked `delivered = true`, so the driver doesn't tap every daily customer each shift.
 Rows still appear on the run sheet and can be unchecked if the milk wasn't actually delivered.
 
+**Stock rule:** a row is only auto-marked when enough stock exists to cover that customer's full
+quantity for every shift being created — and the stock is deducted at that moment. If stock is
+short, the row is still created but left **undelivered**, for the driver to handle manually.
+
 **Status:** ✅ **applied** — verified against the live project: `customers.auto_entry` and
 `deliveries.auto_marked` both exist as `boolean NOT NULL DEFAULT false`. **No customer is enabled yet
 (0 of 253)**, so the customer **Auto** chips and the delivery-page **Auto** badge are still hidden.
@@ -193,6 +197,34 @@ SELECT COUNT(*) AS customers_now_enabled FROM customers WHERE auto_entry = true;
 **I recommend skipping this entirely** and enabling Auto Entry per customer through the UI.
 The default is deliberately off, because a wrongly-enabled customer gets billed for milk they
 never received.
+
+---
+
+## How Auto Entry decides what to mark
+
+On each route reset, for every auto-entry customer with a shift that doesn't exist yet:
+
+1. **Stock is checked first.** The reset needs `default_qty × (number of shifts being created)` units
+   of that customer's default product. A Morning & Evening customer needs stock for both shifts —
+   a customer is never half-marked.
+2. **If stock covers it**, the row is created `delivered = true`, `auto_marked = true`, and the stock
+   is deducted immediately (as one reserved total per product, after all rows are inserted).
+3. **If stock is short**, the row is still created, but left `delivered = false` with no `auto_marked`
+   badge. The driver delivers it normally, and the usual sync path deducts the stock then.
+
+Allocation is greedy in **route order** (`delivery_order`), so when stock is short the customers
+earlier in the run are served first. Skipped customers are logged:
+
+```
+[Automation] ⚠️ Auto Entry skipped for <name>: needs N × <product>, only M in stock.
+```
+
+Two edge cases also fall back to "not marked", because stock cannot be verified: a customer with no
+`default_product_id`, and a `default_product_id` that no longer exists.
+
+> **Concurrency caveat:** stock is read once per reset. Two logins at the same moment (or two tabs)
+> can both pass the check and both deduct. This is pre-existing and not made worse here, but it is
+> the main reason not to run route generation from two devices at once.
 
 ---
 

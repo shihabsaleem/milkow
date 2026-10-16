@@ -106,8 +106,12 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
         // and puts the stock back exactly once.
         delivered: isAuto,
         inventory_deducted: isAuto,
-        auto_marked: isAuto,
-        misc_items: []
+        misc_items: [],
+        // Omit the auto_marked KEY entirely unless the column exists. PostgREST rejects the whole
+        // statement when a payload key references a missing column — even when the value is
+        // `false` — so gating the value is not enough. Gating the key is what makes this
+        // genuinely deploy-safe before the migration is applied.
+        ...(autoEntry ? { auto_marked: isAuto } : {})
       };
 
       if (needsMorning && !existingMap.has(`${c.id}-Morning Only`)) {
@@ -125,11 +129,11 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
       const { data: inserted, error: insertError } = await supabase
         .from('deliveries')
         .insert(deliveriesToCreate)
-        .select('id, auto_marked');
+        .select(autoEntry ? 'id, auto_marked' : 'id');
 
       if (insertError) throw insertError;
 
-      const insertedRows = (inserted || []) as { id: string; auto_marked: boolean }[];
+      const insertedRows = (inserted || []) as { id: string; auto_marked?: boolean }[];
 
       // 3b. Deduct stock for auto-marked rows.
       // Order matters: we insert first, then deduct. If the deduction fails we delete the
@@ -144,7 +148,7 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
         const productsById = new Map<string, T.Product>(
           (productsData || []).map((p: any) => [p.id, p as T.Product])
         );
-        const autoIds = insertedRows.filter((r) => r.auto_marked).map((r) => r.id);
+        const autoIds = autoEntry ? insertedRows.filter((r) => r.auto_marked).map((r) => r.id) : [];
         let deductionFailed = false;
 
         for (const [productId, qty] of autoStockByProduct.entries()) {
@@ -190,7 +194,7 @@ export async function resetDailyRoute(franchiseId: string): Promise<{ ran: boole
         value: { ...existingValue, lastRouteReset: today }
       });
 
-      const autoCount = insertedRows.filter((r) => r.auto_marked).length;
+      const autoCount = autoEntry ? insertedRows.filter((r) => r.auto_marked).length : 0;
       console.log(`[Automation] ✅ Created ${deliveriesToCreate.length} missing route records for ${today} (${autoCount} auto-marked)`);
       return { ran: true, message: `Added ${deliveriesToCreate.length} new records to today's route.` };
     }

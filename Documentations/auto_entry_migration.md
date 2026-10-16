@@ -11,6 +11,10 @@ Rows still appear on the run sheet and can be unchecked if the milk wasn't actua
 > are not valid SQL — doing so gives `42601: syntax error at or near "#"`. Copy only the text inside
 > the fenced `sql` blocks.
 
+**▶ Runnable file: [`auto_entry_migration.sql`](./auto_entry_migration.sql)** — the same statements as
+§1 below, in a pure-SQL file. Open it, paste the whole thing into the SQL Editor, and Run. There is
+no Markdown in it, so select-all is safe. Use whichever you prefer; the two are identical.
+
 ---
 
 ## Before you run this
@@ -37,6 +41,8 @@ Copy everything inside the single block below into the Supabase dashboard → **
 It adds both columns and prints the verification table at the bottom.
 
 ```sql
+BEGIN;
+
 ALTER TABLE customers
   ADD COLUMN IF NOT EXISTS auto_entry BOOLEAN NOT NULL DEFAULT false;
 
@@ -49,6 +55,9 @@ ALTER TABLE deliveries
 COMMENT ON COLUMN deliveries.auto_marked IS
   'True if this row was auto-marked delivered at creation. Cleared when the driver explicitly toggles the delivery.';
 
+COMMIT;
+
+-- Verification — expect exactly two rows.
 SELECT column_name, data_type, column_default, is_nullable
 FROM information_schema.columns
 WHERE table_name IN ('customers', 'deliveries')

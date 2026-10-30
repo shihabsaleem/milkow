@@ -41,12 +41,10 @@ export async function fetchCustomerBalance(customerId: string): Promise<number> 
 export async function recordPayment(customerId: string, amountVal: number, methodVal: string, notesVal: string) {
    const [
       { data: customer },
-      { data: unbilledDeliveries },
-      { data: freshFinancials }
+      { data: unbilledDeliveries }
    ] = await Promise.all([
       supabase.from('customers').select('*').eq('id', customerId).single(),
-      supabase.from('deliveries').select('*').eq('customer_id', customerId).eq('delivered', true).eq('billed', false),
-      supabase.from('customer_financials').select('*').eq('id', customerId).single()
+      supabase.from('deliveries').select('*').eq('customer_id', customerId).eq('delivered', true).eq('billed', false)
    ]);
 
    if (!customer) throw new Error("Customer not found");

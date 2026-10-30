@@ -113,7 +113,7 @@ export function useCustomersLogic() {
           if (parsed.areas) setAreas(parsed.areas);
           if (parsed.products) setProducts(parsed.products);
           setIsLoading(false);
-       } catch (e) {}
+       } catch {}
     }
 
     fetchData(!!cachedPage);
@@ -126,7 +126,7 @@ export function useCustomersLogic() {
       .subscribe();
 
     return () => { sub.unsubscribe(); };
-  }, [fetchData]);
+  }, [fetchData, activeFranchiseId]);
 
   useEffect(() => {
     localStorage.setItem('milkow_selected_route', selectedAreaId);

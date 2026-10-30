@@ -179,7 +179,7 @@ export function useDashboardLogic() {
         if (parsed.deliveredCount !== undefined) setDeliveredCount(parsed.deliveredCount);
         if (parsed.pendingCount !== undefined) setPendingCount(parsed.pendingCount);
         setIsLoading(false); // Disable skeleton immediately since we have cached data
-      } catch (e) {}
+      } catch {}
     }
 
     fetchDashboardData(!!cached);
@@ -199,7 +199,7 @@ export function useDashboardLogic() {
       setSub.unsubscribe();
       paySub.unsubscribe();
     };
-  }, [fetchDashboardData]);
+  }, [fetchDashboardData, activeFranchiseId, date, shift]);
 
   const handleShiftToggle = (newShift: "morning" | "evening") => {
     setManualOverride(true);

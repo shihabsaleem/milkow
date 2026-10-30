@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -9,7 +9,7 @@ import { isAutoEntrySupported } from "@/lib/automation";
 
 export function useCustomerLogic(
    customerIdParam: string,
-   screenshotRef: React.RefObject<HTMLDivElement | null>
+   _screenshotRef: React.RefObject<HTMLDivElement | null>
 ) {
    const router = useRouter();
    const { franchiseId, impersonatedFranchiseId, role } = useAuth();
@@ -17,7 +17,7 @@ export function useCustomerLogic(
 
    const [customer, setCustomer] = useState<(T.Customer & { area: T.Area }) | null>(null);
    const [financials, setFinancials] = useState<T.CustomerFinancials | null>(null);
-   const [isCapturing, setIsCapturing] = useState(false);
+   const [isCapturing] = useState(false);
    const [bills, setBills] = useState<T.Bill[]>([]);
    const [deliveries, setDeliveries] = useState<T.Delivery[]>([]);
    const [allUnbilledDeliveries, setAllUnbilledDeliveries] = useState<T.Delivery[]>([]);
@@ -125,7 +125,7 @@ export function useCustomerLogic(
          .subscribe();
 
       return () => { sub.unsubscribe(); };
-   }, [fetchData]);
+   }, [fetchData, activeFranchiseId]);
 
    const prices: Record<string, number> = {};
    products.forEach(p => prices[p.name] = Number(p.price));

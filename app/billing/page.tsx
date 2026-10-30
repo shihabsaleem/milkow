@@ -1,17 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import config from "@/config.json";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
 import { QrCode, MessageCircle, Wallet2, CheckCircle2, X, Check, MapPin, Search, Share2, ChevronDown } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import Modal from "@/components/ui/Modal";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import * as T from "@/types/database";
-import { recordPayment, settleAllDues } from "@/lib/financials";
+import { recordPayment } from "@/lib/financials";
 import { useBillingLogic } from "@/hooks/useBillingLogic";
 
 export default function BillingPage() {

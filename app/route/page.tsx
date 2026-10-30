@@ -120,7 +120,7 @@ export default function RouteOrderPage() {
 
       if (areaData) {
         setAreas(areaData as T.Area[]);
-        if (areaData.length > 0 && !selectedAreaId) setSelectedAreaId(areaData[0].id.toString());
+        if (areaData.length > 0) setSelectedAreaId(prev => prev || areaData[0].id.toString());
       }
 
       if (custData) {
@@ -147,11 +147,11 @@ export default function RouteOrderPage() {
         const parsed = JSON.parse(cachedPage);
         if (parsed.areas) {
           setAreas(parsed.areas);
-          if (parsed.areas.length > 0 && !selectedAreaId) setSelectedAreaId(parsed.areas[0].id.toString());
+          if (parsed.areas.length > 0) setSelectedAreaId(prev => prev || parsed.areas[0].id.toString());
         }
         if (parsed.customers) setCustomers(parsed.customers);
         setIsLoading(false);
-      } catch (e) { }
+      } catch { }
     }
 
     fetchData(!!cachedPage);
@@ -286,7 +286,7 @@ export default function RouteOrderPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center text-xs text-mono-text-disabled mt-3"
           >
-            Unsaved changes — tap "Save" to apply
+            Unsaved changes — tap &quot;Save&quot; to apply
           </motion.p>
         )}
       </main>

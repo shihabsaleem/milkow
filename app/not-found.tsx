@@ -20,7 +20,7 @@ export default function NotFound() {
         <h2 className="text-xl font-semibold text-mono-text-muted mb-4">Page Not Found</h2>
         
         <p className="text-sm font-medium text-mono-text-muted mb-8 leading-relaxed">
-          The page you are looking for doesn't exist or you don't have permission to view it.
+          The page you are looking for doesn&apos;t exist or you don&apos;t have permission to view it.
         </p>
 
         <Link 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, X, Sunrise, Sunset, CloudUpload, ChevronRight, Check, PackagePlus, PackageSearch, Search, Minus, Plus, Wallet2, MoreVertical, ArrowRight, RefreshCw, ArrowDownUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -8,11 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import Modal from "@/components/ui/Modal";
-import * as T from "@/types/database";
-import { recordPayment, fetchCustomerBalance } from "@/lib/financials";
 import { useDeliveryLogic } from "@/hooks/useDeliveryLogic";
-
-type DeliveryWithCustomer = T.Delivery & { customer: T.Customer & { financials?: { current_balance: number } } };
 
 export default function DeliveryPage() {
    const router = useRouter();
@@ -29,7 +25,6 @@ export default function DeliveryPage() {
       products,
       routesList,
       shift,
-      manualShift,
       setManualShift,
       isLoading,
       isSyncing,
@@ -64,16 +59,7 @@ export default function DeliveryPage() {
 
    const [isRouteMenuOpen, setIsRouteMenuOpen] = useState(false);
    const [expandedStopId, setExpandedStopId] = useState<string | null>(null);
-   const [editingSeqId, setEditingSeqId] = useState<string | null>(null);
-   const [editSeqVal, setEditSeqVal] = useState("");
    const [isDevMenuOpen, setIsDevMenuOpen] = useState(false);
-
-   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-   const [paymentAmount, setPaymentAmount] = useState("");
-   const [paymentMethod, setPaymentMethod] = useState("Cash");
-   const [paymentNotes, setPaymentNotes] = useState("");
-   const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<string | null>(null);
-   const [paymentTotalDue, setPaymentTotalDue] = useState<number | null>(null);
 
    const [markedSeq, setMarkedSeq] = useState<string[]>([]);
 
@@ -293,8 +279,8 @@ export default function DeliveryPage() {
                               <div className="flex items-start gap-3">
                                  <div className="mt-0.5 shrink-0 w-8 h-8 rounded-sm bg-mono-border" />
                                  <div className="flex flex-col w-full">
-                                    <div className="h-5 bg-mono-border rounded-md w-3/4 max-w-[160px] mb-1.5" />
-                                    <div className="h-4 bg-mono-surface rounded-md w-1/2 max-w-[100px]" />
+                                    <div className="h-5 bg-mono-border rounded-md w-3/4 max-w-40 mb-1.5" />
+                                    <div className="h-4 bg-mono-surface rounded-md w-1/2 max-w-25" />
                                  </div>
                               </div>
                            </div>

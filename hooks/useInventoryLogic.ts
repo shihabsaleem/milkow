@@ -144,7 +144,7 @@ export function useInventoryLogic() {
           if (parsed.dailyPrices) setDailyPrices(parsed.dailyPrices);
           if (parsed.closedShifts) setClosedShifts(parsed.closedShifts);
           setIsLoading(false);
-       } catch (e) {}
+       } catch {}
     }
 
     fetchData(!!cachedPage);
@@ -155,7 +155,7 @@ export function useInventoryLogic() {
       .subscribe();
 
     return () => { sub.unsubscribe(); };
-  }, [fetchData]);
+  }, [fetchData, activeFranchiseId]);
 
   const handleSaveProduct = async (e: React.FormEvent) => {
       e.preventDefault();

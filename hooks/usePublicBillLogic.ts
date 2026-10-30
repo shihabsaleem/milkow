@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import config from "@/config.json";
 import { getPublicBill, FullLedgerResponse } from "@/app/bill/actions";
 import * as T from "@/types/database";
 
@@ -22,10 +21,12 @@ export function usePublicBillLogic(initialPhone?: string) {
           if (res.error) {
             setError(res.error);
             setBillData(null);
+            setPaytmOrderId(null);
           } else if (res.success && res.data) {
             setBillData(res.data);
+            setPaytmOrderId(null);
           }
-        } catch (err) {
+        } catch {
           setError("Failed to fetch bill details. Please check your connection.");
         } finally {
           setIsLoading(false);
@@ -61,10 +62,12 @@ export function usePublicBillLogic(initialPhone?: string) {
       if (res.error) {
         setError(res.error);
         setBillData(null);
+        setPaytmOrderId(null);
       } else if (res.success && res.data) {
         setBillData(res.data);
+        setPaytmOrderId(null);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to fetch bill details. Please check your connection.");
     } finally {
       setIsLoading(false);
@@ -80,8 +83,9 @@ export function usePublicBillLogic(initialPhone?: string) {
 
   useEffect(() => {
     if (billData && billData.paytmSettings?.enabled) {
-      const amount = billData.financials.current_balance;
+      const amount = billData.financials?.current_balance ?? 0;
       if (amount > 0) {
+        let ignore = false;
         fetch('/api/paytm/generate', {
           method: 'POST',
           body: JSON.stringify({
@@ -93,13 +97,15 @@ export function usePublicBillLogic(initialPhone?: string) {
         })
         .then(res => res.json())
         .then(data => {
-           if (data.success) {
+           if (!ignore && data.success) {
               setPaytmOrderId(data.orderId);
            }
         }).catch(err => console.error("Paytm init failed:", err));
+
+        return () => {
+          ignore = true;
+        };
       }
-    } else {
-      setPaytmOrderId(null);
     }
   }, [billData]);
 

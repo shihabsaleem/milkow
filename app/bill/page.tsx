@@ -6,8 +6,8 @@ import { QRCodeCanvas } from "qrcode.react";
 import {
    AlertCircle, Share2, Check, RefreshCw, Smartphone,
    CheckCircle2, Copy, ArrowLeft, MapPin, Phone,
-   Receipt, Calendar, List, Clock, X, ChevronLeft, ChevronRight,
-   ChevronUp, ChevronDown, Globe, MessageCircle
+   Receipt, Clock, ChevronLeft, ChevronRight,
+   ChevronUp, ChevronDown, Globe
 } from "lucide-react";
 
 const InstagramIcon = ({ size = 24, className = "" }: { size?: number | string, className?: string }) => (

@@ -17,7 +17,7 @@ export function InventoryCard({ item }: { item: T.InventoryItem }) {
       </div>
 
       {/* Progress bar */}
-      <div className="w-full h-[3px] bg-mono-divider rounded-full overflow-hidden">
+      <div className="w-full h-0.75 bg-mono-divider rounded-full overflow-hidden">
         <div className="h-full bg-mono-text rounded-full transition-all" style={{ width: `${progress}%` }} />
       </div>
 
@@ -45,7 +45,7 @@ export function DeliveredCard({ item }: { item: DeliveredItem }) {
   );
 }
 
-export function FinanceCard({ amount, label, badge, type }: { amount: string; label: string; badge: string; type: "green" | "red" | "blue" }) {
+export function FinanceCard({ amount, label, badge, type: _type }: { amount: string; label: string; badge: string; type: "green" | "red" | "blue" }) {
   return (
     <div className="rounded-card p-4 bg-white border border-mono-border flex flex-col gap-3 justify-between">
       <div>

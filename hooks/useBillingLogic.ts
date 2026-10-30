@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import config from "@/config.json";
 import QRCode from "qrcode";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import * as T from "@/types/database";
-import { recordPayment, settleAllDues } from "@/lib/financials";
+import { settleAllDues } from "@/lib/financials";
 
-export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
+export function useBillingLogic(_qrRef: React.RefObject<HTMLDivElement | null>) {
    const { franchiseId, impersonatedFranchiseId, role } = useAuth();
    const activeFranchiseId = role === 'superadmin' ? ((impersonatedFranchiseId || franchiseId || '00000000-0000-0000-0000-000000000000')) : (franchiseId || '00000000-0000-0000-0000-000000000000');
 
    const [bills, setBills] = useState<(T.Bill & { customer: T.Customer })[]>([]);
-   const [products, setProducts] = useState<T.Product[]>([]);
+   const [, setProducts] = useState<T.Product[]>([]);
    const [routesList, setRoutesList] = useState<T.Area[]>([]);
    const [paymentSettings, setPaymentSettings] = useState<T.PaymentSetup | null>(null);
    const [paytmSettings, setPaytmSettings] = useState<any>(null);
@@ -42,7 +41,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
          { data: routeSets },
          { data: financialsData },
          { data: productList },
-         { data: unbilledData },
+         { data: _unbilledData },
          { data: settingsData },
          { data: paytmData },
          { data: customersData }
@@ -130,7 +129,7 @@ export function useBillingLogic(qrRef: React.RefObject<HTMLDivElement | null>) {
             if (parsed.paymentSettings) setPaymentSettings(parsed.paymentSettings);
             if (parsed.paytmSettings) setPaytmSettings(parsed.paytmSettings);
             setIsLoading(false);
-         } catch (e) { }
+         } catch { }
       }
 
       fetchData(!!cachedPage);

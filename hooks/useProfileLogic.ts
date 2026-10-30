@@ -47,7 +47,7 @@ export function useProfileLogic() {
   const { franchiseId, impersonatedFranchiseId, role } = useAuth();
   const activeFranchiseId = role === 'superadmin' ? ((impersonatedFranchiseId || franchiseId || '00000000-0000-0000-0000-000000000000')) : (franchiseId || '00000000-0000-0000-0000-000000000000');
 
-  const fetchSettings = useCallback(async (silent = false) => {
+  const fetchSettings = useCallback(async (_silent = false) => {
     const { data } = await supabase.from('system_settings').select('*').eq('franchise_id', activeFranchiseId).eq('key', 'general').maybeSingle();
     if (data) {
       const val = data.value as T.Settings;
@@ -87,7 +87,7 @@ export function useProfileLogic() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'areas', filter: `franchise_id=eq.${activeFranchiseId}` }, () => fetchSettings(true))
       .subscribe();
     return () => { sub.unsubscribe(); };
-  }, [fetchSettings]);
+  }, [fetchSettings, activeFranchiseId]);
 
   const handleSave = async () => {
     setIsSaved(true);

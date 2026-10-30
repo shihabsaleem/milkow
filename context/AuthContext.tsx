@@ -200,6 +200,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
        isMounted = false;
        subscription.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const logout = async () => {

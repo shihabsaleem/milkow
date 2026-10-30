@@ -16,7 +16,7 @@ interface Franchise {
 
 export default function SuperadminDashboard() {
   const router = useRouter();
-  const { user, role, impersonatedFranchiseId, setImpersonatedFranchiseId, logout } = useAuth();
+  const { role, impersonatedFranchiseId, setImpersonatedFranchiseId, logout } = useAuth();
   const [franchises, setFranchises] = useState<Franchise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);

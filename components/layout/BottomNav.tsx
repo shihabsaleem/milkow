@@ -1,5 +1,5 @@
 "use client";
-import { Home, Truck, Wallet2, Users, Package, ShieldCheck } from "lucide-react";
+import { Home, Truck, Users, Package } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -27,7 +27,7 @@ export default function BottomNav() {
       className="fixed bg-mono-text bottom-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1rem)] mb-2 md:w-1/3 rounded-card"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="flex items-center justify-between max-w-2xl mx-auto h-[60px]">
+      <div className="flex items-center justify-between max-w-2xl mx-auto h-15">
         {navItems.map((item, i) => {
           const active = pathname === item.href;
           return (

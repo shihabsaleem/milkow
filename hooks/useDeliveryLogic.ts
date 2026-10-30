@@ -13,7 +13,7 @@ export function useDeliveryLogic() {
 
    const [deliveries, setDeliveries] = useState<DeliveryWithCustomer[]>([]);
    const [serverDeliveries, setServerDeliveries] = useState<DeliveryWithCustomer[]>([]);
-   const [isSyncing, setIsSyncing] = useState(false);
+   const [isSyncing] = useState(false);
    const isSubmitting = useRef(false);
    const [isShiftClosed, setIsShiftClosed] = useState(false);
    const [isStagingCollapsed, setIsStagingCollapsed] = useState(false);
@@ -146,7 +146,7 @@ export function useDeliveryLogic() {
             if (parsed.deliveries) setDeliveries(parsed.deliveries);
             if (parsed.isShiftClosed !== undefined) setIsShiftClosed(parsed.isShiftClosed);
             setIsLoading(false);
-         } catch (e) {}
+         } catch {}
       }
 
       fetchData(!!cachedPage);

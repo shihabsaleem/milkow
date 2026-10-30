@@ -1,11 +1,10 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, Camera, RotateCcw, ArrowDown, Share2, MoreVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Clock, Receipt, Trash2, Edit2, X, ArrowDown, Share2, MoreVertical, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef } from "react";
 import Modal from "@/components/ui/Modal";
-import * as T from "@/types/database";
 import CustomSelect from "@/components/ui/CustomSelect";
 import AutoEntryToggle from "@/components/ui/AutoEntryToggle";
 import PullToRefresh from "@/components/ui/PullToRefresh";
@@ -20,11 +19,9 @@ export default function CustomerProfilePage() {
    const {
       customer,
       financials,
-      bills,
       currentDeliveriesAmount,
       billsBalance,
       deliveries,
-      allUnbilledDeliveries,
       payments,
       products,
       isLoading,
@@ -36,7 +33,6 @@ export default function CustomerProfilePage() {
       modalConfig,
       setModalConfig,
       fetchData,
-      isCapturing,
       monthName,
       yearName,
       calculateDeliveryTotal,
@@ -48,14 +44,12 @@ export default function CustomerProfilePage() {
       runRecordPayment,
       // handleRecordReturn, // Return Item disabled
       changeMonth,
-      handleCaptureScreenshot,
       isSubmitting
    } = useCustomerLogic(customerIdParam, screenshotRef);
 
    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
    const [paymentAmount, setPaymentAmount] = useState("");
    const [paymentMethod, setPaymentMethod] = useState("Cash");
    const [paymentNotes, setPaymentNotes] = useState("");
@@ -123,7 +117,7 @@ export default function CustomerProfilePage() {
             </div>
             <div className="text-center">
                <p className="font-semibold text-mono-text">Customer not found</p>
-               <p className="text-sm text-mono-text-disabled">The customer you're looking for doesn't exist.</p>
+               <p className="text-sm text-mono-text-disabled">The customer you&apos;re looking for doesn&apos;t exist.</p>
             </div>
             <button onClick={() => router.back()} className="mt-2 px-6 py-2 bg-white border border-mono-border rounded-card font-bold text-mono-text shadow-sm active:scale-95 transition-all">
                Go Back
@@ -210,7 +204,7 @@ export default function CustomerProfilePage() {
                            <div className="flex flex-col items-end gap-2 shrink-0">
                               <button onClick={toggleStatus} className={`px-2 sm:px-3 py-1.5 rounded-card text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all border ${customer.status === 'Active' ? 'bg-mono-surface text-mono-text border-mono-border/60 ' : 'bg-mono-surface text-rose-600 border-rose-200'}`}>{customer.status}</button>
                               {customer.auto_entry !== undefined && (
-                                 <span title={customer.auto_entry ? "Deliveries for this customer are pre-ticked each shift." : "The driver ticks this customer's deliveries manually."} className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] border ${customer.auto_entry ? "bg-mono-text text-white border-mono-text" : "bg-mono-surface text-mono-text-disabled border-mono-border/60"}`}>
+                                 <span title={customer.auto_entry ? "Deliveries for this customer are pre-ticked each shift." : "The driver ticks this customer's deliveries manually."} className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm border ${customer.auto_entry ? "bg-mono-text text-white border-mono-text" : "bg-mono-surface text-mono-text-disabled border-mono-border/60"}`}>
                                     {customer.auto_entry ? "Auto" : "Manual"}
                                  </span>
                               )}
@@ -332,7 +326,7 @@ export default function CustomerProfilePage() {
                                                       <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-mono-divider flex flex-col gap-2 pl-13 sm:pl-16">
                                                          {dayDeliveries.map((delivery, dIdx) => (
                                                             <div key={dIdx} className={`flex flex-col gap-1.5 ${dIdx > 0 ? "pt-2 border-t border-mono-divider" : ""}`}>
-                                                               <p className="font-bold text-[13px] sm:text-[15px] text-mono-text leading-tight truncate max-w-[150px] sm:max-w-none">
+                                                               <p className="font-bold text-[13px] sm:text-[15px] text-mono-text leading-tight truncate max-w-37.5 sm:max-w-none">
                                                                   {[
                                                                      delivery.milk_qty > 0 ? `${delivery.milk_qty} Milk` : null,
                                                                      ...(delivery.misc_items || []).map((m: any) => `${m.qty} ${m.name}`)

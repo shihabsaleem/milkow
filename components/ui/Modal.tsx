@@ -75,7 +75,7 @@ export default function Modal({
                     {dontShowAgain && <Check size={12} strokeWidth={4} />}
                   </button>
                   <span className="text-xs font-bold text-mono-text-disabled uppercase tracking-wider cursor-pointer" onClick={() => setDontShowAgain(!dontShowAgain)}>
-                    Don't show this again
+                    Don&apos;t show this again
                   </span>
                 </div>
               )}

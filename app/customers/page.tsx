@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 
 import Link from "next/link";
 import Modal from "@/components/ui/Modal";
@@ -108,7 +108,7 @@ export default function CustomersPage() {
 
             <div className={`transition-all duration-300 ease-in-out flex shrink-0 h-full ${isSearchExpanded || searchTerm
               ? 'w-12 opacity-100'
-              : 'flex-1 opacity-100 sm:w-1/4 sm:min-w-[150px]'
+              : 'flex-1 opacity-100 sm:w-1/4 sm:min-w-37.5'
               }`}>
               <div className="w-full flex items-center h-full">
                 <CustomSelect
@@ -152,7 +152,7 @@ export default function CustomersPage() {
                         title={customer.auto_entry
                           ? "Auto Entry is on: this customer's deliveries are pre-ticked each shift."
                           : "Manual entry: the driver ticks this customer's deliveries."}
-                        className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] shrink-0 border ${
+                        className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0 border ${
                           customer.auto_entry
                             ? "bg-mono-text text-white border-mono-text"
                             : "bg-mono-surface text-mono-text-disabled border-mono-border/60"
@@ -170,7 +170,7 @@ export default function CustomersPage() {
                   <p className={`text-sm font-semibold text-mono-text leading-tight`}>
                     ₹{Math.abs(customer.financials?.current_balance || 0).toLocaleString()}
                   </p>
-                  <p className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-[4px] border mt-0.5 ${customer.financials && customer.financials.current_balance < 0
+                  <p className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-sm border mt-0.5 ${customer.financials && customer.financials.current_balance < 0
                       ? 'text-mono-text bg-mono-surface border-mono-border'
                       : 'text-mono-text bg-mono-surface border-mono-border'
                     }`}>
